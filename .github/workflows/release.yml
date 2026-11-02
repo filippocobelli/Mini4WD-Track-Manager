@@ -1,0 +1,78 @@
+name: Release
+
+# Si avvia quando viene pubblicato un tag di versione (es. v1.0.0).
+# Crea una GitHub Release con: .dmg (macOS), .exe installer + portable (Windows) e il file HTML unico.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Il tag deve coincidere con la versione
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          APPV=$(grep -oE 'const APP_VERSION="[^"]+"' app/index.html | cut -d'"' -f2)
+          echo "tag=$TAG package.json=$PKG app=$APPV"
+          test "$TAG" = "$PKG" && test "$TAG" = "$APPV"
+          grep -qE "^## \[?v?$TAG" CHANGELOG.md || (echo "Manca la sezione $TAG in CHANGELOG.md" && exit 1)
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: --mac
+          - os: windows-latest
+            target: --win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:web
+      - name: Build desktop
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            dist/web/*.html
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+      - name: Note di rilascio dal CHANGELOG
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > notes.md
+      - name: Raccogli i file
+        run: |
+          mkdir -p files
+          find out -type f \( -name '*.dmg' -o -name '*.exe' \) -exec cp {} files/ \;
+          find out -type f -name '*.html' | head -n 1 | xargs -I{} cp {} files/
+          ls -la files
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Mini4WD Track Planner ${{ github.ref_name }}
+          body_path: notes.md
+          files: files/*

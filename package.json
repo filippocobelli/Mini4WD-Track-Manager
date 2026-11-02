@@ -1,0 +1,50 @@
+{
+  "name": "mini4wd-track-manager",
+  "productName": "Mini4WD Track Planner",
+  "version": "1.0.0",
+  "description": "Progettazione di piste Mini4WD a 2 corsie con pezzi stampati in 3D: pianta 2D, vista 3D, distinta pezzi, magazzino e generatore di tracciati.",
+  "author": "Filippo Cobelli",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "build:web": "node scripts/build.mjs",
+    "start": "npm run build:web && electron .",
+    "dist:mac": "npm run build:web && electron-builder --mac --publish never",
+    "dist:win": "npm run build:web && electron-builder --win --publish never",
+    "version": "node scripts/sync-version.mjs && git add app/index.html"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "three": "0.128.0"
+  },
+  "build": {
+    "appId": "uk.cobelli.mini4wd-track-planner",
+    "productName": "Mini4WD Track Planner",
+    "copyright": "© Filippo Cobelli",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["electron/**", "desktop/**", "package.json"],
+    "artifactName": "Mini4WD-Track-Planner-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.png",
+      "identity": null
+    },
+    "dmg": { "title": "Mini4WD Track Planner ${version}" },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Mini4WD-Track-Planner-${version}-win-setup.${ext}"
+    },
+    "portable": { "artifactName": "Mini4WD-Track-Planner-${version}-win-portable.${ext}" }
+  }
+}
