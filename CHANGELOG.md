@@ -5,6 +5,11 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [1.0.1] - 2026-11-02
+
+- README con descrizione del progetto, spiegazione di magazzino, generatori di tracciati ed elementi extra.
+- Screenshot di tutte le sezioni in `docs/screenshots/`.
+
 ## [1.0.0] - 2026-11-02
 
 Prima versione pubblicata come release, con app desktop.
