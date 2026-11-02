@@ -43,11 +43,12 @@ npm run build:web    # crea il file HTML unico in dist/web/
 
 ## Pubblicare una nuova versione
 
-Ogni build ha un numero di versione. Per rilasciare:
+Ogni build ha un numero di versione (MAJOR.MINOR.PATCH). Per rilasciare:
 
 1. Aggiungi la sezione della nuova versione in `CHANGELOG.md`.
-2. `npm version patch` (oppure `minor` / `major`): aggiorna `package.json` e `app/index.html`, crea commit e tag.
-3. `git push --follow-tags`
+2. `npm version patch` (oppure `minor` / `major`): aggiorna `package.json` e `app/index.html` e crea il commit.
+3. `git push`
 
-GitHub Actions costruisce `.dmg` ed `.exe` e crea la Release con anche il file HTML.
-Il workflow si ferma se tag, `package.json`, `app/index.html` e `CHANGELOG.md` non hanno la stessa versione.
+Quando su `main` arriva una versione non ancora rilasciata, GitHub Actions costruisce `.dmg` ed `.exe`,
+crea il tag `vX.Y.Z` e la Release con anche il file HTML. Le push senza cambio di versione non generano build.
+Il workflow si ferma se `package.json`, `app/index.html` e `CHANGELOG.md` non hanno la stessa versione.
