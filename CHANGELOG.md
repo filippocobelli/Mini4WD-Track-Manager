@@ -5,6 +5,12 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [1.0.3] - 2026-11-02
+
+- Magazzino: la tabella con + e − resta sempre a altezza piena; lo storico non la accorcia più.
+- Storico in un riquadro fisso da 5 righe che scorre al suo interno, con il conteggio dei movimenti.
+- Lo stesso difetto (blocchi che si restringevano) è corretto in tutte le schede del pannello.
+
 ## [1.0.2] - 2026-11-02
 
 - Magazzino: premendo + o − la pagina non scorre più verso l'alto spinta dallo storico.

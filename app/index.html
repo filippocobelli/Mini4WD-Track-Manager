@@ -40,6 +40,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow-anchor:none}
 .pane{overflow-anchor:none}
+.pane>*{flex-shrink:0}
 body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:inherit}
@@ -129,7 +130,9 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 .qty{display:inline-flex;align-items:center;gap:4px}
 .qty button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--bg);cursor:pointer;font:600 15px/1 var(--mono)}
 .qty input{width:60px}
-.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.log{list-style:none;margin:0;padding:0 8px 0 0;display:flex;flex-direction:column;max-height:calc(5 * 2.6rem);overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.log li{min-height:2.6rem;box-sizing:border-box}
+.log li:last-child{border-bottom:0}
 .log li{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
 .log time{font:12px var(--mono);color:var(--muted);white-space:nowrap}
 .log .pos{color:var(--ok);font-family:var(--mono)} .log .neg{color:var(--bad);font-family:var(--mono)}
@@ -235,7 +238,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 "use strict";
-const APP_VERSION="1.0.2";
+const APP_VERSION="1.0.3";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -754,7 +757,6 @@ function setOwned(id,val,note){
   else st.log.unshift({t:now,p:id,q:val-old,n:note||""});
   if(st.log.length>300)st.log.length=300;
 }
-let logAll=false;
 function paneInv(){
   const ids=[...st.parts.map(p=>p.id),"clip"];let tot=0;
   let h=`<p class="note">I pezzi stampati che hai. Ogni modifica finisce nello storico qui sotto e viene usata da «Pezzi» e «Idee».</p><div class="tw"><table><thead><tr><th>Parte</th><th class="n">Nel kit</th><th class="n">In magazzino</th></tr></thead><tbody>`;
@@ -762,10 +764,10 @@ function paneInv(){
     h+=`<tr><td>${esc(partName(id))}</td><td class="n">${p&&p.kit?p.kit:"–"}</td><td class="n"><span class="qty"><button data-inc="${id}" data-q="-1" aria-label="Togli uno ${esc(partName(id))}">−</button><input type="number" min="0" id="inv-${id}" aria-label="In magazzino ${esc(partName(id))}" data-own="${id}" value="${o}"><button data-inc="${id}" data-q="1" aria-label="Aggiungi uno ${esc(partName(id))}">+</button></span></td></tr>`;}
   h+=`</tbody><tfoot><tr><td>Totale pezzi pista</td><td></td><td class="n">${tot}</td></tr></tfoot></table></div>
   <div class="btns"><button class="btn" data-act="own-kit">+ 1 kit base completo</button><button class="btn" data-act="own-zero">Azzera magazzino</button></div>
-  <div><h2>Storico</h2>`;
+  <div><h2>Storico${st.log.length?` <small style="font:12px var(--body);text-transform:none;letter-spacing:0">(${st.log.length} movimenti)</small>`:""}</h2>`;
   if(!st.log.length)h+=`<p class="note" style="margin-top:6px">Ancora nessun movimento.</p>`;
-  else{h+=`<ul class="log" style="margin-top:6px">`+st.log.slice(0,logAll?200:8).map(l=>`<li><time>${new Date(l.t).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</time><span><span class="${l.q>0?"pos":"neg"}">${l.q>0?"+":""}${l.q}</span> ${esc(partName(l.p))}${l.n?` <small style="color:var(--muted)">· ${esc(l.n)}</small>`:""}</span></li>`).join("")+`</ul>
-    <div class="btns" style="margin-top:8px">${st.log.length>8?`<button class="btn" data-act="log-all">${logAll?"Mostra solo gli ultimi":"Mostra tutto ("+st.log.length+")"}</button>`:""}<button class="btn" data-act="log-clear">Cancella storico</button></div>`;}
+  else{h+=`<ul class="log" style="margin-top:6px">`+st.log.map(l=>`<li><time>${new Date(l.t).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</time><span><span class="${l.q>0?"pos":"neg"}">${l.q>0?"+":""}${l.q}</span> ${esc(partName(l.p))}${l.n?` <small style="color:var(--muted)">· ${esc(l.n)}</small>`:""}</span></li>`).join("")+`</ul>
+    <div class="btns" style="margin-top:8px"><button class="btn" data-act="log-clear">Cancella storico</button></div>`;}
   return h+`</div><p class="note">Magazzino e storico restano in questo browser e sono inclusi in «Copia JSON».</p>`;
 }
 
@@ -1020,7 +1022,6 @@ pane.addEventListener("click",e=>{
   if(b.dataset.use!=null){const u=b.dataset.use,c=u[0]==="r"?rndRes&&rndRes[+u.slice(1)]:genRes&&genRes[+u.slice(1)];if(c)commit(()=>{st.layout=c.layout.map(x=>({...x}));st.name=c.title;sel=null;});fit();if(is3d)build3D(true);toast("Tracciato caricato: lo trovi nella pianta");return;}
   if(a==="own-kit")commit(()=>{for(const p of st.parts)if(p.kit)setOwned(p.id,(+st.owned[p.id]||0)+p.kit,"+1 kit base");});
   else if(a==="own-zero")commit(()=>{for(const k of Object.keys(st.owned))setOwned(k,0,"Magazzino azzerato");});
-  else if(a==="log-all"){logAll=!logAll;renderPane();}
   else if(a==="log-clear")commit(()=>{st.log=[];});
   else if(a==="own-print"){const need=bom();commit(()=>{for(const[k,n]of Object.entries(need))setOwned(k,Math.max(+st.owned[k]||0,n),`Stampati per «${st.name||"circuito"}»`);if(AN.supports)setOwned("support",Math.max(+st.owned.support||0,AN.supports),`Stampati per «${st.name||"circuito"}»`);setOwned("clip",Math.max(+st.owned.clip||0,AN.clips),`Stampati per «${st.name||"circuito"}»`);});toast("Magazzino aggiornato");}
   else if(a==="rnd"){const r=randomGen();rndErr=r.err||"";rndRes=r.res||null;renderPane();}
