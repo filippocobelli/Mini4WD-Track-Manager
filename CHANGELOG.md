@@ -5,6 +5,11 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [2.0.2] - 2026-11-03
+
+- La versione web su GitHub Pages viene pubblicata a ogni modifica su `main` (workflow separato),
+  non più solo insieme a una release: risolve il 404 di lab.cobelli.uk/Mini4WD-Track-Manager/.
+
 ## [2.0.1] - 2026-11-03
 
 - Officina nell'anteprima di claude.ai: i download passano dalla funzione di salvataggio di Claude

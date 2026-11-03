@@ -114,23 +114,3 @@ jobs:
           body_path: notes.md
           files: files/*
 
-  # Versione web su GitHub Pages (lab.cobelli.uk/Mini4WD-Track-Manager/), con icone vere per Dock e Home.
-  # Serve Settings → Pages → Source: GitHub Actions; finché non è attivo il job fallisce senza bloccare la release.
-  pages:
-    needs: [check, release]
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: app
-      - id: deploy
-        uses: actions/deploy-pages@v4
