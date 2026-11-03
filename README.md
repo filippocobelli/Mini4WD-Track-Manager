@@ -5,7 +5,7 @@ quanti pezzi servono, quali hai già e quanto tempo di stampa manca.
 
 ![Pianta del circuito](docs/screenshots/01-pianta.png)
 
-**[⬇ Scarica l'ultima versione](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest)** · macOS (.dmg) · Windows (.exe) · HTML
+**[⬇ Scarica l'ultima versione](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest)** · macOS (.dmg) · Windows (.exe) · HTML · gratis e open source ([MIT](LICENSE))
 
 ---
 
@@ -213,3 +213,11 @@ Ogni build ha un numero di versione `MAJOR.MINOR.PATCH`, visibile accanto al tit
 Quando su `main` arriva una versione non ancora rilasciata, GitHub Actions costruisce `.dmg` ed `.exe`,
 crea il tag `vX.Y.Z` e la Release con anche il file HTML. Il workflow si ferma se `package.json`,
 `app/index.html` e `CHANGELOG.md` non hanno la stessa versione.
+
+## Licenza
+
+Codice rilasciato con licenza **[MIT](LICENSE)**: puoi usarlo, modificarlo e ridistribuirlo liberamente,
+anche in altri progetti, mantenendo la nota di copyright.
+
+La licenza riguarda solo il codice di questa app. I modelli 3D dei pezzi (MakerWorld e altri siti)
+appartengono ai rispettivi autori e seguono le loro licenze: l'app contiene solo i link.
