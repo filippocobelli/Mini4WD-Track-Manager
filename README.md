@@ -173,8 +173,12 @@ Ogni versione è nella pagina **[Releases](https://github.com/filippocobelli/Min
 | `Mini4WD-Track-Planner-<versione>-win-portable.exe` | Windows, senza installazione |
 | `Mini4WD-Track-Planner-v<versione>.html` | qualsiasi browser o sito statico |
 
-Le app desktop funzionano offline. Non sono firmate:
+Versione web sempre aggiornata: **[lab.cobelli.uk/Mini4WD-Track-Manager](https://lab.cobelli.uk/Mini4WD-Track-Manager/)**.
+
+Le app desktop funzionano offline. Non hanno la firma a pagamento di Apple e Microsoft:
 - **macOS**: al primo avvio, tasto destro sull'app → *Apri*. Se macOS la blocca: *Impostazioni di Sistema → Privacy e sicurezza → Apri comunque*.
+  Se compare «è danneggiata e non può essere aperta», apri il Terminale e scrivi
+  `xattr -cr "/Applications/Mini4WD Track Planner.app"`, poi riaprila.
 - **Windows**: se compare SmartScreen, *Ulteriori informazioni → Esegui comunque*.
 
 I dati (circuito, magazzino, storico) restano sul dispositivo. Per spostarli: *Circuiti → Copia JSON* e *Carica JSON*.

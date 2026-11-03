@@ -5,6 +5,12 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [1.0.4] - 2026-11-03
+
+- macOS: l'app è firmata ad-hoc dopo l'unione Intel + Apple Silicon, così i Mac con chip Apple non la rifiutano più come «danneggiata».
+- Versione web pubblicata su GitHub Pages a ogni release (lab.cobelli.uk/Mini4WD-Track-Manager/), con icone vere per Dock e Home.
+- README: istruzioni per il primo avvio su Mac.
+
 ## [1.0.3] - 2026-11-02
 
 - Magazzino: la tabella con + e − resta sempre a altezza piena; lo storico non la accorcia più.
