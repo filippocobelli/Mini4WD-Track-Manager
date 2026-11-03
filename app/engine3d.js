@@ -1,17 +1,19 @@
 /*
- * Mini4WD Track Planner — motore 3D (licenza MIT)
+ * Mini4WD Track Planner — 3D engine (MIT licence)
  *
- * Genera pezzi di pista a 2 corsie stampabili (STL / OBJ) con la libreria Manifold,
- * che garantisce solidi chiusi (watertight). Le misure di base vengono dal rettilineo
- * da 200 mm del set "MINI4WD 2 LANE DIY TRACK" (MakerWorld 542904):
- *   corsia 115 mm, pareti e pavimento 2,5 mm, sponde 50 mm sopra il pavimento,
- *   raccordi 2 mm, asole 30×(L-80) mm r10, alette di aggancio Tamiya 6,4×2,8×26,3 mm
- *   con incavo per la clip a 22,5 mm.
+ * Generates printable 2-lane track pieces (STL / OBJ) with the Manifold library,
+ * which guarantees closed (watertight) solids. The base sizes come from the 200 mm
+ * straight of the "MINI4WD 2 LANE DIY TRACK" set (MakerWorld 542904):
+ *   lane 115 mm, walls and floor 2.5 mm, walls 50 mm above the floor,
+ *   2 mm fillets, 30×(L-80) mm r10 slots, Tamiya connector tabs 6.4×2.8×26.3 mm
+ *   with the clip notch at 22.5 mm.
  *
- * Sistema di riferimento del pezzo: X attraverso la pista (0 = faccia esterna della
- * parete sinistra), Y lungo la pista, Z verso l'alto (pavimento appoggiato al piatto).
+ * Piece coordinates: X across the track (0 = outer face of the left wall),
+ * Y along the track, Z up (floor resting on the bed).
  *
- * Uso: const E = M4Engine.create(manifoldWasm); const r = E.build({type:"straight", L:200});
+ * Labels follow M4Engine.lang ("en" default, or "it").
+ *
+ * Usage: const E = M4Engine.create(manifoldWasm); const r = E.build({type:"straight", L:200});
  */
 (function (root) {
   "use strict";
@@ -24,22 +26,28 @@
     bedX: 256, bedY: 256, maxSplit: 12
   };
 
-  // Elementi generabili e loro parametri (valori di default e limiti per l'interfaccia)
+  const API = { lang: "en" };
+  const tr = (it, en) => (API.lang === "it" ? it : en);
+  // A parameter: [default, min, max, label]; the label follows the current language.
+  const prm = (d, mi, ma, it, en) => { const a = [d, mi, ma]; Object.defineProperty(a, 3, { get: () => tr(it, en), enumerable: true }); return a; };
+  const typ = (it, en, params) => ({ get name() { return tr(it, en); }, params });
+
+  // Elements the engine can build, with their parameters (defaults and limits for the UI)
   const TYPES = {
-    straight: { name: "Rettilineo", params: { L: [200, 20, 1000, "Lunghezza (mm)"] } },
-    curve: { name: "Curva", params: { ang: [45, 5, 180, "Angolo (°)"], R: [480, 150, 2000, "Raggio in asse (mm)"] } },
-    ramp: { name: "Rampa", params: { L: [250, 80, 1000, "Lunghezza (mm)"], h: [75, 5, 200, "Dislivello (mm)"] } },
-    hill: { name: "Dosso", params: { L: [400, 100, 1200, "Lunghezza (mm)"], h: [40, 5, 150, "Altezza (mm)"] } },
-    jump: { name: "Salto", params: { L: [200, 100, 600, "Lunghezza pezzo (mm)"], jl: [90, 30, 400, "Lunghezza rampa (mm)"], jh: [18, 3, 45, "Altezza salto (mm)"] } },
-    saddle: { name: "Sella", params: { L: [200, 60, 600, "Lunghezza pezzo (mm)"], sl: [80, 20, 300, "Lunghezza sella (mm)"], sh: [12, 2, 40, "Altezza sella (mm)"] } },
-    washboard: { name: "Washboard", params: { L: [200, 60, 600, "Lunghezza pezzo (mm)"], n: [6, 1, 30, "Numero di dossi"], wh: [5, 1, 20, "Altezza dossi (mm)"] } },
-    support: { name: "Supporto rialzo", params: { hs: [75, 10, 250, "Altezza sotto il pavimento (mm)"], d: [20, 10, 60, "Profondità (mm)"] } }
+    straight: typ("Rettilineo", "Straight", { L: prm(200, 20, 1000, "Lunghezza (mm)", "Length (mm)") }),
+    curve: typ("Curva", "Curve", { ang: prm(45, 5, 180, "Angolo (°)", "Angle (°)"), R: prm(480, 150, 2000, "Raggio in asse (mm)", "Centre-line radius (mm)") }),
+    ramp: typ("Rampa", "Ramp", { L: prm(250, 80, 1000, "Lunghezza (mm)", "Length (mm)"), h: prm(75, 5, 200, "Dislivello (mm)", "Rise (mm)") }),
+    hill: typ("Dosso", "Hill", { L: prm(400, 100, 1200, "Lunghezza (mm)", "Length (mm)"), h: prm(40, 5, 150, "Altezza (mm)", "Height (mm)") }),
+    jump: typ("Salto", "Jump", { L: prm(200, 100, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), jl: prm(90, 30, 400, "Lunghezza rampa (mm)", "Ramp length (mm)"), jh: prm(18, 3, 45, "Altezza salto (mm)", "Jump height (mm)") }),
+    saddle: typ("Sella", "Saddle", { L: prm(200, 60, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), sl: prm(80, 20, 300, "Lunghezza sella (mm)", "Saddle length (mm)"), sh: prm(12, 2, 40, "Altezza sella (mm)", "Saddle height (mm)") }),
+    washboard: typ("Washboard", "Washboard", { L: prm(200, 60, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), n: prm(6, 1, 30, "Numero di dossi", "Number of bumps"), wh: prm(5, 1, 20, "Altezza dossi (mm)", "Bump height (mm)") }),
+    support: typ("Supporto rialzo", "Raised support", { hs: prm(75, 10, 250, "Altezza sotto il pavimento (mm)", "Height under the floor (mm)"), d: prm(20, 10, 60, "Profondità (mm)", "Depth (mm)") })
   };
 
   const smootherstep = t => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * t * (t * (6 * t - 15) + 10));
 
-  /* Manifold vive in WebAssembly: gli oggetti vanno liberati a mano con delete().
-     Ogni oggetto creato viene registrato e cancellato alla fine di ogni build. */
+  /* Manifold lives in WebAssembly: objects must be freed by hand with delete().
+     Every object created is registered and deleted at the end of each build. */
   function trackObjects(W) {
     if (W.__m4tracked) return W.__m4tracked;
     const reg = [], { Manifold, CrossSection } = W;
@@ -47,7 +55,7 @@
     const wrap = (obj, k) => {
       const f = obj[k];
       if (typeof f !== "function" || k === "constructor" || k === "delete" || /^(prototype|length|name)$/.test(k)) return;
-      try { obj[k] = function (...a) { const r = f.apply(this, a); if (isObj(r)) reg.push(r); return r; }; } catch (e) { /* proprietà non scrivibile */ }
+      try { obj[k] = function (...a) { const r = f.apply(this, a); if (isObj(r)) reg.push(r); return r; }; } catch (e) { /* read-only property */ }
     };
     for (const C of [Manifold, CrossSection]) {
       for (const k of Object.getOwnPropertyNames(C.prototype)) wrap(C.prototype, k);
@@ -61,11 +69,11 @@
   function create(W) {
     const { Manifold, CrossSection } = W;
     const reg = trackObjects(W);
-    const cleanup = () => { for (const o of reg.splice(0)) { try { o.delete(); } catch (e) { /* già liberato */ } } };
+    const cleanup = () => { for (const o of reg.splice(0)) { try { o.delete(); } catch (e) { /* already freed */ } } };
     const width = P => P.lanes * P.laneW + (P.lanes + 1) * P.wallT;
-    const laneX0 = (P, i) => P.wallT + i * (P.laneW + P.wallT); // inizio corsia i (faccia interna)
+    const laneX0 = (P, i) => P.wallT + i * (P.laneW + P.wallT); // start of lane i (inner face)
 
-    /* Sezione a U con sponda centrale e raccordi, nel piano (x, z). */
+    /* U section with centre wall and fillets, in the (x, z) plane. */
     function profile(P) {
       const Wd = width(P), H = P.floorT + P.wallH, r = P.fillet;
       let cs = CrossSection.square([Wd, P.floorT]);
@@ -86,12 +94,12 @@
       return cs;
     }
 
-    /* Aletta di aggancio Tamiya (lato esterno di una parete), nel riferimento del pezzo dritto.
-       side -1 = sinistra (x<0), +1 = destra; y da y0 a y0+tabT. */
+    /* Tamiya connector tab (outer side of a wall), in the straight-piece frame.
+       side -1 = left (x<0), +1 = right; y from y0 to y0+tabT. */
     function tab(P, side, y0, z0) {
       const Wd = width(P), xw = side < 0 ? 0 : Wd;
       const lowW = P.notchW, highW = P.tabW - P.notchW;
-      // parte bassa vicino alla parete (fino all'incavo) + labbro esterno più alto
+      // low part next to the wall (up to the notch) + taller outer lip
       const low = Manifold.cube([lowW, P.tabT, P.notchZ]).translate([side < 0 ? xw - lowW : xw, y0, z0]);
       const high = Manifold.cube([highW, P.tabT, P.tabH]).translate([side < 0 ? xw - P.tabW : xw + lowW, y0, z0]);
       return low.add(high);
@@ -122,7 +130,7 @@
       return list.length ? Manifold.union(list) : null;
     }
 
-    /* Rettilineo generico, con quota del pavimento zf(y) (rampe e dossi). */
+    /* Generic straight, with floor height zf(y) (ramps and hills). */
     function straight(P, L, zf) {
       const flat = !zf;
       const n = flat ? 1 : Math.max(2, Math.ceil(L / 4));
@@ -139,13 +147,13 @@
       return m;
     }
 
-    /* Rilievo dentro ogni corsia: profilo (y, z) chiuso, estruso sulla larghezza utile della corsia. */
+    /* Bump inside each lane: closed (y, z) profile, extruded over the usable lane width. */
     function laneAddon(P, pts) {
       let area = 0; for (let i = 0; i < pts.length; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length]; area += x1 * y2 - x2 * y1; }
       const cs = CrossSection.ofPolygons([area < 0 ? pts.slice().reverse() : pts]);
-      const gap = P.fillet + 0.6, wl = P.laneW - 2 * gap, out = []; // staccato dai raccordi: niente spigoli coincidenti
+      const gap = P.fillet + 0.6, wl = P.laneW - 2 * gap, out = []; // kept off the fillets: no coincident edges
       for (let i = 0; i < P.lanes; i++) {
-        // estrusione lungo z del profilo (y, z), poi rotazioni: (y, z, x) -> (x, y, z)
+        // extrude the (y, z) profile along z, then rotate: (y, z, x) -> (x, y, z)
         const a = Manifold.extrude(cs, wl).rotate([90, 0, 0]).rotate([0, 0, 90]);
         out.push(a.translate([laneX0(P, i) + gap, 0, P.floorT - 0.4]));
       }
@@ -154,11 +162,11 @@
 
     function curve(P, angDeg, R) {
       const Wd = width(P), x0 = R - Wd / 2;
-      if (x0 - (P.tabs ? P.tabW : 0) <= 5) throw new Error("Raggio troppo piccolo per la larghezza della pista.");
+      if (x0 - (P.tabs ? P.tabW : 0) <= 5) throw new Error(tr("Raggio troppo piccolo per la larghezza della pista.", "Radius too small for the track width."));
       const segs = Math.max(6, Math.ceil(angDeg / 1.5));
       const circ = Math.max(12, Math.round(segs * 360 / angDeg));
       let m = Manifold.revolve(profile(P).translate([x0, 0]), circ, angDeg);
-      // asole: archi con estremità arrotondate
+      // slots: arcs with rounded ends
       if (P.slots) {
         const cut = [];
         for (let i = 0; i < P.lanes; i++) {
@@ -179,8 +187,8 @@
       return m;
     }
 
-    /* Supporto per tratti rialzati: piede, tre montanti, piano d'appoggio e due battute laterali
-       (larghe abbastanza da lasciare spazio alle alette di aggancio sulle giunzioni). */
+    /* Support for raised sections: base, three posts, top plate and two side stops
+       (wide enough to leave room for the connector tabs at the joints). */
     function support(P, hs, d) {
       const Wd = width(P), t = 3, post = 10, side = (P.tabs ? P.tabW : 0) + 0.5, top = Wd + 2 * side;
       const C = (sx, sz, x, z) => Manifold.cube([sx, d, sz]).translate([x, 0, z]);
@@ -192,7 +200,7 @@
       ]);
     }
 
-    /* --- misure, piatto, esportazione --- */
+    /* --- sizes, bed, export --- */
     function hull2(pts) {
       pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
@@ -201,7 +209,7 @@
       for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
       return lo.slice(0, -1).concat(up.slice(0, -1));
     }
-    /* Prova a far stare il pezzo sul piatto ruotandolo nel piano (passo 1°). */
+    /* Tries to fit the piece on the bed by rotating it in plane (1° steps). */
     function bedFit(m, P) {
       const { vertProperties: v, numProp } = m.getMesh();
       const pts = []; for (let i = 0; i < v.length; i += numProp) pts.push([v[i], v[i + 1]]);
@@ -216,7 +224,7 @@
       }
       return best;
     }
-    /* Ruota per il piatto e appoggia il pezzo al centro, z minima a 0. */
+    /* Rotates for the bed and puts the piece in the centre, minimum z at 0. */
     function placeForPrint(m, fit) {
       let o = fit && fit.deg ? m.rotate([0, 0, fit.deg]) : m;
       const b = o.boundingBox();
@@ -227,30 +235,31 @@
       return { size: [b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]], volume: m.volume() / 1000, tris: m.numTri() };
     }
 
-    /* Costruisce un elemento; se non entra nel piatto lo divide in parti uguali. */
+    /* Builds an element; if it does not fit the bed it is split into equal parts. */
     function build(spec, prm) {
       const P = Object.assign({}, DEFAULTS, prm || {});
       const T = spec.type, g = k => +(spec[k] ?? TYPES[T].params[k][0]);
       const pieces = [];
       const make = (n) => {
-        if (T === "curve") { const a = g("ang") / n; return [{ m: curve(P, a, g("R")), qty: n, label: `curva ${fmt(a)}° R${fmt(g("R"))}` }]; }
-        if (T === "support") return [{ m: support(P, g("hs"), g("d")), qty: 1, label: `supporto h${fmt(g("hs"))}` }];
+        if (T === "curve") { const a = g("ang") / n; return [{ m: curve(P, a, g("R")), qty: n, label: `${tr("curva", "curve")} ${fmt(a)}° R${fmt(g("R"))}` }]; }
+        if (T === "support") return [{ m: support(P, g("hs"), g("d")), qty: 1, label: `${tr("supporto", "support")} h${fmt(g("hs"))}` }];
         const L = g("L");
-        if (T === "straight") return [{ m: straight(P, L / n), qty: n, label: `rettilineo ${fmt(L / n)}mm` }];
+        if (T === "straight") return [{ m: straight(P, L / n), qty: n, label: `${tr("rettilineo", "straight")} ${fmt(L / n)}mm` }];
         if (T === "ramp" || T === "hill") {
           const h = g("h"), zf = T === "ramp" ? (y => h * smootherstep(y / L)) : (y => h * Math.sin(Math.PI * y / L) ** 2);
           const out = [], seg = L / n;
-          for (let i = 0; i < n; i++) out.push({ m: straight(P, seg, y => zf(y + i * seg)), qty: 1, label: `${T === "ramp" ? "rampa" : "dosso"} ${fmt(L)}x${fmt(h)} parte ${i + 1}di${n}` });
-          if (n === 1) out[0].label = `${T === "ramp" ? "rampa" : "dosso"} ${fmt(L)}x${fmt(h)}mm`;
+          const nm = TYPES[T].name.toLowerCase();
+          for (let i = 0; i < n; i++) out.push({ m: straight(P, seg, y => zf(y + i * seg)), qty: 1, label: `${nm} ${fmt(L)}x${fmt(h)} ${tr("parte", "part")} ${i + 1}${tr("di", "of")}${n}` });
+          if (n === 1) out[0].label = `${nm} ${fmt(L)}x${fmt(h)}mm`;
           return out;
         }
-        // elementi con rilievo nelle corsie: non divisibili
+        // elements with bumps in the lanes: not divisible
         let base = straight(P, L), pts;
         if (T === "jump") { const jl = Math.min(g("jl"), L - 20), y0 = (L - jl) / 2, y1 = y0 + jl; pts = [[y0, 0], [y1, g("jh")], [y1, 0]]; }
         else if (T === "saddle") { const sl = Math.min(g("sl"), L - 20), y0 = (L - sl) / 2; pts = [[y0, 0], [y0 + sl / 2, g("sh")], [y0 + sl, 0]]; }
         else if (T === "washboard") {
           const nb = Math.max(1, Math.round(g("n"))), y0 = 20, y1 = L - 20, step = (y1 - y0) / nb; pts = [[y0, 0]];
-          for (let k = 0; k <= nb * 12; k++) { const y = y0 + k * step / 12; pts.push([y, g("wh") * Math.sin(Math.PI * (k % 12) / 12) ** 2 + 0.2]); } // valli 0,2 mm dentro il pavimento
+          for (let k = 0; k <= nb * 12; k++) { const y = y0 + k * step / 12; pts.push([y, g("wh") * Math.sin(Math.PI * (k % 12) / 12) ** 2 + 0.2]); } // valleys 0.2 mm inside the floor
           pts.push([y1, 0]);
         }
         return [{ m: base.add(laneAddon(P, pts)), qty: 1, label: `${TYPES[T].name.toLowerCase()} ${fmt(L)}mm` }];
@@ -274,11 +283,11 @@
     return { build: safeBuild, width, pending: () => reg.length };
   }
 
-  /* --- formati di file --- */
+  /* --- file formats --- */
   function toSTL(mesh, name) {
     const v = mesh.vert, t = mesh.tri, numProp = mesh.numProp || 3;
     const nt = t.length / 3, buf = new ArrayBuffer(84 + nt * 50), dv = new DataView(buf);
-    const head = ("Mini4WD Track Planner - " + (name || "pezzo")).slice(0, 80);
+    const head = ("Mini4WD Track Planner - " + (name || "piece")).slice(0, 80);
     for (let i = 0; i < head.length; i++) dv.setUint8(i, head.charCodeAt(i) & 127);
     dv.setUint32(80, nt, true);
     let o = 84;
@@ -294,12 +303,12 @@
     return new Uint8Array(buf);
   }
   function toOBJ(mesh, name) {
-    const v = mesh.vert, t = mesh.tri, numProp = mesh.numProp || 3, out = [`# Mini4WD Track Planner - ${name || "pezzo"} (mm)`, `o ${(name || "pezzo").replace(/\s+/g, "_")}`];
+    const v = mesh.vert, t = mesh.tri, numProp = mesh.numProp || 3, out = [`# Mini4WD Track Planner - ${name || "piece"} (mm)`, `o ${(name || "piece").replace(/\s+/g, "_")}`];
     for (let i = 0; i < v.length; i += numProp) out.push(`v ${v[i].toFixed(4)} ${v[i + 1].toFixed(4)} ${v[i + 2].toFixed(4)}`);
     for (let i = 0; i < t.length; i += 3) out.push(`f ${t[i] + 1} ${t[i + 1] + 1} ${t[i + 2] + 1}`);
     return new TextEncoder().encode(out.join("\n") + "\n");
   }
-  /* ZIP senza compressione (metodo "store"), sufficiente per raccogliere più file. */
+  /* Uncompressed ZIP ("store" method), enough to bundle several files. */
   const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
   const crc32 = d => { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
   function zip(files) {
@@ -322,7 +331,7 @@
     let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
     return out;
   }
-  function fmt(x) { return String(Math.round(x * 10) / 10).replace(".", ","); }
+  function fmt(x) { const s = String(Math.round(x * 10) / 10); return API.lang === "it" ? s.replace(".", ",") : s; }
 
-  root.M4Engine = { create, DEFAULTS, TYPES, toSTL, toOBJ, zip, smootherstep };
+  root.M4Engine = Object.assign(API, { create, DEFAULTS, TYPES, toSTL, toOBJ, zip, smootherstep });
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -1,7 +1,7 @@
 name: Release
 
-# Ogni versione nuova genera una GitHub Release con .dmg (macOS), .exe installer + portable (Windows) e il file HTML unico.
-# Parte quando su main arriva un package.json con una versione non ancora rilasciata (o da un tag vX.Y.Z, o a mano).
+# Every new version creates a GitHub Release with the .dmg (macOS), the .exe installer + portable (Windows) and the single HTML file.
+# Runs when main gets a package.json with a version not released yet (or from a vX.Y.Z tag, or by hand).
 on:
   push:
     branches: [main]
@@ -18,22 +18,22 @@ jobs:
       version: ${{ steps.v.outputs.version }}
       release: ${{ steps.v.outputs.release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - id: v
-        name: Versione unica in package.json, app/index.html e CHANGELOG
+        name: Same version in package.json, app/index.html and CHANGELOG
         run: |
           PKG=$(node -p "require('./package.json').version")
           APPV=$(grep -oE 'const APP_VERSION="[^"]+"' app/index.html | cut -d'"' -f2)
           echo "package.json=$PKG app=$APPV ref=$GITHUB_REF"
-          test "$PKG" = "$APPV" || (echo "::error::app/index.html ha $APPV, package.json ha $PKG" && exit 1)
-          grep -qE "^## \[?v?$PKG" CHANGELOG.md || (echo "::error::Manca la sezione $PKG in CHANGELOG.md" && exit 1)
+          test "$PKG" = "$APPV" || (echo "::error::app/index.html has $APPV, package.json has $PKG" && exit 1)
+          grep -qE "^## \[?v?$PKG" CHANGELOG.md || (echo "::error::CHANGELOG.md has no $PKG section" && exit 1)
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            test "${GITHUB_REF_NAME#v}" = "$PKG" || (echo "::error::Il tag $GITHUB_REF_NAME non coincide con $PKG" && exit 1)
+            test "${GITHUB_REF_NAME#v}" = "$PKG" || (echo "::error::Tag $GITHUB_REF_NAME does not match $PKG" && exit 1)
             REL=true
           elif git rev-parse -q --verify "refs/tags/v$PKG" >/dev/null; then
-            echo "v$PKG è già stata rilasciata: nessuna build. Aumenta la versione per pubblicarne una nuova."
+            echo "v$PKG is already released: no build. Bump the version to publish a new one."
             REL=false
           else
             REL=true
@@ -46,10 +46,10 @@ jobs:
     if: needs.check.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
         env:
@@ -70,10 +70,10 @@ jobs:
             target: --win
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build:web
@@ -81,7 +81,7 @@ jobs:
         run: npx electron-builder ${{ matrix.target }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.os }}
           path: |
@@ -94,19 +94,19 @@ jobs:
     needs: [check, test, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           path: out
-      - name: Note di rilascio dal CHANGELOG
+      - name: Release notes from the CHANGELOG
         run: node scripts/release-notes.mjs "${{ needs.check.outputs.version }}" > notes.md
-      - name: Raccogli i file
+      - name: Collect the files
         run: |
           mkdir -p files
           find out -type f \( -name '*.dmg' -o -name '*.exe' \) -exec cp {} files/ \;
           find out -type f -name '*.html' | head -n 1 | xargs -I{} cp {} files/
           ls -la files
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.check.outputs.version }}
           target_commitish: ${{ github.sha }}

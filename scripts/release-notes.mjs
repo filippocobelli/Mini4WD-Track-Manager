@@ -1,4 +1,4 @@
-// Stampa la sezione di CHANGELOG.md relativa alla versione indicata (usata dal workflow di release).
+// Prints the CHANGELOG.md section for the given version (used by the release workflow).
 import fs from "node:fs";
 const v = (process.argv[2] || "").replace(/^v/, "");
 const md = fs.readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");

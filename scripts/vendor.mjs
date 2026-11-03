@@ -1,8 +1,8 @@
-// Copia la libreria Manifold (node_modules/manifold-3d) in app/vendor/ in una forma
-// che funziona ovunque: browser, file:// in Electron, anteprima claude.ai.
-//  - manifold.js: il modulo ES diventa uno script classico (globalThis.ManifoldModule)
-//  - manifold-wasm.js: il file .wasm incorporato in base64 (nessun fetch necessario)
-// Da rieseguire solo quando si aggiorna manifold-3d: `npm run vendor`.
+// Copies the Manifold library (node_modules/manifold-3d) into app/vendor/ in a form
+// that works everywhere: browser, file:// in Electron, claude.ai preview.
+//  - manifold.js: the ES module becomes a classic script (globalThis.ManifoldModule)
+//  - manifold-wasm.js: the .wasm file embedded as base64 (no fetch needed)
+// Re-run only when manifold-3d is updated: `npm run vendor`.
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -17,11 +17,11 @@ fs.mkdirSync(out, { recursive: true });
 
 let js = fs.readFileSync(path.join(dir, "manifold.js"), "utf8");
 const n = (js.match(/export default Module;/g) || []).length;
-if (n !== 1) throw new Error("manifold.js: struttura inattesa (export default)");
+if (n !== 1) throw new Error("manifold.js: unexpected structure (export default)");
 js = js.replace("export default Module;", "globalThis.ManifoldModule=Module;")
        .replaceAll("import.meta.url", '(globalThis.MANIFOLD_BASE||(typeof location!=="undefined"?location.href:"file:///"))');
-if (/\bimport\.meta\b|^\s*export\s/m.test(js)) throw new Error("manifold.js: restano costrutti ES module");
-fs.writeFileSync(path.join(out, "manifold.js"), `/* manifold-3d ${version} — Apache-2.0 — https://github.com/elalish/manifold (convertito in script classico) */\n` + js);
+if (/\bimport\.meta\b|^\s*export\s/m.test(js)) throw new Error("manifold.js: ES module constructs left");
+fs.writeFileSync(path.join(out, "manifold.js"), `/* manifold-3d ${version} — Apache-2.0 — https://github.com/elalish/manifold (converted to a classic script) */\n` + js);
 
 const wasm = fs.readFileSync(path.join(dir, "manifold.wasm"));
 fs.writeFileSync(path.join(out, "manifold-wasm.js"), `/* manifold-3d ${version} manifold.wasm (base64) */\nglobalThis.MANIFOLD_WASM_B64="${wasm.toString("base64")}";\n`);

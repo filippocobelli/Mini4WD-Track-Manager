@@ -1,4 +1,4 @@
-// Finestra desktop del Mini4WD Track Planner: carica la versione offline in /desktop.
+// Mini4WD Track Planner desktop window: loads the offline version in /desktop.
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
 
@@ -14,7 +14,7 @@ function createWindow() {
     webPreferences: { contextIsolation: true, sandbox: true }
   });
   win.loadFile(path.join(__dirname, "..", "desktop", "index.html"));
-  // I link esterni (MakerWorld ecc.) si aprono nel browser, non dentro l'app.
+  // External links (MakerWorld etc.) open in the browser, not inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => {
     if (!url.startsWith("file://")) { e.preventDefault(); shell.openExternal(url); }

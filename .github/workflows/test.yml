@@ -1,6 +1,6 @@
 name: Test
 
-# Gira su ogni pull request e su ogni push: una proposta entra solo se i test passano.
+# Runs on every pull request and every push: a change gets in only if the tests pass.
 on:
   pull_request:
   push:
@@ -14,18 +14,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
       - run: npx playwright install --with-deps chromium
-      - name: Versione allineata
+      - name: Versions match
         run: |
           PKG=$(node -p "require('./package.json').version")
           APPV=$(grep -oE 'const APP_VERSION="[^"]+"' app/index.html | cut -d'"' -f2)
-          test "$PKG" = "$APPV" || (echo "::error::app/index.html ha $APPV, package.json ha $PKG (esegui node scripts/sync-version.mjs)" && exit 1)
+          test "$PKG" = "$APPV" || (echo "::error::app/index.html has $APPV, package.json has $PKG (run node scripts/sync-version.mjs)" && exit 1)
       - run: npm test

@@ -1,15 +1,15 @@
-// Firma ad-hoc dell'app macOS (codesign "-") dopo l'unione Intel + Apple Silicon.
-// Senza nessuna firma i Mac con chip Apple rifiutano l'app ("è danneggiata").
-// Non sostituisce la firma Apple a pagamento: al primo avvio serve comunque "Apri comunque".
+// Ad-hoc signature of the macOS app (codesign "-") after merging Intel + Apple Silicon.
+// With no signature at all, Apple-silicon Macs reject the app ("is damaged").
+// It does not replace a paid Apple signature: the first launch still needs "Open Anyway".
 const { execFileSync } = require("child_process");
 const path = require("path");
 const { Arch } = require("builder-util");
 
 exports.default = async function afterPack(ctx) {
   if (ctx.electronPlatformName !== "darwin") return;
-  if (ctx.arch !== Arch.universal) return; // i pacchetti x64/arm64 temporanei vengono firmati dopo l'unione
+  if (ctx.arch !== Arch.universal) return; // the temporary x64/arm64 packages are signed after the merge
   const app = path.join(ctx.appOutDir, `${ctx.packager.appInfo.productFilename}.app`);
-  console.log(`  • firma ad-hoc  ${app}`);
+  console.log(`  • ad-hoc signing  ${app}`);
   execFileSync("codesign", ["--force", "--deep", "--sign", "-", app], { stdio: "inherit" });
   execFileSync("codesign", ["--verify", "--deep", "--strict", "--verbose=2", app], { stdio: "inherit" });
 };

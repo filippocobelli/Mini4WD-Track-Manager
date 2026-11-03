@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* layout: tavolo di montaggio a sinistra, scheda tecnica a destra; su telefono impilati */
+  /* layout: building table on the left, data sheet on the right; stacked on phones */
   --bg:#e8ecf0; --surface:#ffffff; --ink:#15202c; --muted:#5a6675; --line:#d3dae2; --accent:#f2b705;
   --lane1:#d7372f; --lane2:#2a6fdb; --track:#fbfcfd; --wall:#6f7b89; --grid:#d9e0e8;
   --ok:#17834a; --warn:#b86e00; --bad:#c42e2e;
@@ -44,11 +44,14 @@ html,body{margin:0;height:100%;overflow-anchor:none}
 body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--body);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:inherit}
-.app{display:grid;grid-template-columns:1fr;gap:0;min-height:100%}
+.app{display:grid;grid-template-columns:minmax(0,1fr);gap:0;min-height:100%}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:12px 16px 8px}
 h1{font:700 26px/1 var(--display);letter-spacing:.02em;margin:0;text-transform:uppercase;text-wrap:balance}
 h1 span{color:var(--muted);font-weight:600}
 .src{color:var(--muted);font-size:12.5px;margin:0}
+.kofi{margin-left:auto;align-self:center;font:600 13px/1 var(--body);color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--surface);white-space:nowrap}
+.kofi:hover{border-color:var(--accent)}
+.langbtn{align-self:center;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 10px;font:700 13px/1 var(--display);letter-spacing:.06em;cursor:pointer;color:var(--ink)}
 .ver{font:500 12px/1 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 6px;align-self:center}
 .stage{position:relative;height:58svh;min-height:300px;margin:0 16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
 #cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none}
@@ -193,36 +196,38 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 <div class="app">
   <header>
     <h1>Mini4WD <span>Track Planner</span></h1>
-    <span class="ver" id="ver" title="Versione"></span>
-    <p class="src">Pista a 2 corsie compatibile Tamiya · pezzi da <a href="https://makerworld.com/en/models/542904-2-lane-mini-4wd-track">MINI4WD 2 LANE DIY TRACK</a> e modelli collegati</p>
+    <span class="ver" id="ver" title="Version"></span>
+    <p class="src" id="src"></p>
+    <a class="kofi" id="kofi" href="https://ko-fi.com/filippocobelli" target="_blank" rel="noopener">☕ Ko-fi</a>
+    <button class="langbtn" id="lang" type="button" aria-label="Lingua / Language"></button>
   </header>
 
   <div class="stage" id="stage">
-    <svg id="cv" xmlns="http://www.w3.org/2000/svg" aria-label="Pianta del circuito"></svg>
-    <div id="v3" aria-label="Vista 3D del circuito"></div>
-    <div id="vw" aria-label="Anteprima 3D del pezzo da stampare"></div>
+    <svg id="cv" xmlns="http://www.w3.org/2000/svg" data-en-aria="Track plan" aria-label="Pianta del circuito"></svg>
+    <div id="v3" data-en-aria="3D view of the track" aria-label="Vista 3D del circuito"></div>
+    <div id="vw" data-en-aria="3D preview of the piece to print" aria-label="Anteprima 3D del pezzo da stampare"></div>
     <div class="hud" id="hud"></div>
-    <div class="mode" role="group" aria-label="Vista">
+    <div class="mode" role="group" aria-label="Vista" data-en-aria="View">
       <button id="m2d" aria-pressed="true">2D</button>
       <button id="m3d" aria-pressed="false">3D</button>
     </div>
     <div class="vbtns">
-      <button id="zin" class="only2d" title="Ingrandisci" aria-label="Ingrandisci">+</button>
-      <button id="zout" class="only2d" title="Riduci" aria-label="Riduci">−</button>
-      <button id="zfit" title="Adatta vista" aria-label="Adatta vista">⤢</button>
+      <button id="zin" class="only2d" title="Ingrandisci" aria-label="Ingrandisci" data-en-title="Zoom in" data-en-aria="Zoom in">+</button>
+      <button id="zout" class="only2d" title="Riduci" aria-label="Riduci" data-en-title="Zoom out" data-en-aria="Zoom out">−</button>
+      <button id="zfit" title="Adatta vista" aria-label="Adatta vista" data-en-title="Fit view" data-en-aria="Fit view">⤢</button>
     </div>
-    <div class="tip3d">Trascina per ruotare · due dita o rotella per zoom</div>
+    <div class="tip3d" data-en="Drag to rotate · two fingers or wheel to zoom">Trascina per ruotare · due dita o rotella per zoom</div>
   </div>
 
   <div class="tools">
-    <div class="row" id="pieces" aria-label="Aggiungi pezzo"></div>
+    <div class="row" id="pieces" aria-label="Aggiungi pezzo" data-en-aria="Add piece"></div>
     <div class="row">
-      <button class="ab" id="undo">↶ Annulla</button>
-      <button class="ab" id="redo">↷ Ripeti</button>
-      <button class="ab" id="flip">⇄ Inverti curva</button>
-      <button class="ab" id="flipv">⇅ Salita/discesa</button>
-      <button class="ab" id="rot">⟳ Ruota 45°</button>
-      <button class="ab" id="desel">Fine pista</button>
+      <button class="ab" id="undo" data-en="↶ Undo">↶ Annulla</button>
+      <button class="ab" id="redo" data-en="↷ Redo">↷ Ripeti</button>
+      <button class="ab" id="flip" data-en="⇄ Flip curve">⇄ Inverti curva</button>
+      <button class="ab" id="flipv" data-en="⇅ Up/down">⇅ Salita/discesa</button>
+      <button class="ab" id="rot" data-en="⟳ Rotate 45°">⟳ Ruota 45°</button>
+      <button class="ab" id="desel" data-en="Track end">Fine pista</button>
       <button class="ab danger" id="del">✕ Elimina</button>
     </div>
     <p class="hint" id="hint"></p>
@@ -230,14 +235,14 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 
   <section class="panel">
     <div class="tabs" role="tablist">
-      <button role="tab" data-tab="sum">Riepilogo</button>
-      <button role="tab" data-tab="bom">Pezzi</button>
-      <button role="tab" data-tab="inv">Magazzino</button>
-      <button role="tab" data-tab="gen">Idee</button>
-      <button role="tab" data-tab="ws">Officina</button>
-      <button role="tab" data-tab="mod">Modelli</button>
-      <button role="tab" data-tab="cat">Catalogo</button>
-      <button role="tab" data-tab="file">Circuiti</button>
+      <button role="tab" data-tab="sum" data-en="Summary">Riepilogo</button>
+      <button role="tab" data-tab="bom" data-en="Parts">Pezzi</button>
+      <button role="tab" data-tab="inv" data-en="Inventory">Magazzino</button>
+      <button role="tab" data-tab="gen" data-en="Ideas">Idee</button>
+      <button role="tab" data-tab="ws" data-en="Workshop">Officina</button>
+      <button role="tab" data-tab="mod" data-en="Models">Modelli</button>
+      <button role="tab" data-tab="cat" data-en="Catalogue">Catalogo</button>
+      <button role="tab" data-tab="file" data-en="Tracks">Circuiti</button>
     </div>
     <div class="pane" id="pane"></div>
   </section>
@@ -249,29 +254,39 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 <script src="engine3d.js"></script>
 <script>
 "use strict";
-const APP_VERSION="2.0.2";
+let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
+const L=(it,en)=>LANG==="it"?it:en;
+const APP_VERSION="2.1.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const nf=(v,d=0)=>Number(v).toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});
+const nf=(v,d=0)=>Number(v).toLocaleString(LANG==="it"?"it-IT":"en-GB",{minimumFractionDigits:d,maximumFractionDigits:d});
 const MW="https://makerworld.com/en/models/";
 const MWS=q=>"https://makerworld.com/en/search/models?keyword="+encodeURIComponent(q);
 
-/* ---------- modelli MakerWorld collegati ---------- */
+/* ---------- related MakerWorld models ---------- */
 const MODELS=[
-  {id:"base",name:"2 LANE MINI 4WD TRACK",by:"Pat",url:MW+"542904-2-lane-mini-4wd-track",what:"Il kit base: rettilinei 200/215/100, 8 curve da 45°, cambio corsia con rampe flyover.",types:["S200","S215","S100","C45","LC"],known:true},
-  {id:"jump",name:"2 LANE MINI 4WD TRACK Jump",by:"Jangyy",url:MW+"1373681-2-lane-mini-4wd-track-jump",what:"Rettilineo da 200 mm con trampolino. Circa 7 h di stampa.",types:["J200"],known:true},
-  {id:"spiral",name:"Spiral Track element for 2 LANE MINI 4WD TRACK",by:"Jangyy",url:MW+"1395843-spiral-track-element-for-2-lane-mini-4wd-track",what:"Spirale che sale di livello girando su se stessa.",types:["SPI"]},
-  {id:"wall",name:"Wall Track element for 2 LANE MINI 4WD TRACK",by:"Jangyy",url:MW+"1418601-wall-track-element-for-2-lane-mini-4wd-track",what:"Tratto con parete alta.",types:["WALL"]},
-  {id:"hill",name:"2 LANE MINI 4WD TRACK Ramp/Hill",by:"Jangyy",url:MWS("2 LANE MINI 4WD TRACK Ramp/Hill"),what:"Dosso: salita e discesa sullo stesso tratto.",types:["HILL"]},
-  {id:"rainbow",name:"Tamiya rainbow track 2 lane (no change lane)",by:"Sunza83",url:MW+"1336265-tamiya-rainbow-track-2-lane-no-change-lane",what:"2 rampe e supporti per sollevare una curva a 180° (rainbow) usando le curve normali.",types:["RUP"]},
-  {id:"saddle",name:"Mini 4WD Track Saddle",by:"user_2201040605",url:MW+"734281-mini-4wd-track-saddle",what:"Sella da appoggiare nel rettilineo: l'auto ci salta sopra. 4,6 h di stampa.",types:["SAD"],known:true},
-  {id:"m240",name:"Modular Mini4wd 240mm track set 1",by:"rucdoc",url:MW+"248350-modular-mini4wd-240mm-track-set-1",what:"Rettilinei da 240 mm a moduli (corsia sinistra + destra), compatibili con la 2 corsie Tamiya. Utile se la stampante è piccola.",types:["M240"],known:true},
-  {id:"dualramp",name:"Dual Lane Mini4wd modular Ramp set",by:"rucdoc",url:MWS("Dual Lane Mini4wd modular Ramp set"),what:"Rampe modulari a 2 corsie per sopraelevate lunghe. Usa l'elemento «Rampa» con la quota corretta.",types:[]},
-  {id:"curves",name:"Mini4wd Single Lane Curve track pack",by:"rucdoc",url:MW+"1132759-mini4wd-single-lane-curve-track-pack",what:"Curve a 1 corsia di vari raggi e angoli. Aggiungile da «Catalogo» come pezzo personalizzato.",types:[]}
+  {id:"base",name:"2 LANE MINI 4WD TRACK",by:"Pat",url:MW+"542904-2-lane-mini-4wd-track",what:["Il kit base: rettilinei 200/215/100, 8 curve da 45°, cambio corsia con rampe flyover.","The base kit: 200/215/100 straights, eight 45° curves, lane change with flyover ramps."],types:["S200","S215","S100","C45","LC"],known:true},
+  {id:"jump",name:"2 LANE MINI 4WD TRACK Jump",by:"Jangyy",url:MW+"1373681-2-lane-mini-4wd-track-jump",what:["Rettilineo da 200 mm con trampolino. Circa 7 h di stampa.","200 mm straight with a kicker ramp. About 7 h of printing."],types:["J200"],known:true},
+  {id:"spiral",name:"Spiral Track element for 2 LANE MINI 4WD TRACK",by:"Jangyy",url:MW+"1395843-spiral-track-element-for-2-lane-mini-4wd-track",what:["Spirale che sale di livello girando su se stessa.","Spiral that climbs to a higher level by turning on itself."],types:["SPI"]},
+  {id:"wall",name:"Wall Track element for 2 LANE MINI 4WD TRACK",by:"Jangyy",url:MW+"1418601-wall-track-element-for-2-lane-mini-4wd-track",what:["Tratto con parete alta.","Section with a high wall."],types:["WALL"]},
+  {id:"hill",name:"2 LANE MINI 4WD TRACK Ramp/Hill",by:"Jangyy",url:MWS("2 LANE MINI 4WD TRACK Ramp/Hill"),what:["Dosso: salita e discesa sullo stesso tratto.","Hill: up and down on the same section."],types:["HILL"]},
+  {id:"rainbow",name:"Tamiya rainbow track 2 lane (no change lane)",by:"Sunza83",url:MW+"1336265-tamiya-rainbow-track-2-lane-no-change-lane",what:["2 rampe e supporti per sollevare una curva a 180° (rainbow) usando le curve normali.","2 ramps and supports to raise a 180° turn (rainbow) using the normal curves."],types:["RUP"]},
+  {id:"saddle",name:"Mini 4WD Track Saddle",by:"user_2201040605",url:MW+"734281-mini-4wd-track-saddle",what:["Sella da appoggiare nel rettilineo: l'auto ci salta sopra. 4,6 h di stampa.","Saddle placed in a straight: the car jumps over it. 4.6 h of printing."],types:["SAD"],known:true},
+  {id:"m240",name:"Modular Mini4wd 240mm track set 1",by:"rucdoc",url:MW+"248350-modular-mini4wd-240mm-track-set-1",what:["Rettilinei da 240 mm a moduli (corsia sinistra + destra), compatibili con la 2 corsie Tamiya. Utile se la stampante è piccola.","Modular 240 mm straights (left + right lane), compatible with the Tamiya 2-lane track. Handy for small printers."],types:["M240"],known:true},
+  {id:"dualramp",name:"Dual Lane Mini4wd modular Ramp set",by:"rucdoc",url:MWS("Dual Lane Mini4wd modular Ramp set"),what:["Rampe modulari a 2 corsie per sopraelevate lunghe. Usa l'elemento «Rampa» con la quota corretta.","Modular 2-lane ramps for long raised sections. Use the «Ramp» element with the right height."],types:[]},
+  {id:"curves",name:"Mini4wd Single Lane Curve track pack",by:"rucdoc",url:MW+"1132759-mini4wd-single-lane-curve-track-pack",what:["Curve a 1 corsia di vari raggi e angoli. Aggiungile da «Catalogo» come pezzo personalizzato.","1-lane curves in several radii and angles. Add them from «Catalogue» as a custom piece."],types:[]}
 ];
 
-/* ---------- dati di base ---------- */
+/* ---------- base data ---------- */
+// Default parts and elements are stored with their Italian name; these tables give the English one.
+const PART_EN={s200:"Straight 200 mm",s215:"Straight 215 mm",s100:"Straight 100 mm",c45:"Curve 45°",jump:"Jump 200 mm",saddle:"Saddle (Track Saddle)",rbRamp:"Rainbow ramp",spiral:"Spiral",m240L:"Modular 240 left",m240R:"Modular 240 right",support:"Raised support"};
+const TYPE_EN={S200:["Straight 200","200"],S215:["Straight 215","215"],S100:["Straight 100","100"],C45:["Curve 45°","45°"],LC:["Lane change (ramps + bridge)","Lane chg"],J200:["Jump 200","Jump"],SAD:["Straight 200 + saddle","Saddle"],HILL:["Ramp/Hill","Hill"],RUP:["Rainbow ramp","Ramp"],SPI:["Spiral 360°","Spiral"],WALL:["Wall","Wall"],M240:["Modular straight 240","240"]};
+const pn=p=>LANG==="en"&&p&&!p.custom&&PART_EN[p.id]&&!/^[xg]/.test(p.id)?PART_EN[p.id]:(p?p.name:"");
+const tn=t=>LANG==="en"&&TYPE_EN[t.id]&&!t.custom?TYPE_EN[t.id][0]:t.name;
+const tl=t=>LANG==="en"&&TYPE_EN[t.id]&&!t.custom?TYPE_EN[t.id][1]:t.label;
+const NOTE_EN={"+1 kit base":"+1 base kit","Modifica manuale":"Manual change","Magazzino azzerato":"Inventory cleared"};
+const noteText=n=>LANG==="it"?n:(NOTE_EN[n]||n.replace(/^Stampati per «/,"Printed for «"));
 function defaultParts(){return [
   {id:"s200",name:"Rettilineo 200 mm",kit:2,h:2.3},
   {id:"s215",name:"Rettilineo 215 mm",kit:2,h:2.45},
@@ -308,14 +323,15 @@ function defaultTypes(){return [
   {id:"M240",label:"240",name:"Rettilineo modulare 240",kind:"straight",len:240,parts:{m240L:1,m240R:1},segs:1,x:true,m:"m240"}
 ];}
 const S=t=>({t}), R=n=>Array.from({length:n},()=>({t:"C45",d:"R"}));
+const pv=a=>Array.isArray(a)?L(a[0],a[1]):a;
 const PRESETS={
-  ovale:{name:"Ovale del kit",desc:"Il circuito del set: 4 rettilinei, 8 curve, cambio corsia.",items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),...R(4),S("LC"),...R(4)]},
-  lungo:{name:"Ovale lungo",desc:"+ 2 rettilinei da 100 per lato.",items:()=>[S("S200"),S("S215"),S("S100"),S("S100"),S("S215"),S("S200"),...R(4),S("S100"),S("LC"),S("S100"),...R(4)]},
-  rett:{name:"Rettangolo",desc:"Curve a 90° con lati corti da 400 mm.",items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),...R(2),S("S200"),S("S200"),...R(2),S("LC"),...R(2),S("S200"),S("S200"),...R(2)]},
-  salto:{name:"Ovale con salto e sella",desc:"Il kit con Jump al posto di un 200 e una sella.",items:()=>[S("J200"),S("S215"),S("S215"),S("SAD"),...R(4),S("LC"),...R(4)]},
-  rainbow:{name:"Ovale con rainbow",desc:"Una curva a 180° sollevata con le rampe rainbow.",items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
+  ovale:{name:["Ovale del kit","Kit oval"],desc:["Il circuito del set: 4 rettilinei, 8 curve, cambio corsia.","The set's track: 4 straights, 8 curves, lane change."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),...R(4),S("LC"),...R(4)]},
+  lungo:{name:["Ovale lungo","Long oval"],desc:["+ 2 rettilinei da 100 per lato.","+ two 100 mm straights per side."],items:()=>[S("S200"),S("S215"),S("S100"),S("S100"),S("S215"),S("S200"),...R(4),S("S100"),S("LC"),S("S100"),...R(4)]},
+  rett:{name:["Rettangolo","Rectangle"],desc:["Curve a 90° con lati corti da 400 mm.","90° corners with 400 mm short sides."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),...R(2),S("S200"),S("S200"),...R(2),S("LC"),...R(2),S("S200"),S("S200"),...R(2)]},
+  salto:{name:["Ovale con salto e sella","Oval with jump and saddle"],desc:["Il kit con Jump al posto di un 200 e una sella.","The kit with a Jump instead of a 200 and a saddle."],items:()=>[S("J200"),S("S215"),S("S215"),S("SAD"),...R(4),S("LC"),...R(4)]},
+  rainbow:{name:["Ovale con rainbow","Rainbow oval"],desc:["Una curva a 180° sollevata con le rampe rainbow.","A 180° turn raised with the rainbow ramps."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
-function defaults(){return{name:"Ovale del kit",parts:defaultParts(),types:defaultTypes(),
+function defaults(){return{name:L("Ovale del kit","Kit oval"),parts:defaultParts(),types:defaultTypes(),
   settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
@@ -332,7 +348,7 @@ let sel=null, tab="sum", view={cx:0,cy:0,z:.2}, hist=[], fut=[], is3d=false;
 
 function commit(fn){hist.push(JSON.stringify(st));if(hist.length>120)hist.shift();fut=[];fn();save();render();}
 
-/* ---------- geometria ---------- */
+/* ---------- geometry ---------- */
 const off=(p,o)=>({x:p.x-o*Math.sin(p.h),y:p.y+o*Math.cos(p.h),h:p.h});
 const typeMap=()=>Object.fromEntries(st.types.map(t=>[t.id,t]));
 const smooth=u=>u<=0?0:u>=1?1:u*u*(3-2*u);
@@ -411,16 +427,16 @@ function analyse(g){
 }
 function suggestions(g,an){
   if(!g.els.length||an.closed)return{msg:"",opts:[]};
-  const zmsg=Math.abs(an.dzEnd)>=1?` Dislivello da recuperare: ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"in discesa":"in salita"} (usa una rampa ${an.dzEnd>0?"↓":"↑"}).`:"";
-  if(an.planClosed)return{msg:"In pianta il circuito si chiude."+zmsg,opts:[]};
+  const zmsg=Math.abs(an.dzEnd)>=1?L(` Dislivello da recuperare: ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"in discesa":"in salita"} (usa una rampa ${an.dzEnd>0?"↓":"↑"}).`,` Height to recover: ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"going down":"going up"} (use a ${an.dzEnd>0?"↓":"↑"} ramp).`):"";
+  if(an.planClosed)return{msg:L("In pianta il circuito si chiude.","In plan the track closes.")+zmsg,opts:[]};
   if(Math.abs(an.dh)>=0.5){
     const t45=st.types.find(t=>t.id==="C45")||st.types.find(t=>t.kind==="curve");
     const k=t45?Math.round(Math.abs(an.dh)/t45.ang):0;
-    return{msg:`La direzione finale è sfasata di ${nf(Math.abs(an.dh))}°: servono altre curve ${an.dh>0?"a destra":"a sinistra"}${k?` (circa ${k} da ${t45.ang}°)`:""}.`+zmsg,opts:[]};
+    return{msg:L(`La direzione finale è sfasata di ${nf(Math.abs(an.dh))}°: servono altre curve ${an.dh>0?"a destra":"a sinistra"}${k?` (circa ${k} da ${t45.ang}°)`:""}.`,`The final heading is off by ${nf(Math.abs(an.dh))}°: you need more ${an.dh>0?"right":"left"} curves${k?` (about ${k} × ${t45.ang}°)`:""}.`)+zmsg,opts:[]};
   }
   const h=g.end.h, along=an.gx*Math.cos(h)+an.gy*Math.sin(h), lat=-an.gx*Math.sin(h)+an.gy*Math.cos(h);
-  if(Math.abs(lat)>st.settings.tol) return{msg:`Le estremità sono parallele ma sfalsate di ${nf(Math.abs(lat))} mm di lato: allunga o accorcia uno dei lati.`+zmsg,opts:[]};
-  if(along<0) return{msg:`La fine supera la partenza di ${nf(-along)} mm: togli rettilinei.`+zmsg,opts:[]};
+  if(Math.abs(lat)>st.settings.tol) return{msg:L(`Le estremità sono parallele ma sfalsate di ${nf(Math.abs(lat))} mm di lato: allunga o accorcia uno dei lati.`,`The ends are parallel but ${nf(Math.abs(lat))} mm apart sideways: lengthen or shorten one side.`)+zmsg,opts:[]};
+  if(along<0) return{msg:L(`La fine supera la partenza di ${nf(-along)} mm: togli rettilinei.`,`The end overshoots the start by ${nf(-along)} mm: remove straights.`)+zmsg,opts:[]};
   const str=st.types.filter(t=>t.kind==="straight"&&!t.prof&&!t.dz&&(!t.x||st.settings.extras)).sort((a,b)=>b.len-a.len), res=[], lim=Math.max(st.settings.tol,12);
   (function dfs(i,sum,pick){
     if(res.length>400)return;
@@ -429,23 +445,23 @@ function suggestions(g,an){
     pick.push(str[i]);dfs(i,sum+str[i].len,pick);pick.pop();dfs(i+1,sum,pick);
   })(0,0,[]);
   res.sort((a,b)=>(Math.abs(a.err)>st.settings.tol)-(Math.abs(b.err)>st.settings.tol)||a.pick.length-b.pick.length||Math.abs(a.err)-Math.abs(b.err));
-  return{msg:`Mancano ${nf(along)} mm in linea retta per chiudere.`+zmsg,opts:res.slice(0,4)};
+  return{msg:L(`Mancano ${nf(along)} mm in linea retta per chiudere.`,`${nf(along)} mm of straight are missing to close the loop.`)+zmsg,opts:res.slice(0,4)};
 }
 
-/* ---------- distinta ---------- */
+/* ---------- bill of materials ---------- */
 function bom(){
   const T=typeMap(),need={};
   for(const it of st.layout){const t=T[it.t];if(!t)continue;for(const[k,q]of Object.entries(t.parts))need[k]=(need[k]||0)+q;}
   return need;
 }
 
-/* ---------- disegno 2D ---------- */
+/* ---------- 2D drawing ---------- */
 const svg=$("#cv");
 function render(){renderSVG();renderTools();renderPane();if(is3d)build3D(false);}
 let G=null,AN=null;
 function pieceLabel(e){
-  let s=e.t.label;
-  if(e.t.kind==="curve")s+=e.it.d==="L"?" SX":" DX";
+  let s=tl(e.t);
+  if(e.t.kind==="curve")s+=e.it.d==="L"?L(" SX"," L"):L(" DX"," R");
   if(e.dz)s+=e.dz>0?" ↑":" ↓";
   return s;
 }
@@ -454,7 +470,7 @@ function renderSVG(){
   const w=st.settings.width/2;
   let s=`<defs><pattern id="gp" width="100" height="100" patternUnits="userSpaceOnUse"><path class="gridl" d="M100 0H0V100"/></pattern></defs>`;
   s+=`<rect x="-30000" y="-30000" width="60000" height="60000" fill="url(#gp)"/>`;
-  if(!G.els.length) s+=`<text class="empty" x="0" y="-${w+60}">Tocca un pezzo qui sotto per iniziare</text>`;
+  if(!G.els.length) s+=`<text class="empty" x="0" y="-${w+60}">${L("Tocca un pezzo qui sotto per iniziare","Tap a piece below to start")}</text>`;
   for(const e of G.els){
     const isSel=e.i===sel, a=e.flip?"l2":"l1", b=e.flip?"l1":"l2", elev=Math.max(e.z0,e.z1)>0.5;
     s+=`<g data-i="${e.i}" class="${isSel?"sel ":""}${elev?"elev":""}" style="cursor:pointer"><path class="body" d="${band(e,-w,w)}"/>`;
@@ -488,8 +504,8 @@ function renderSVG(){
   setViewBox();
   const bb=bbox(G), room=roomCheck(bb);
   $("#hud").innerHTML=
-    `<span class="pill ${AN.closed?"ok":AN.near?"warn":"bad"}"><i></i>${!G.els.length?"Vuoto":AN.closed?"Chiuso":AN.near?"Quasi chiuso":"Aperto"}</span>`+
-    `<span class="pill">${nf(AN.center/1000,2)} m/giro</span>`+
+    `<span class="pill ${AN.closed?"ok":AN.near?"warn":"bad"}"><i></i>${!G.els.length?L("Vuoto","Empty"):AN.closed?L("Chiuso","Closed"):AN.near?L("Quasi chiuso","Almost closed"):L("Aperto","Open")}</span>`+
+    `<span class="pill">${nf(AN.center/1000,2)} ${L("m/giro","m/lap")}</span>`+
     (bb?`<span class="pill ${room===false?"bad":room?"ok":""}"><i></i>${nf(bb.w/10)} × ${nf(bb.h/10)} cm</span>`:"")+
     (AN.maxZ>0.5?`<span class="pill">h max ${nf(AN.maxZ)} mm</span>`:"");
 }
@@ -516,14 +532,14 @@ function zoomAt(k,sx,sy){
   view.cx=wx-(sx-W/2)/view.z;view.cy=wy-(sy-H/2)/view.z;setViewBox();
 }
 
-/* ---------- vista 3D ---------- */
+/* ---------- 3D view ---------- */
 let T3=null;
 function cssColor(k){return getComputedStyle(document.documentElement).getPropertyValue(k).trim()||"#888";}
 function init3D(){
   if(T3)return true;
-  if(!window.THREE||!THREE.OrbitControls){toast("Vista 3D non disponibile: la libreria non si è caricata.");return false;}
+  if(!window.THREE||!THREE.OrbitControls){toast(L("Vista 3D non disponibile: la libreria non si è caricata.","3D view unavailable: the library did not load."));return false;}
   const host=$("#v3");let renderer;
-  try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){toast("Il browser non supporta WebGL: vista 3D non disponibile.");return false;}
+  try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){toast(L("Il browser non supporta WebGL: vista 3D non disponibile.","This browser has no WebGL: 3D view unavailable."));return false;}
   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
   const scene=new THREE.Scene();
@@ -562,7 +578,7 @@ function build3D(refit){
       for(const[A,B,h]of[[L0,L1,whL],[R0,R1,whR]]){
         buf.w.push(...P(A.x,A.y,A.z-4),...P(B.x,B.y,B.z-4),...P(B.x,B.y,B.z+h),...P(A.x,A.y,A.z-4),...P(B.x,B.y,B.z+h),...P(A.x,A.y,A.z+h));
       }
-      // bordo inferiore (spessore pavimento)
+      // bottom edge (floor thickness)
       buf.w.push(...P(L0.x,L0.y,L0.z-4),...P(R0.x,R0.y,R0.z-4),...P(R1.x,R1.y,R1.z-4),...P(L0.x,L0.y,L0.z-4),...P(R1.x,R1.y,R1.z-4),...P(L1.x,L1.y,L1.z-4));
     }
   }
@@ -583,7 +599,7 @@ function build3D(refit){
       const car1=(q<0)!==e.flip;
       ribbon(pts,car1?buf.f1:buf.f2,q<0?tall:50,q>0?tall:50);
     }
-    if(e.t.prof==="saddle"||e.t.prof==="jump"){/* evidenzia la parte rialzata */
+    if(e.t.prof==="saddle"||e.t.prof==="jump"){/* highlight the raised part */
       const u0=e.t.prof==="jump"?.55:.4,u1=e.t.prof==="jump"?.79:.6;
       for(const q of[-1,1]){const A=pointAt(e,u0,q*lane-40),B=pointAt(e,u1,q*lane-40),C=pointAt(e,u1,q*lane+40),D=pointAt(e,u0,q*lane+40),za=zAt(e,u0)+1,zb=zAt(e,u1)+1;
         buf.feat.push(...P(A.x,A.y,za),...P(B.x,B.y,zb),...P(C.x,C.y,zb),...P(A.x,A.y,za),...P(C.x,C.y,zb),...P(D.x,D.y,za));}
@@ -614,7 +630,7 @@ function setMode(three){
 }
 $("#m2d").onclick=()=>setMode(false);$("#m3d").onclick=()=>setMode(true);
 
-/* ---------- barra pezzi ---------- */
+/* ---------- piece bar ---------- */
 function icon(t,d,v){
   if(t.kind==="curve"&&t.ang>=270)return `<svg viewBox="0 0 30 22"><path d="M15 19 A8 8 0 1 1 22 12" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M15 15 A4.5 4.5 0 1 1 19 11" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
   if(t.kind==="curve"){const p=d==="L"?"M24 20 V14 A10 10 0 0 0 14 4 H4":"M6 20 V14 A10 10 0 0 1 16 4 H26";return `<svg viewBox="0 0 30 22"><path d="${p}" fill="none" stroke="currentColor" stroke-width="3"/></svg>`;}
@@ -628,26 +644,26 @@ function icon(t,d,v){
 }
 function pieceButtons(t){
   const x=t.x?" x":"";
-  if(t.kind==="curve")return ["L","R"].map(d=>`<button class="pb${x}" data-add="${t.id}" data-d="${d}" title="${esc(t.name)} ${d==="L"?"a sinistra":"a destra"}">${icon(t,d)}<b>${esc(t.label)} ${d==="L"?"SX":"DX"}</b><small>${t.ang}° R ${t.r}</small></button>`).join("");
-  if(t.dz)return [1,-1].map(v=>`<button class="pb${x}" data-add="${t.id}" data-v="${v}" title="${esc(t.name)} ${v>0?"in salita":"in discesa"}">${icon(t,null,v)}<b>${esc(t.label)} ${v>0?"↑":"↓"}</b><small>${t.len}·${t.dz} mm</small></button>`).join("");
-  return `<button class="pb${x}" data-add="${t.id}" title="${esc(t.name)}">${icon(t)}<b>${esc(t.label)}</b><small>${t.len} mm</small></button>`;
+  if(t.kind==="curve")return ["L","R"].map(d=>`<button class="pb${x}" data-add="${t.id}" data-d="${d}" title="${esc(tn(t))} ${d==="L"?L("a sinistra","left"):L("a destra","right")}">${icon(t,d)}<b>${esc(tl(t))} ${d==="L"?L("SX","L"):L("DX","R")}</b><small>${t.ang}° R ${t.r}</small></button>`).join("");
+  if(t.dz)return [1,-1].map(v=>`<button class="pb${x}" data-add="${t.id}" data-v="${v}" title="${esc(tn(t))} ${v>0?L("in salita","up"):L("in discesa","down")}">${icon(t,null,v)}<b>${esc(tl(t))} ${v>0?"↑":"↓"}</b><small>${t.len}·${t.dz} mm</small></button>`).join("");
+  return `<button class="pb${x}" data-add="${t.id}" title="${esc(tn(t))}">${icon(t)}<b>${esc(tl(t))}</b><small>${t.len} mm</small></button>`;
 }
 function renderTools(){
   const base=st.types.filter(t=>!t.x&&!t.custom),extra=st.types.filter(t=>t.x&&!t.custom),cust=st.types.filter(t=>t.custom);
   let h=`<span class="sep">Kit</span>`+base.map(pieceButtons).join("");
   if(st.settings.extras&&extra.length)h+=`<span class="sep">Extra</span>`+extra.map(pieceButtons).join("");
-  if(cust.length)h+=`<span class="sep">Miei</span>`+cust.map(pieceButtons).join("");
+  if(cust.length)h+=`<span class="sep">${L("Miei","Mine")}</span>`+cust.map(pieceButtons).join("");
   $("#pieces").innerHTML=h;
   const se=sel!=null?st.layout[sel]:null, ty=se&&typeMap()[se.t];
   $("#undo").disabled=!hist.length;$("#redo").disabled=!fut.length;
   $("#flip").disabled=!(ty&&ty.kind==="curve");$("#flipv").disabled=!(ty&&ty.dz);
   $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;
-  $("#del").textContent=sel!=null?"✕ Elimina pezzo":"✕ Elimina ultimo";
-  $("#hint").textContent=sel!=null?`Pezzo ${sel+1} selezionato: i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`
-    :"Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.";
+  $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
+  $("#hint").textContent=sel!=null?L(`Pezzo ${sel+1} selezionato: i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
+    :L("Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.","The yellow triangle shows where the next piece will snap on. Tap a piece of the track to select it; drag to move the view.");
 }
 
-/* ---------- pannelli ---------- */
+/* ---------- panes ---------- */
 function renderPane(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   const P=$("#pane"),same=P.dataset.tab===tab,top=P.scrollTop,wy=window.scrollY;
@@ -657,36 +673,36 @@ function renderPane(){
 }
 function paneSum(){
   const g=G,an=AN,bb=bbox(g),sg=suggestions(g,an),room=roomCheck(bb);
-  let cls="bad",title="Circuito aperto",txt=sg.msg;
-  if(!g.els.length){cls="warn";title="Nessun pezzo";txt="Aggiungi pezzi dalla barra o carica un circuito dalla scheda «Circuiti».";}
-  else if(an.closed){cls="ok";title="Circuito chiuso";txt=`Errore di chiusura ${nf(an.dist,1)} mm (tolleranza ${st.settings.tol} mm).`;}
-  else if(an.near){cls="warn";title="Quasi chiuso";txt=`Distanza ${nf(an.dist,1)} mm, sfasamento ${nf(Math.abs(an.dh),1)}°: probabilmente si chiude con il gioco delle clip.`;}
+  let cls="bad",title=L("Circuito aperto","Open track"),txt=sg.msg;
+  if(!g.els.length){cls="warn";title=L("Nessun pezzo","No pieces");txt=L("Aggiungi pezzi dalla barra o carica un circuito dalla scheda «Circuiti».","Add pieces from the bar or load a track from the «Tracks» tab.");}
+  else if(an.closed){cls="ok";title=L("Circuito chiuso","Closed track");txt=L(`Errore di chiusura ${nf(an.dist,1)} mm (tolleranza ${st.settings.tol} mm).`,`Closing error ${nf(an.dist,1)} mm (tolerance ${st.settings.tol} mm).`);}
+  else if(an.near){cls="warn";title=L("Quasi chiuso","Almost closed");txt=L(`Distanza ${nf(an.dist,1)} mm, sfasamento ${nf(Math.abs(an.dh),1)}°: probabilmente si chiude con il gioco delle clip.`,`Gap ${nf(an.dist,1)} mm, heading off ${nf(Math.abs(an.dh),1)}°: the play in the clips will probably close it.`);}
   let h=`<div class="status ${cls}"><div><b>${title}</b><p>${txt}</p>`;
   if(sg.opts.length){h+=`<div class="sugg">`+sg.opts.map((o,k)=>`<button data-sugg="${k}">+ ${o.pick.map(t=>t.len).join(" + ")}${Math.abs(o.err)>st.settings.tol?` (${o.err>0?"+":""}${nf(o.err)} mm)`:""}</button>`).join("")+`</div>`;}
   h+=`</div></div>`;
-  if(an.below)h+=`<div class="status bad"><div><b>Pista sotto il pavimento</b><p>Dal pezzo ${an.below.i+1} la quota scende sotto zero: inverti una rampa con «Salita/discesa».</p></div></div>`;
+  if(an.below)h+=`<div class="status bad"><div><b>${L("Pista sotto il pavimento","Track below the floor")}</b><p>${L(`Dal pezzo ${an.below.i+1} la quota scende sotto zero: inverti una rampa con «Salita/discesa».`,`From piece ${an.below.i+1} the height drops below zero: flip a ramp with «Up/down».`)}</p></div></div>`;
   window._sugg=sg.opts;
   const need=bom(),tot=Object.values(need).reduce((a,b)=>a+b,0);
   h+=`<div class="stats">
-    <div class="stat"><span>Pezzi stampati</span><b>${tot}</b></div>
-    <div class="stat"><span>Giro (asse pista)</span><b>${nf(an.center/1000,2)} m</b></div>
-    <div class="stat"><span>Ingombro</span><b>${bb?`${nf(bb.w/10)}×${nf(bb.h/10)}`:"–"} cm</b></div>
-    <div class="stat"><span>Cambi corsia</span><b>${an.lc}</b></div>
+    <div class="stat"><span>${L("Pezzi stampati","Printed pieces")}</span><b>${tot}</b></div>
+    <div class="stat"><span>${L("Giro (asse pista)","Lap (track centre)")}</span><b>${nf(an.center/1000,2)} m</b></div>
+    <div class="stat"><span>${L("Ingombro","Footprint")}</span><b>${bb?`${nf(bb.w/10)}×${nf(bb.h/10)}`:"–"} cm</b></div>
+    <div class="stat"><span>${L("Cambi corsia","Lane changes")}</span><b>${an.lc}</b></div>
     <div class="stat"><span>Clip</span><b>${an.clips}</b></div>
-    ${an.maxZ>0.5?`<div class="stat"><span>Altezza max · supporti</span><b>${nf(an.maxZ)} mm · ${an.supports}</b></div>`:""}
+    ${an.maxZ>0.5?`<div class="stat"><span>${L("Altezza max · supporti","Max height · supports")}</span><b>${nf(an.maxZ)} mm · ${an.supports}</b></div>`:""}
   </div>`;
   if(g.els.length){
     const A=an.lanes.A,B=an.lanes.B,fair=Math.abs(A[0]+A[1]-B[0]-B[1])<1;
-    h+=`<div><h2>Corsie (gara su 2 giri)</h2><div class="tw"><table><thead><tr><th>Partenza</th><th class="n">1° giro</th><th class="n">2° giro</th><th class="n">Totale</th></tr></thead><tbody>
-      <tr><td><span class="sw" style="background:var(--lane1)"></span>Corsia sinistra</td><td class="n">${nf(A[0]/1000,2)} m</td><td class="n">${nf(A[1]/1000,2)} m</td><td class="n">${nf((A[0]+A[1])/1000,2)} m</td></tr>
-      <tr><td><span class="sw" style="background:var(--lane2)"></span>Corsia destra</td><td class="n">${nf(B[0]/1000,2)} m</td><td class="n">${nf(B[1]/1000,2)} m</td><td class="n">${nf((B[0]+B[1])/1000,2)} m</td></tr>
+    h+=`<div><h2>${L("Corsie (gara su 2 giri)","Lanes (2-lap race)")}</h2><div class="tw"><table><thead><tr><th>${L("Partenza","Start")}</th><th class="n">${L("1° giro","Lap 1")}</th><th class="n">${L("2° giro","Lap 2")}</th><th class="n">${L("Totale","Total")}</th></tr></thead><tbody>
+      <tr><td><span class="sw" style="background:var(--lane1)"></span>${L("Corsia sinistra","Left lane")}</td><td class="n">${nf(A[0]/1000,2)} m</td><td class="n">${nf(A[1]/1000,2)} m</td><td class="n">${nf((A[0]+A[1])/1000,2)} m</td></tr>
+      <tr><td><span class="sw" style="background:var(--lane2)"></span>${L("Corsia destra","Right lane")}</td><td class="n">${nf(B[0]/1000,2)} m</td><td class="n">${nf(B[1]/1000,2)} m</td><td class="n">${nf((B[0]+B[1])/1000,2)} m</td></tr>
     </tbody></table></div>
-    <p class="note" style="margin-top:8px">Rosso e blu seguono le due auto nel 1° giro. ${an.lc%2===1?(fair?"Con un numero dispari di cambi corsia le due auto percorrono la stessa distanza in 2 giri.":"Distanze diverse: controlla il raggio delle curve."):an.lc===0?"Senza cambio corsia la corsia interna è più corta: le auto non fanno la stessa distanza.":"Con un numero pari di cambi corsia ogni auto resta sulla stessa corsia a fine giro: distanze diverse."}</p></div>`;
+    <p class="note" style="margin-top:8px">${L("Rosso e blu seguono le due auto nel 1° giro.","Red and blue follow the two cars on lap 1.")} ${an.lc%2===1?(fair?L("Con un numero dispari di cambi corsia le due auto percorrono la stessa distanza in 2 giri.","With an odd number of lane changes both cars cover the same distance over 2 laps."):L("Distanze diverse: controlla il raggio delle curve.","Different distances: check the curve radius.")):an.lc===0?L("Senza cambio corsia la corsia interna è più corta: le auto non fanno la stessa distanza.","Without a lane change the inner lane is shorter: the cars don't cover the same distance."):L("Con un numero pari di cambi corsia ogni auto resta sulla stessa corsia a fine giro: distanze diverse.","With an even number of lane changes each car ends the lap on the same lane: different distances.")}</p></div>`;
   }
-  h+=`<div><h2>Spazio disponibile</h2><div class="form" style="margin-top:8px">
-    <label for="roomW">Larghezza (cm)<input type="number" id="roomW" data-set="roomW" min="0" value="${st.settings.roomW||""}" placeholder="es. 250"></label>
-    <label for="roomH">Profondità (cm)<input type="number" id="roomH" data-set="roomH" min="0" value="${st.settings.roomH||""}" placeholder="es. 150"></label></div>
-    ${room===null?"":`<p class="note" style="margin-top:6px;color:var(${room?"--ok":"--bad"})">${room?"Il circuito ci sta.":"Il circuito non ci sta, nemmeno ruotato."}</p>`}</div>`;
+  h+=`<div><h2>${L("Spazio disponibile","Available space")}</h2><div class="form" style="margin-top:8px">
+    <label for="roomW">${L("Larghezza","Width")} (cm)<input type="number" id="roomW" data-set="roomW" min="0" value="${st.settings.roomW||""}" placeholder="${L("es.","e.g.")} 250"></label>
+    <label for="roomH">${L("Profondità","Depth")} (cm)<input type="number" id="roomH" data-set="roomH" min="0" value="${st.settings.roomH||""}" placeholder="${L("es.","e.g.")} 150"></label></div>
+    ${room===null?"":`<p class="note" style="margin-top:6px;color:var(${room?"--ok":"--bad"})">${room?L("Il circuito ci sta.","The track fits."):L("Il circuito non ci sta, nemmeno ruotato.","The track doesn't fit, even rotated.")}</p>`}</div>`;
   return h;
 }
 function paneBom(){
@@ -696,72 +712,72 @@ function paneBom(){
     const n=need[p.id]||0,o=+(st.owned[p.id]||0),todo=Math.max(0,n-o),extra=p.kit?Math.max(0,n-p.kit):0;
     if(p.id==="support"||(!n&&!o))continue;
     tn+=n;tp+=todo;th+=todo*p.h;
-    rows+=`<tr><td>${esc(p.name)}${p.est?`<span class="chip" title="Ore di stampa stimate">stima</span>`:""}${extra?`<br><small style="color:var(--muted)">${extra} oltre il kit base</small>`:""}</td><td class="n">${n}</td>
-      <td class="n"><input type="number" min="0" id="own-${p.id}" aria-label="Già stampati ${esc(p.name)}" data-own="${p.id}" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*p.h,1)}</td></tr>`;
+    rows+=`<tr><td>${esc(pn(p))}${p.est?`<span class="chip" title="${L("Ore di stampa stimate","Estimated print hours")}">${L("stima","est.")}</span>`:""}${extra?`<br><small style="color:var(--muted)">${extra} ${L("oltre il kit base","beyond the base kit")}</small>`:""}</td><td class="n">${n}</td>
+      <td class="n"><input type="number" min="0" id="own-${p.id}" aria-label="${L("Già stampati","Already printed")} ${esc(pn(p))}" data-own="${p.id}" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*p.h,1)}</td></tr>`;
   }
   const sp=st.parts.find(p=>p.id==="support");
   if(AN.supports&&sp){const o=+(st.owned.support||0),todo=Math.max(0,AN.supports-o);tp+=todo;th+=todo*sp.h;tn+=AN.supports;
-    rows+=`<tr><td>${esc(sp.name)}<span class="chip">stima</span><br><small style="color:var(--muted)">1 per giunto sopraelevato</small></td><td class="n">${AN.supports}</td><td class="n"><input type="number" min="0" id="own-support" aria-label="Supporti già stampati" data-own="support" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*sp.h,1)}</td></tr>`;}
+    rows+=`<tr><td>${esc(pn(sp))}<span class="chip">${L("stima","est.")}</span><br><small style="color:var(--muted)">${L("1 per giunto sopraelevato","1 per raised joint")}</small></td><td class="n">${AN.supports}</td><td class="n"><input type="number" min="0" id="own-support" aria-label="${L("Supporti già stampati","Supports already printed")}" data-own="support" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*sp.h,1)}</td></tr>`;}
   const clips=AN.clips,oc=+(st.owned.clip||0);
-  rows+=`<tr><td>Tamiya Track Clip</td><td class="n">${clips}</td><td class="n"><input type="number" min="0" id="own-clip" aria-label="Clip già stampate" data-own="clip" value="${oc}"></td><td class="n"><b>${Math.max(0,clips-oc)}</b></td><td class="n">–</td></tr>`;
-  return `<div class="tw"><table><thead><tr><th>Parte</th><th class="n">Servono</th><th class="n">In magazzino</th><th class="n">Da stampare</th><th class="n">Ore</th></tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td>Totale pezzi pista</td><td class="n">${tn}</td><td></td><td class="n">${tp}</td><td class="n">${nf(th,1)} h</td></tr></tfoot></table></div>
-    <div class="btns"><button class="btn primary" data-act="own-print">Ho stampato i mancanti</button><button class="btn" data-act="copy-bom">Copia lista</button></div>
-    <p class="note">Ore riferite ai profili di stampa pubblicati. Curve, 215, Jump e Sella dai dati MakerWorld; le altre sono stime. Clip: ${st.settings.clips} per giunto, ${AN.joints} giunti. «In magazzino» è condiviso con la scheda Magazzino.</p>`;
+  rows+=`<tr><td>Tamiya Track Clip</td><td class="n">${clips}</td><td class="n"><input type="number" min="0" id="own-clip" aria-label="${L("Clip già stampate","Clips already printed")}" data-own="clip" value="${oc}"></td><td class="n"><b>${Math.max(0,clips-oc)}</b></td><td class="n">–</td></tr>`;
+  return `<div class="tw"><table><thead><tr><th>${L("Parte","Part")}</th><th class="n">${L("Servono","Needed")}</th><th class="n">${L("In magazzino","In stock")}</th><th class="n">${L("Da stampare","To print")}</th><th class="n">${L("Ore","Hours")}</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td>${L("Totale pezzi pista","Total track pieces")}</td><td class="n">${tn}</td><td></td><td class="n">${tp}</td><td class="n">${nf(th,1)} h</td></tr></tfoot></table></div>
+    <div class="btns"><button class="btn primary" data-act="own-print">${L("Ho stampato i mancanti","I printed the missing ones")}</button><button class="btn" data-act="copy-bom">${L("Copia lista","Copy list")}</button></div>
+    <p class="note">${L(`Ore riferite ai profili di stampa pubblicati. Curve, 215, Jump e Sella dai dati MakerWorld; le altre sono stime. Clip: ${st.settings.clips} per giunto, ${AN.joints} giunti. «In magazzino» è condiviso con la scheda Magazzino.`,`Hours refer to the published print profiles. Curves, 215, Jump and Saddle come from MakerWorld; the others are estimates. Clips: ${st.settings.clips} per joint, ${AN.joints} joints. «In stock» is shared with the Inventory tab.`)}</p>`;
 }
 function paneMod(){
   const need=bom(),T=typeMap();
-  let h=`<p class="note">Modelli compatibili con la pista a 2 corsie Tamiya. Gli elementi segnati «nel catalogo» si aggiungono dalla barra pezzi (gruppo Extra).</p>
-  <label class="check" for="s-extras"><input type="checkbox" id="s-extras" data-set="extras" ${st.settings.extras?"checked":""}> Mostra gli elementi extra nella barra</label><div class="models">`;
+  let h=`<p class="note">${L("Modelli compatibili con la pista a 2 corsie Tamiya. Gli elementi segnati «nel catalogo» si aggiungono dalla barra pezzi (gruppo Extra).","Models compatible with the Tamiya 2-lane track. Items marked «in catalogue» can be added from the piece bar (Extra group).")}</p>
+  <label class="check" for="s-extras"><input type="checkbox" id="s-extras" data-set="extras" ${st.settings.extras?"checked":""}> ${L("Mostra gli elementi extra nella barra","Show the extra items in the bar")}</label><div class="models">`;
   for(const m of MODELS){
     const used=m.types.some(id=>T[id]&&Object.keys(T[id].parts).some(p=>need[p]));
-    h+=`<div class="model"><div><b>${esc(m.name)}</b><br><small>di ${esc(m.by)}</small></div><a class="btn" href="${esc(m.url)}" target="_blank" rel="noopener">Apri ↗</a>
-      <p>${esc(m.what)} ${m.types.length?`<span class="chip ok">nel catalogo</span>`:`<span class="chip">solo link</span>`}${m.types.length&&!m.known?`<span class="chip">misure da verificare</span>`:""}${used?`<span class="chip ok">usato nel circuito</span>`:""}</p></div>`;
+    h+=`<div class="model"><div><b>${esc(m.name)}</b><br><small>${L("di","by")} ${esc(m.by)}</small></div><a class="btn" href="${esc(m.url)}" target="_blank" rel="noopener">${L("Apri","Open")} ↗</a>
+      <p>${esc(pv(m.what))} ${m.types.length?`<span class="chip ok">${L("nel catalogo","in catalogue")}</span>`:`<span class="chip">${L("solo link","link only")}</span>`}${m.types.length&&!m.known?`<span class="chip">${L("misure da verificare","sizes to check")}</span>`:""}${used?`<span class="chip ok">${L("usato nel circuito","used in the track")}</span>`:""}</p></div>`;
   }
-  return h+`</div><p class="note">Dove MakerWorld non indica le misure (spirale, wall, dosso, rampa rainbow) ho messo valori indicativi: correggili in «Catalogo» dopo aver aperto il modello.</p>`;
+  return h+`</div><p class="note">${L("Dove MakerWorld non indica le misure (spirale, wall, dosso, rampa rainbow) ho messo valori indicativi: correggili in «Catalogo» dopo aver aperto il modello.","Where MakerWorld gives no sizes (spiral, wall, hill, rainbow ramp) the values are approximate: fix them in «Catalogue» after opening the model.")}</p>`;
 }
 function paneCat(){
   const s=st.settings;
-  let h=`<div><h2>Pista</h2><div class="form" style="margin-top:8px">
-    <label for="s-width">Larghezza pista (mm)<input type="number" id="s-width" data-set="width" value="${s.width}"></label>
-    <label for="s-lane">Asse corsia dal centro (mm)<input type="number" id="s-lane" data-set="lane" value="${s.lane}"></label>
-    <label for="s-clips">Clip per giunto<input type="number" id="s-clips" data-set="clips" min="0" value="${s.clips}"></label>
-    <label for="s-tol">Tolleranza chiusura (mm)<input type="number" id="s-tol" data-set="tol" min="0" value="${s.tol}"></label></div></div>`;
-  h+=`<div><h2>Elementi</h2><div class="tw"><table><thead><tr><th>Nome</th><th class="n">Lungh. / angolo</th><th class="n">Raggio</th><th class="n">Dislivello</th><th></th></tr></thead><tbody>`;
+  let h=`<div><h2>${L("Pista","Track")}</h2><div class="form" style="margin-top:8px">
+    <label for="s-width">${L("Larghezza pista (mm)","Track width (mm)")}<input type="number" id="s-width" data-set="width" value="${s.width}"></label>
+    <label for="s-lane">${L("Asse corsia dal centro (mm)","Lane axis from centre (mm)")}<input type="number" id="s-lane" data-set="lane" value="${s.lane}"></label>
+    <label for="s-clips">${L("Clip per giunto","Clips per joint")}<input type="number" id="s-clips" data-set="clips" min="0" value="${s.clips}"></label>
+    <label for="s-tol">${L("Tolleranza chiusura (mm)","Closing tolerance (mm)")}<input type="number" id="s-tol" data-set="tol" min="0" value="${s.tol}"></label></div></div>`;
+  h+=`<div><h2>${L("Elementi","Elements")}</h2><div class="tw"><table><thead><tr><th>${L("Nome","Name")}</th><th class="n">${L("Lungh. / angolo","Length / angle")}</th><th class="n">${L("Raggio","Radius")}</th><th class="n">${L("Dislivello","Rise")}</th><th></th></tr></thead><tbody>`;
   for(const t of st.types){
-    h+=`<tr><td>${esc(t.name)}${t.est?`<span class="chip">da verificare</span>`:""}</td>`;
-    if(t.kind==="curve")h+=`<td class="n"><input type="number" id="t-${t.id}-ang" aria-label="Angolo ${esc(t.name)}" data-type="${t.id}" data-k="ang" value="${t.ang}">°</td><td class="n"><input type="number" id="t-${t.id}-r" aria-label="Raggio ${esc(t.name)}" data-type="${t.id}" data-k="r" value="${t.r}"></td>`;
-    else h+=`<td class="n"><input type="number" id="t-${t.id}-len" aria-label="Lunghezza ${esc(t.name)}" data-type="${t.id}" data-k="len" value="${t.len}"></td><td class="n">–</td>`;
-    h+=`<td class="n">${t.dz?`<input type="number" id="t-${t.id}-dz" aria-label="Dislivello ${esc(t.name)}" data-type="${t.id}" data-k="dz" value="${t.dz}">`:"–"}</td>`;
-    h+=`<td class="n">${t.custom?`<button class="ab danger" data-deltype="${t.id}" aria-label="Rimuovi ${esc(t.name)}">✕</button>`:""}</td></tr>`;
+    h+=`<tr><td>${esc(tn(t))}${t.est?`<span class="chip">${L("da verificare","to check")}</span>`:""}</td>`;
+    if(t.kind==="curve")h+=`<td class="n"><input type="number" id="t-${t.id}-ang" aria-label="${L("Angolo","Angle")} ${esc(tn(t))}" data-type="${t.id}" data-k="ang" value="${t.ang}">°</td><td class="n"><input type="number" id="t-${t.id}-r" aria-label="${L("Raggio","Radius")} ${esc(tn(t))}" data-type="${t.id}" data-k="r" value="${t.r}"></td>`;
+    else h+=`<td class="n"><input type="number" id="t-${t.id}-len" aria-label="${L("Lunghezza","Length")} ${esc(tn(t))}" data-type="${t.id}" data-k="len" value="${t.len}"></td><td class="n">–</td>`;
+    h+=`<td class="n">${t.dz?`<input type="number" id="t-${t.id}-dz" aria-label="${L("Dislivello","Rise")} ${esc(tn(t))}" data-type="${t.id}" data-k="dz" value="${t.dz}">`:"–"}</td>`;
+    h+=`<td class="n">${t.custom?`<button class="ab danger" data-deltype="${t.id}" aria-label="${L("Rimuovi","Remove")} ${esc(tn(t))}">✕</button>`:""}</td></tr>`;
   }
-  h+=`</tbody></table></div><p class="note" style="margin-top:8px">Raggio misurato sull'asse della pista. Curva (480) e cambio corsia (830) sono stimati dall'ovale Tamiya 216 × 120 cm: misurali sui tuoi pezzi e correggili qui.</p></div>`;
-  h+=`<div><h2>Parti stampate</h2><div class="tw"><table><thead><tr><th>Parte</th><th class="n">Nel kit</th><th class="n">Ore/pz</th></tr></thead><tbody>`;
-  for(const p of st.parts)h+=`<tr><td>${esc(p.name)}</td><td class="n"><input type="number" min="0" id="p-${p.id}-kit" aria-label="Quantità nel kit" data-part="${p.id}" data-k="kit" value="${p.kit}"></td><td class="n"><input type="number" min="0" step="0.05" id="p-${p.id}-h" aria-label="Ore per pezzo" data-part="${p.id}" data-k="h" value="${p.h}"></td></tr>`;
+  h+=`</tbody></table></div><p class="note" style="margin-top:8px">${L("Raggio misurato sull'asse della pista. Curva (480) e cambio corsia (830) sono stimati dall'ovale Tamiya 216 × 120 cm: misurali sui tuoi pezzi e correggili qui.","Radius measured on the track centre line. Curve (480) and lane change (830) are estimated from the 216 × 120 cm Tamiya oval: measure your pieces and fix them here.")}</p></div>`;
+  h+=`<div><h2>${L("Parti stampate","Printed parts")}</h2><div class="tw"><table><thead><tr><th>${L("Parte","Part")}</th><th class="n">${L("Nel kit","In kit")}</th><th class="n">${L("Ore/pz","Hours/pc")}</th></tr></thead><tbody>`;
+  for(const p of st.parts)h+=`<tr><td>${esc(pn(p))}</td><td class="n"><input type="number" min="0" id="p-${p.id}-kit" aria-label="${L("Quantità nel kit","Quantity in kit")}" data-part="${p.id}" data-k="kit" value="${p.kit}"></td><td class="n"><input type="number" min="0" step="0.05" id="p-${p.id}-h" aria-label="${L("Ore per pezzo","Hours per piece")}" data-part="${p.id}" data-k="h" value="${p.h}"></td></tr>`;
   h+=`</tbody></table></div></div>`;
-  h+=`<div><h2>Nuovo pezzo</h2><p class="note" style="margin:6px 0 8px">Per rettilinei o curve stampati da altri modelli compatibili (es. curve rucdoc).</p><div class="form">
-    <label for="n-kind">Tipo<select id="n-kind"><option value="straight">Rettilineo</option><option value="curve">Curva</option></select></label>
-    <label for="n-name">Nome<input type="text" id="n-name" placeholder="es. Rettilineo 250"></label>
-    <label for="n-len">Lunghezza o angolo<input type="number" id="n-len" placeholder="mm o °"></label>
-    <label for="n-r">Raggio curva (mm)<input type="number" id="n-r" placeholder="solo curve"></label>
-    <label for="n-h">Ore stampa/pz<input type="number" id="n-h" step="0.1" placeholder="es. 2.5"></label>
-  </div><div class="btns" style="margin-top:10px"><button class="btn primary" data-act="add-type">Aggiungi al catalogo</button></div></div>`;
+  h+=`<div><h2>${L("Nuovo pezzo","New piece")}</h2><p class="note" style="margin:6px 0 8px">${L("Per rettilinei o curve stampati da altri modelli compatibili (es. curve rucdoc).","For straights or curves printed from other compatible models (e.g. rucdoc curves).")}</p><div class="form">
+    <label for="n-kind">${L("Tipo","Type")}<select id="n-kind"><option value="straight">${L("Rettilineo","Straight")}</option><option value="curve">${L("Curva","Curve")}</option></select></label>
+    <label for="n-name">${L("Nome","Name")}<input type="text" id="n-name" placeholder="${L("es. Rettilineo 250","e.g. Straight 250")}"></label>
+    <label for="n-len">${L("Lunghezza o angolo","Length or angle")}<input type="number" id="n-len" placeholder="${L("mm o °","mm or °")}"></label>
+    <label for="n-r">${L("Raggio curva (mm)","Curve radius (mm)")}<input type="number" id="n-r" placeholder="${L("solo curve","curves only")}"></label>
+    <label for="n-h">${L("Ore stampa/pz","Print hours/pc")}<input type="number" id="n-h" step="0.1" placeholder="${L("es.","e.g.")} 2.5"></label>
+  </div><div class="btns" style="margin-top:10px"><button class="btn primary" data-act="add-type">${L("Aggiungi al catalogo","Add to catalogue")}</button></div></div>`;
   return h;
 }
 function paneFile(){
-  let h=`<div><h2>Circuiti pronti</h2><div class="tw" style="margin-top:6px"><table><tbody>`;
-  for(const[k,p]of Object.entries(PRESETS))h+=`<tr><td><b>${esc(p.name)}</b><br><small style="color:var(--muted)">${esc(p.desc)}</small></td><td class="n"><button class="btn" data-preset="${k}">Carica</button></td></tr>`;
+  let h=`<div><h2>${L("Circuiti pronti","Ready-made tracks")}</h2><div class="tw" style="margin-top:6px"><table><tbody>`;
+  for(const[k,p]of Object.entries(PRESETS))h+=`<tr><td><b>${esc(pv(p.name))}</b><br><small style="color:var(--muted)">${esc(pv(p.desc))}</small></td><td class="n"><button class="btn" data-preset="${k}">${L("Carica","Load")}</button></td></tr>`;
   h+=`</tbody></table></div></div>
-  <div><h2>Questo circuito</h2><div class="form" style="margin-top:8px"><label for="c-name">Nome<input type="text" id="c-name" value="${esc(st.name||"")}"></label></div>
-  <div class="btns" style="margin-top:10px"><button class="btn" data-act="copy-json">Copia JSON</button><button class="btn" data-act="copy-svg">Copia SVG</button><button class="btn" data-act="clear">Svuota pista</button></div></div>
-  <div><h2>Importa</h2><label for="imp" class="note">Incolla un JSON copiato in precedenza.</label><textarea id="imp" spellcheck="false"></textarea>
-  <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="import">Carica JSON</button><button class="btn" data-act="reset">Ripristina tutto</button></div></div>
-  <p class="note">Il circuito si salva in questo browser a ogni modifica. Per spostarlo su un altro dispositivo usa «Copia JSON».</p>`;
+  <div><h2>${L("Questo circuito","This track")}</h2><div class="form" style="margin-top:8px"><label for="c-name">${L("Nome","Name")}<input type="text" id="c-name" value="${esc(st.name||"")}"></label></div>
+  <div class="btns" style="margin-top:10px"><button class="btn" data-act="copy-json">${L("Copia JSON","Copy JSON")}</button><button class="btn" data-act="copy-svg">${L("Copia SVG","Copy SVG")}</button><button class="btn" data-act="clear">${L("Svuota pista","Clear track")}</button></div></div>
+  <div><h2>${L("Importa","Import")}</h2><label for="imp" class="note">${L("Incolla un JSON copiato in precedenza.","Paste a JSON you copied earlier.")}</label><textarea id="imp" spellcheck="false"></textarea>
+  <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="import">${L("Carica JSON","Load JSON")}</button><button class="btn" data-act="reset">${L("Ripristina tutto","Reset everything")}</button></div></div>
+  <p class="note">${L("Il circuito si salva in questo browser a ogni modifica. Per spostarlo su un altro dispositivo usa «Copia JSON».","The track is saved in this browser on every change. To move it to another device use «Copy JSON».")}</p>`;
   return h;
 }
 
-/* ---------- magazzino ---------- */
-function partName(id){if(id==="clip")return "Tamiya Track Clip";const p=st.parts.find(x=>x.id===id);return p?p.name:id;}
+/* ---------- inventory ---------- */
+function partName(id){if(id==="clip")return "Tamiya Track Clip";const p=st.parts.find(x=>x.id===id);return p?pn(p):id;}
 function setOwned(id,val,note){
   val=Math.max(0,Math.round(+val||0));const old=+(st.owned[id]||0);if(val===old)return;
   st.owned[id]=val;const now=Date.now(),last=st.log[0];
@@ -771,19 +787,19 @@ function setOwned(id,val,note){
 }
 function paneInv(){
   const ids=[...st.parts.map(p=>p.id),"clip"];let tot=0;
-  let h=`<p class="note">I pezzi stampati che hai. Ogni modifica finisce nello storico qui sotto e viene usata da «Pezzi» e «Idee».</p><div class="tw"><table><thead><tr><th>Parte</th><th class="n">Nel kit</th><th class="n">In magazzino</th></tr></thead><tbody>`;
+  let h=`<p class="note">${L("I pezzi stampati che hai. Ogni modifica finisce nello storico qui sotto e viene usata da «Pezzi» e «Idee».","The printed pieces you own. Every change goes into the history below and is used by «Parts» and «Ideas».")}</p><div class="tw"><table><thead><tr><th>${L("Parte","Part")}</th><th class="n">${L("Nel kit","In kit")}</th><th class="n">${L("In magazzino","In stock")}</th></tr></thead><tbody>`;
   for(const id of ids){const p=st.parts.find(x=>x.id===id),o=+(st.owned[id]||0);tot+=id==="clip"?0:o;
-    h+=`<tr><td>${esc(partName(id))}</td><td class="n">${p&&p.kit?p.kit:"–"}</td><td class="n"><span class="qty"><button data-inc="${id}" data-q="-1" aria-label="Togli uno ${esc(partName(id))}">−</button><input type="number" min="0" id="inv-${id}" aria-label="In magazzino ${esc(partName(id))}" data-own="${id}" value="${o}"><button data-inc="${id}" data-q="1" aria-label="Aggiungi uno ${esc(partName(id))}">+</button></span></td></tr>`;}
-  h+=`</tbody><tfoot><tr><td>Totale pezzi pista</td><td></td><td class="n">${tot}</td></tr></tfoot></table></div>
-  <div class="btns"><button class="btn" data-act="own-kit">+ 1 kit base completo</button><button class="btn" data-act="own-zero">Azzera magazzino</button></div>
-  <div><h2>Storico${st.log.length?` <small style="font:12px var(--body);text-transform:none;letter-spacing:0">(${st.log.length} movimenti)</small>`:""}</h2>`;
-  if(!st.log.length)h+=`<p class="note" style="margin-top:6px">Ancora nessun movimento.</p>`;
-  else{h+=`<ul class="log" style="margin-top:6px">`+st.log.map(l=>`<li><time>${new Date(l.t).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</time><span><span class="${l.q>0?"pos":"neg"}">${l.q>0?"+":""}${l.q}</span> ${esc(partName(l.p))}${l.n?` <small style="color:var(--muted)">· ${esc(l.n)}</small>`:""}</span></li>`).join("")+`</ul>
-    <div class="btns" style="margin-top:8px"><button class="btn" data-act="log-clear">Cancella storico</button></div>`;}
-  return h+`</div><p class="note">Magazzino e storico restano in questo browser e sono inclusi in «Copia JSON».</p>`;
+    h+=`<tr><td>${esc(partName(id))}</td><td class="n">${p&&p.kit?p.kit:"–"}</td><td class="n"><span class="qty"><button data-inc="${id}" data-q="-1" aria-label="${L("Togli uno","Remove one")} ${esc(partName(id))}">−</button><input type="number" min="0" id="inv-${id}" aria-label="${L("In magazzino","In stock")} ${esc(partName(id))}" data-own="${id}" value="${o}"><button data-inc="${id}" data-q="1" aria-label="${L("Aggiungi uno","Add one")} ${esc(partName(id))}">+</button></span></td></tr>`;}
+  h+=`</tbody><tfoot><tr><td>${L("Totale pezzi pista","Total track pieces")}</td><td></td><td class="n">${tot}</td></tr></tfoot></table></div>
+  <div class="btns"><button class="btn" data-act="own-kit">${L("+ 1 kit base completo","+ 1 full base kit")}</button><button class="btn" data-act="own-zero">${L("Azzera magazzino","Clear inventory")}</button></div>
+  <div><h2>${L("Storico","History")}${st.log.length?` <small style="font:12px var(--body);text-transform:none;letter-spacing:0">(${st.log.length} ${L("movimenti","changes")})</small>`:""}</h2>`;
+  if(!st.log.length)h+=`<p class="note" style="margin-top:6px">${L("Ancora nessun movimento.","No changes yet.")}</p>`;
+  else{h+=`<ul class="log" style="margin-top:6px">`+st.log.map(l=>`<li><time>${new Date(l.t).toLocaleString(LANG==="it"?"it-IT":"en-GB",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}</time><span><span class="${l.q>0?"pos":"neg"}">${l.q>0?"+":""}${l.q}</span> ${esc(partName(l.p))}${l.n?` <small style="color:var(--muted)">· ${esc(noteText(l.n))}</small>`:""}</span></li>`).join("")+`</ul>
+    <div class="btns" style="margin-top:8px"><button class="btn" data-act="log-clear">${L("Cancella storico","Clear history")}</button></div>`;}
+  return h+`</div><p class="note">${L("Magazzino e storico restano in questo browser e sono inclusi in «Copia JSON».","Inventory and history stay in this browser and are included in «Copy JSON».")}</p>`;
 }
 
-/* ---------- generatore di tracciati ---------- */
+/* ---------- track generator ---------- */
 let genRes=null;
 function generate(){
   const T=typeMap(),cs=st.settings,RW=(+cs.roomW||0)*10,RH=(+cs.roomH||0)*10;
@@ -791,7 +807,7 @@ function generate(){
   const curve=T.C45,LC=cs.genLC&&T.LC?T.LC:null; if(!curve)return[];
   const straights=st.types.filter(t=>t.kind==="straight"&&!t.prof&&!t.dz&&(!t.x||cs.genX));
   const maxD=Math.max(RW,RH),minD=Math.min(RW,RH),outer=curve.r+cs.width/2;
-  // tutte le somme di rettilinei possibili
+  // every possible sum of straights
   const combos=new Map([[0,[[]]]]),ts=straights.slice().sort((a,b)=>b.len-a.len);
   (function dfs(i,sum,pick){
     if(pick.length){const k=Math.round(sum);let a=combos.get(k);if(!a)combos.set(k,a=[]);if(a.length<30)a.push(pick.slice());}
@@ -809,14 +825,14 @@ function generate(){
   const lcLen=LC?LC.len:0, chic=2*curve.r*Math.sin(curve.ang*DEG);
   const aVals=(step,max)=>bucket(lens.map(x=>x+lcLen).filter(a=>a<=max&&combos.has(Math.round(a))),step,max);
   const FAM=[
-    {id:"ovale",name:"Ovale",curves:8,params:()=>aVals(1,maxD-2*outer).map(a=>[a,0,0]),
+    {id:"ovale",name:["Ovale","Oval"],curves:8,params:()=>aVals(1,maxD-2*outer).map(a=>[a,0,0]),
       build:(a,b,d,s)=>{const top=side(a,s),bot=side(a-lcLen,s);return top&&bot&&[...top,...Rn(4),...withLC(bot),...Rn(4)];}},
-    {id:"rett",name:"Rettangolo",curves:8,params:()=>{const r=[];for(const a of aVals(60,maxD-2*outer))for(const b of bucket(lens.filter(x=>x>0),60,maxD-2*outer))r.push([a,b,0]);return r;},
+    {id:"rett",name:["Rettangolo","Rectangle"],curves:8,params:()=>{const r=[];for(const a of aVals(60,maxD-2*outer))for(const b of bucket(lens.filter(x=>x>0),60,maxD-2*outer))r.push([a,b,0]);return r;},
       build:(a,b,d,s)=>{const top=side(a,s),bot=side(a-lcLen,s),s1=side(b,s),s2=side(b,s);return top&&bot&&s1&&s2&&[...top,...Rn(2),...s1,...Rn(2),...withLC(bot),...Rn(2),...s2,...Rn(2)];}},
-    {id:"otto",name:"Ottagono",curves:8,params:()=>{const r=[];const ds=bucket(lens.filter(x=>x>0),100,450);for(const a of aVals(100,maxD-2*outer))for(const b of bucket(lens,100,maxD-2*outer))for(const d of ds)r.push([a,b,d]);return r;},
+    {id:"otto",name:["Ottagono","Octagon"],curves:8,params:()=>{const r=[];const ds=bucket(lens.filter(x=>x>0),100,450);for(const a of aVals(100,maxD-2*outer))for(const b of bucket(lens,100,maxD-2*outer))for(const d of ds)r.push([a,b,d]);return r;},
       build:(a,b,d,s)=>{const top=side(a,s),bot=side(a-lcLen,s),sb=[side(b,s),side(b,s)],sd=[0,1,2,3].map(()=>side(d,s));if(!top||!bot||sb.some(x=>!x)||sd.some(x=>!x))return null;
         const C=(i)=>[...Rn(1),...sd[i],...Rn(1)];return[...top,...C(0),...sb[0],...C(1),...withLC(bot),...C(2),...sb[1],...C(3)];}},
-    {id:"chicane",name:"Ovale con chicane",curves:16,params:()=>aVals(1,maxD-2*outer-2*chic).map(a=>[a,0,0]),
+    {id:"chicane",name:["Ovale con chicane","Oval with chicane"],curves:16,params:()=>aVals(1,maxD-2*outer-2*chic).map(a=>[a,0,0]),
       build:(a,b,d,s)=>{const top=side(a,s),bot=side(a-lcLen,s);if(!top||!bot)return null;const ch=x=>[...Rn(1),...Rn(1,"L"),...x,...Rn(1,"L"),...Rn(1)];return[...ch(top),...Rn(4),...ch(withLC(bot)),...Rn(4)];}}
   ];
   const all=[];
@@ -835,14 +851,14 @@ function generate(){
       all.push({fam:F,layout,key:layout.map(x=>x.t+(x.d||"")).join(","),lap:an.center,w:bb.w,h:bb.h,pieces,prints,miss,clipMiss,hours,lc:an.lc});
     }
   }
-  // per ogni famiglia: il più economico, il più lungo e una via di mezzo
+  // for each family: the cheapest, the longest and one in between
   const pickd=[],seen=new Set(),add=(c,tag)=>{if(c&&!seen.has(c.key)){seen.add(c.key);pickd.push({...c,tag});}};
   for(const F of FAM){
     const cs2=all.filter(c=>c.fam===F);if(!cs2.length)continue;
     const cheap=cs2.slice().sort((x,y)=>x.prints-y.prints||y.lap-x.lap)[0];
     const big=cs2.slice().sort((x,y)=>y.lap-x.lap||x.prints-y.prints)[0];
     const mid=cs2.filter(c=>c.prints<=cheap.prints+4).sort((x,y)=>y.lap-x.lap)[0];
-    add(cheap,cheap.prints===0?"Solo pezzi che hai":"Meno pezzi da stampare");add(mid,"Più lungo con poche stampe");add(big,"Il più lungo che ci sta");
+    add(cheap,cheap.prints===0?["Solo pezzi che hai","Only pieces you own"]:["Meno pezzi da stampare","Fewest pieces to print"]);add(mid,["Più lungo con poche stampe","Longer with few prints"]);add(big,["Il più lungo che ci sta","Longest that fits"]);
   }
   pickd.sort((x,y)=>x.prints-y.prints||y.lap-x.lap);
   return pickd.slice(0,10).map(c=>({...c,title:c.fam.name}));
@@ -852,19 +868,19 @@ function miniSVG(layout){
   return `<svg viewBox="${bb.x0-m} ${bb.y0-m} ${bb.w+2*m} ${bb.h+2*m}" aria-hidden="true">`+g.els.map(e=>`<path class="body" style="stroke-width:${Math.max(6,bb.w/90)}" d="${band(e,-w,w)}"/>${e.t.kind==="lane"?`<path class="x1" style="stroke-width:${Math.max(8,bb.w/60)}" d="M${f(off(e.p0,-st.settings.lane))}L${f(off(e.p1,st.settings.lane))}"/>`:""}`).join("")+`</svg>`;
 }
 const FEATS=[
-  {id:"lc",label:"Scambio corsia"},{id:"jump",label:"Un salto"},{id:"park",label:"Pista jump"},
-  {id:"speed",label:"Velocità"},{id:"tech",label:"Tecnica"},{id:"rainbow",label:"Sopraelevata"},
-  {id:"spiral",label:"Spirale"},{id:"compact",label:"Compatta"}
+  {id:"lc",label:["Scambio corsia","Lane change"]},{id:"jump",label:["Un salto","A jump"]},{id:"park",label:["Pista jump","Jump track"]},
+  {id:"speed",label:["Velocità","Speed"]},{id:"tech",label:["Tecnica","Technical"]},{id:"rainbow",label:["Sopraelevata","Raised"]},
+  {id:"spiral",label:["Spirale","Spiral"]},{id:"compact",label:["Compatta","Compact"]}
 ];
 let rndRes=null,rndErr="";
 function randomGen(){
   const T=typeMap(),S=st.settings,RS=S.rnd,F=RS.feat;
   const useRoom=RS.src!=="stock",stockOnly=RS.src!=="room";
   const RW=(+S.roomW||0)*10,RH=(+S.roomH||0)*10;
-  if(useRoom&&(!RW||!RH))return{err:"Inserisci larghezza e profondità dello spazio."};
-  const curve=T.C45;if(!curve)return{err:"Nel catalogo manca la curva da 45°."};
+  if(useRoom&&(!RW||!RH))return{err:L("Inserisci larghezza e profondità dello spazio.","Enter the width and depth of the space.")};
+  const curve=T.C45;if(!curve)return{err:L("Nel catalogo manca la curva da 45°.","The 45° curve is missing from the catalogue.")};
   const owned=Object.fromEntries(Object.entries(st.owned).map(([k,v])=>[k,+v||0]));
-  if(stockOnly&&!Object.values(owned).some(v=>v>0))return{err:"Il magazzino è vuoto: compilalo nella scheda «Magazzino»."};
+  if(stockOnly&&!Object.values(owned).some(v=>v>0))return{err:L("Il magazzino è vuoto: compilalo nella scheda «Magazzino».","The inventory is empty: fill it in the «Inventory» tab.")};
   const maxD=useRoom?Math.max(RW,RH):4500,R2c=2*curve.r;
   const straights=st.types.filter(t=>t.kind==="straight"&&!t.prof&&!t.dz&&(!t.x||S.genX));
   const combos=new Map([[0,[[]]]]),ts=straights.slice().sort((a,b)=>b.len-a.len);
@@ -893,20 +909,20 @@ function randomGen(){
   const Rn=(n,d="R")=>Array.from({length:n},()=>({t:"C45",d}));
   const ok=(...a)=>a.every(x=>x);
   const aLen=(tp,bt,max=span)=>{const mb=mlen(bt),mt=mlen(tp),c=lens.map(r=>r+mb).filter(v=>v>=mt&&v<=max&&combos.has(Math.round(v-mt)));if(!c.length)return null;const lo=c[0],t=lo+Math.random()*(Math.min(max,c[c.length-1])-lo);let best=c[0];for(const v of c)if(Math.abs(v-t)<Math.abs(best-t))best=v;return best;};
-  // pezzi speciali da distribuire sui due lati lunghi
+  // special pieces spread over the two long sides
   const has=id=>!!T[id];
   const TPL=[
-    {id:"ovale",name:"Ovale",elev:true,w:F.speed?4:F.tech?.3:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt);const t=side(a,st0,tp),b=side(a,st0,bt);return ok(t,b)&&[...t,...Rn(4),...b,...Rn(4)];}},
-    {id:"rett",name:"Rettangolo",elev:true,w:F.speed?3:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt),bl=rlen(100,maxD/2);const t=side(a,st0,tp),b=side(a,st0,bt),s1=side(bl,st0),s2=side(bl,st0);return ok(t,b,s1,s2)&&[...t,...Rn(2),...s1,...Rn(2),...b,...Rn(2),...s2,...Rn(2)];}},
-    {id:"otto",name:"Ottagono",elev:true,w:F.tech?2:F.speed?.6:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt),bl=rlen(0,maxD/2),d=rlen(100,500);const t=side(a,st0,tp),b=side(a,st0,bt),sb=[side(bl,st0),side(bl,st0)],sd=[0,1,2,3].map(()=>side(d,st0));
+    {id:"ovale",name:["Ovale","Oval"],elev:true,w:F.speed?4:F.tech?.3:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt);const t=side(a,st0,tp),b=side(a,st0,bt);return ok(t,b)&&[...t,...Rn(4),...b,...Rn(4)];}},
+    {id:"rett",name:["Rettangolo","Rectangle"],elev:true,w:F.speed?3:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt),bl=rlen(100,maxD/2);const t=side(a,st0,tp),b=side(a,st0,bt),s1=side(bl,st0),s2=side(bl,st0);return ok(t,b,s1,s2)&&[...t,...Rn(2),...s1,...Rn(2),...b,...Rn(2),...s2,...Rn(2)];}},
+    {id:"otto",name:["Ottagono","Octagon"],elev:true,w:F.tech?2:F.speed?.6:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt),bl=rlen(0,maxD/2),d=rlen(100,500);const t=side(a,st0,tp),b=side(a,st0,bt),sb=[side(bl,st0),side(bl,st0)],sd=[0,1,2,3].map(()=>side(d,st0));
       if(!ok(t,b,...sb,...sd))return null;const C=i=>[...Rn(1),...sd[i],...Rn(1)];return[...t,...C(0),...sb[0],...C(1),...b,...C(2),...sb[1],...C(3)];}},
-    {id:"chicane",name:"Ovale con chicane",elev:true,w:F.tech?3:F.speed?.2:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt);const t=side(a,st0,tp),b=side(a,st0,bt);if(!ok(t,b))return null;const ch=x=>[...Rn(1),...Rn(1,"L"),...x,...Rn(1,"L"),...Rn(1)];return[...ch(t),...Rn(4),...ch(b),...Rn(4)];}},
-    {id:"fagiolo",name:"Fagiolo",elev:false,w:F.tech?3:F.speed?.1:1,build:(st0,tp,bt)=>{
+    {id:"chicane",name:["Ovale con chicane","Oval with chicane"],elev:true,w:F.tech?3:F.speed?.2:1,build:(st0,tp,bt)=>{const a=aLen(tp,bt);const t=side(a,st0,tp),b=side(a,st0,bt);if(!ok(t,b))return null;const ch=x=>[...Rn(1),...Rn(1,"L"),...x,...Rn(1,"L"),...Rn(1)];return[...ch(t),...Rn(4),...ch(b),...Rn(4)];}},
+    {id:"fagiolo",name:["Fagiolo","Bean"],elev:false,w:F.tech?3:F.speed?.1:1,build:(st0,tp,bt)=>{
       const x1=rlen(mlen(tp),maxD/2),x2=rlen(0,600),e=rlen(0,500),f=rlen(0,800);if([x1,x2,e,f].some(v=>v==null))return null;
       const bl=rlen(e+320,e+1200);const X1=side(x1,st0,tp),X2=side(x2,st0),E1=side(e,st0),E2=side(e,st0),FF=side(f,st0),B1=side(bl,st0),B2=side(bl,st0),BOT=side(x1+x2+f+2*R2c,st0,bt);
       if(!ok(X1,X2,E1,E2,FF,B1,B2,BOT))return null;
       return[...X1,...Rn(2),...E1,...Rn(2,"L"),...FF,...Rn(2,"L"),...E2,...Rn(2),...X2,...Rn(2),...B1,...Rn(2),...BOT,...Rn(2),...B2,...Rn(2)];}},
-    {id:"elle",name:"Pista a L",elev:false,w:F.tech?2:F.speed?.3:1,build:(st0,tp,bt)=>{
+    {id:"elle",name:["Pista a L","L-shaped track"],elev:false,w:F.tech?2:F.speed?.3:1,build:(st0,tp,bt)=>{
       const sc=rlen(0,maxD/2),sWc=rlen(0,maxD/2),h1=rlen(0,maxD/2),h2=rlen(0,maxD/2);if([sc,sWc,h1,h2].some(v=>v==null))return null;
       const TOP=side(sc+sWc+R2c,st0,tp),LEFT=side(h1+h2+R2c,st0,bt),H1=side(h1,st0),SC=side(sc,st0),H2=side(h2,st0),SW=side(sWc,st0);
       if(!ok(TOP,LEFT,H1,SC,H2,SW))return null;
@@ -917,7 +933,7 @@ function randomGen(){
   const wsum=tpls.reduce((a,t)=>a+t.w,0);
   const pickT=()=>{let r=Math.random()*wsum;for(const t of tpls){r-=t.w;if(r<=0)return t;}return tpls[0];};
   const missing=[];
-  if(F.lc&&!has("LC"))missing.push("cambio corsia");
+  if(F.lc&&!has("LC"))missing.push(L("cambio corsia","lane change"));
   const all=[];let tries=0;
   while(tries<2500&&all.length<80){
     tries++;
@@ -945,17 +961,19 @@ function randomGen(){
     if(!stockOnly)sc-=prints*.06;
     const hours=Object.entries(miss).reduce((h,[p,m])=>h+m*((st.parts.find(x=>x.id===p)||{}).h||0),0);
     const cnt=id=>layout.filter(x=>x.t===id).length,tags=[];
-    if(cnt("LC"))tags.push("scambio");if(cnt("J200"))tags.push(cnt("J200")>1?`${cnt("J200")} salti`:"salto");if(cnt("SAD"))tags.push("sella");if(cnt("HILL"))tags.push("dosso");
-    if(cnt("RUP"))tags.push("sopraelevata");if(cnt("SPI"))tags.push("spirale");
-    const adj=F.speed&&!F.tech?" veloce":F.tech&&!F.speed?" tecnico":F.park?" jump":"";
-    all.push({key,layout,tpl,score:sc,title:tpl.name+adj,tag:tags.join(" · ")||"base",lap:an.center,w:bb.w,h:bb.h,pieces,prints,miss,clipMiss:Math.max(0,an.clips-(owned.clip||0)),hours,lc:an.lc});
+    const tg=(it,en)=>tags.push([it,en]);
+    if(cnt("LC"))tg("scambio","lane change");if(cnt("J200"))cnt("J200")>1?tg(`${cnt("J200")} salti`,`${cnt("J200")} jumps`):tg("salto","jump");if(cnt("SAD"))tg("sella","saddle");if(cnt("HILL"))tg("dosso","hill");
+    if(cnt("RUP"))tg("sopraelevata","raised");if(cnt("SPI"))tg("spirale","spiral");
+    const adj=F.speed&&!F.tech?[" veloce","Fast "]:F.tech&&!F.speed?[" tecnico","Technical "]:F.park?[" jump","Jump "]:["",""];
+    const title=[tpl.name[0]+adj[0],adj[1]+(adj[1]?tpl.name[1].toLowerCase():tpl.name[1])];
+    all.push({key,layout,tpl,score:sc,title,tag:tags.length?[tags.map(t=>t[0]).join(" · "),tags.map(t=>t[1]).join(" · ")]:["base","basic"],lap:an.center,w:bb.w,h:bb.h,pieces,prints,miss,clipMiss:Math.max(0,an.clips-(owned.clip||0)),hours,lc:an.lc});
   }
   if(!all.length){
-    let why=stockOnly?"Con i pezzi in magazzino non riesco a chiudere un circuito con queste opzioni.":"Nessun circuito con queste opzioni entra nello spazio indicato.";
-    if(stockOnly&&(F.jump||F.park))why+=" Per i salti servono i pezzi Jump/Sella/Dosso in magazzino.";
-    if(stockOnly&&(F.rainbow||F.spiral))why+=" Per sopraelevata e spirale servono rampe, spirali e supporti in magazzino.";
-    if(F.spiral&&useRoom)why+=" La spirale sporge di circa 120 cm dal circuito: serve più spazio.";
-    return{err:why+" Prova a togliere qualche opzione."};
+    let why=stockOnly?L("Con i pezzi in magazzino non riesco a chiudere un circuito con queste opzioni.","I can't close a track with these options using the pieces in stock."):L("Nessun circuito con queste opzioni entra nello spazio indicato.","No track with these options fits in the given space.");
+    if(stockOnly&&(F.jump||F.park))why+=L(" Per i salti servono i pezzi Jump/Sella/Dosso in magazzino."," Jumps need Jump/Saddle/Hill pieces in stock.");
+    if(stockOnly&&(F.rainbow||F.spiral))why+=L(" Per sopraelevata e spirale servono rampe, spirali e supporti in magazzino."," Raised sections and spirals need ramps, spirals and supports in stock.");
+    if(F.spiral&&useRoom)why+=L(" La spirale sporge di circa 120 cm dal circuito: serve più spazio."," The spiral sticks out about 120 cm from the track: you need more space.");
+    return{err:why+L(" Prova a togliere qualche opzione."," Try removing some options.")};
   }
   all.sort((a,b)=>b.score-a.score);
   const out=[],used=new Set();
@@ -966,49 +984,49 @@ function randomGen(){
 function cardHTML(c,key){
   const have=c.pieces-c.prints,pct=c.pieces?Math.round(have/c.pieces*100):0;
   const list=Object.entries(c.miss).map(([p,m])=>`<li>${m} × ${esc(partName(p))}</li>`).join("")+(c.clipMiss?`<li>${c.clipMiss} × clip</li>`:"");
-  return `<div class="card">${miniSVG(c.layout)}<h3>${esc(c.title)}</h3><span class="chip ${c.prints?"":"ok"}" style="margin:0;align-self:flex-start">${esc(c.tag)}</span>
-    <div class="meta">${nf(c.w/10)}×${nf(c.h/10)} cm · giro ${nf(c.lap/1000,2)} m · ${c.pieces} pezzi${c.lc?"":" · senza scambio"}</div>
-    <div class="bar" title="${pct}% già in magazzino"><i style="width:${pct}%"></i></div>
-    <div class="meta">Hai ${have} · da stampare ${c.prints}${c.prints?` (~${nf(c.hours,1)} h)`:""}</div>
-    ${list?`<ul>${list}</ul>`:`<p class="note" style="color:var(--ok)">Hai già tutto.</p>`}
-    <button class="btn" data-use="${key}">Usa questo tracciato</button></div>`;
+  return `<div class="card">${miniSVG(c.layout)}<h3>${esc(pv(c.title))}</h3><span class="chip ${c.prints?"":"ok"}" style="margin:0;align-self:flex-start">${esc(pv(c.tag))}</span>
+    <div class="meta">${nf(c.w/10)}×${nf(c.h/10)} cm · ${L("giro","lap")} ${nf(c.lap/1000,2)} m · ${c.pieces} ${L("pezzi","pieces")}${c.lc?"":L(" · senza scambio"," · no lane change")}</div>
+    <div class="bar" title="${pct}% ${L("già in magazzino","already in stock")}"><i style="width:${pct}%"></i></div>
+    <div class="meta">${L("Hai","You have")} ${have} · ${L("da stampare","to print")} ${c.prints}${c.prints?` (~${nf(c.hours,1)} h)`:""}</div>
+    ${list?`<ul>${list}</ul>`:`<p class="note" style="color:var(--ok)">${L("Hai già tutto.","You already have everything.")}</p>`}
+    <button class="btn" data-use="${key}">${L("Usa questo tracciato","Use this layout")}</button></div>`;
 }
 function paneGen(){
   const s=st.settings,RS=s.rnd;
-  let h=`<div class="form"><label for="g-w">Larghezza spazio (cm)<input type="number" id="g-w" data-set="roomW" min="0" value="${s.roomW||""}" placeholder="es. 300"></label>
-  <label for="g-h">Profondità spazio (cm)<input type="number" id="g-h" data-set="roomH" min="0" value="${s.roomH||""}" placeholder="es. 150"></label></div>
-  <div><h2>Circuito casuale</h2><div class="form" style="margin-top:8px"><label for="r-src">Parti da
-    <select id="r-src" data-rsrc="1"><option value="room" ${RS.src==="room"?"selected":""}>Spazio disponibile (posso stampare)</option><option value="stock" ${RS.src==="stock"?"selected":""}>Solo pezzi in magazzino</option><option value="both" ${RS.src==="both"?"selected":""}>Pezzi in magazzino + spazio</option></select></label></div>
-  <div class="feats" style="margin-top:10px" role="group" aria-label="Cosa vuoi nel circuito">${FEATS.map(f=>`<label for="rf-${f.id}"><input type="checkbox" id="rf-${f.id}" data-rf="${f.id}" ${RS.feat[f.id]?"checked":""}>${f.label}</label>`).join("")}</div>
-  <div class="btns" style="margin-top:10px"><button class="btn primary" data-act="rnd">🎲 Genera 3 circuiti</button></div>
-  <p class="note" style="margin-top:6px">Ogni clic dà circuiti diversi. Pista jump = salti, sella e dosso; Sopraelevata = curva rialzata con rampe rainbow.</p>`;
+  let h=`<div class="form"><label for="g-w">${L("Larghezza spazio","Space width")} (cm)<input type="number" id="g-w" data-set="roomW" min="0" value="${s.roomW||""}" placeholder="${L("es.","e.g.")} 300"></label>
+  <label for="g-h">${L("Profondità spazio","Space depth")} (cm)<input type="number" id="g-h" data-set="roomH" min="0" value="${s.roomH||""}" placeholder="${L("es.","e.g.")} 150"></label></div>
+  <div><h2>${L("Circuito casuale","Random track")}</h2><div class="form" style="margin-top:8px"><label for="r-src">${L("Parti da","Start from")}
+    <select id="r-src" data-rsrc="1"><option value="room" ${RS.src==="room"?"selected":""}>${L("Spazio disponibile (posso stampare)","Available space (I can print)")}</option><option value="stock" ${RS.src==="stock"?"selected":""}>${L("Solo pezzi in magazzino","Only pieces in stock")}</option><option value="both" ${RS.src==="both"?"selected":""}>${L("Pezzi in magazzino + spazio","Pieces in stock + space")}</option></select></label></div>
+  <div class="feats" style="margin-top:10px" role="group" aria-label="${L("Cosa vuoi nel circuito","What you want in the track")}">${FEATS.map(f=>`<label for="rf-${f.id}"><input type="checkbox" id="rf-${f.id}" data-rf="${f.id}" ${RS.feat[f.id]?"checked":""}>${pv(f.label)}</label>`).join("")}</div>
+  <div class="btns" style="margin-top:10px"><button class="btn primary" data-act="rnd">🎲 ${L("Genera 3 circuiti","Generate 3 tracks")}</button></div>
+  <p class="note" style="margin-top:6px">${L("Ogni clic dà circuiti diversi. Pista jump = salti, sella e dosso; Sopraelevata = curva rialzata con rampe rainbow.","Every click gives different tracks. Jump track = jumps, saddle and hill; Raised = turn lifted on rainbow ramps.")}</p>`;
   if(rndErr)h+=`<p class="note" style="color:var(--bad);margin-top:6px">${esc(rndErr)}</p>`;
   if(rndRes&&rndRes.length)h+=`<div class="cards" style="margin-top:10px">`+rndRes.map((c,k)=>cardHTML(c,"r"+k)).join("")+`</div>`;
-  h+=`</div><div><h2>Alternative ordinate</h2><p class="note" style="margin:6px 0">Ovali, rettangoli e ottagoni che entrano nello spazio, dal più economico al più lungo.</p>
-  <label class="check" for="g-lc"><input type="checkbox" id="g-lc" data-set="genLC" ${s.genLC?"checked":""}> Includi il cambio corsia</label>
-  <label class="check" for="g-x"><input type="checkbox" id="g-x" data-set="genX" ${s.genX?"checked":""}> Usa anche i rettilinei extra (modulare 240)</label>
-  <div class="btns" style="margin-top:8px"><button class="btn" data-act="gen">Genera alternative</button></div>`;
-  if(genRes&&!genRes.length)h+=`<p class="note">Nessun tracciato entra in ${s.roomW}×${s.roomH} cm. Serve almeno circa ${nf((2*(st.types.find(t=>t.id==="C45").r+s.width/2))/10)} cm di profondità per una curva a 180°.</p>`;
+  h+=`</div><div><h2>${L("Alternative ordinate","Sorted alternatives")}</h2><p class="note" style="margin:6px 0">${L("Ovali, rettangoli e ottagoni che entrano nello spazio, dal più economico al più lungo.","Ovals, rectangles and octagons that fit the space, from cheapest to longest.")}</p>
+  <label class="check" for="g-lc"><input type="checkbox" id="g-lc" data-set="genLC" ${s.genLC?"checked":""}> ${L("Includi il cambio corsia","Include the lane change")}</label>
+  <label class="check" for="g-x"><input type="checkbox" id="g-x" data-set="genX" ${s.genX?"checked":""}> ${L("Usa anche i rettilinei extra (modulare 240)","Also use the extra straights (modular 240)")}</label>
+  <div class="btns" style="margin-top:8px"><button class="btn" data-act="gen">${L("Genera alternative","Generate alternatives")}</button></div>`;
+  if(genRes&&!genRes.length){const dmin=nf((2*(st.types.find(t=>t.id==="C45").r+s.width/2))/10);h+=`<p class="note">${L(`Nessun tracciato entra in ${s.roomW}×${s.roomH} cm. Serve almeno circa ${dmin} cm di profondità per una curva a 180°.`,`No layout fits in ${s.roomW}×${s.roomH} cm. A 180° turn needs at least about ${dmin} cm of depth.`)}</p>`;}
   if(genRes&&genRes.length)h+=`<div class="cards" style="margin-top:10px">`+genRes.map((c,k)=>cardHTML(c,"g"+k)).join("")+`</div>`;
-  if(!Object.values(st.owned).some(v=>+v>0))h+=`<p class="note" style="color:var(--warn)">Il magazzino è vuoto: tutti i pezzi risultano da stampare. Compilalo nella scheda «Magazzino».</p>`;
+  if(!Object.values(st.owned).some(v=>+v>0))h+=`<p class="note" style="color:var(--warn)">${L("Il magazzino è vuoto: tutti i pezzi risultano da stampare. Compilalo nella scheda «Magazzino».","The inventory is empty: every piece shows as to print. Fill it in the «Inventory» tab.")}</p>`;
   return h+`</div>`;
 }
 
-/* ---------- officina 3D (motore STL/OBJ) ---------- */
-const BEDS={"256x256":"Bambu Lab A1 / P1 / X1 / H2 (256×256)","180x180":"Bambu Lab A1 mini (180×180)","250x210":"Prusa MK4 / Core One (250×210)","220x220":"Creality Ender 3 (220×220)","235x235":"Creality K1 / Ender 3 V3 (235×235)","300x300":"Grande (300×300)","350x350":"Molto grande (350×350)"};
-const PRM_UI=[["laneW","Larghezza corsia",1],["wallT","Spessore pareti",.1],["floorT","Spessore pavimento",.1],["wallH","Altezza sponde sul pavimento",1],["fillet","Raccordo pareti",.1],["tabH","Altezza alette di aggancio",.1],["slotW","Larghezza asole",1],["slotInset","Asole: distanza dai bordi",1]];
+/* ---------- 3D workshop (STL/OBJ engine) ---------- */
+const BEDS={"256x256":"Bambu Lab A1 / P1 / X1 / H2 (256×256)","180x180":"Bambu Lab A1 mini (180×180)","250x210":"Prusa MK4 / Core One (250×210)","220x220":"Creality Ender 3 (220×220)","235x235":"Creality K1 / Ender 3 V3 (235×235)","300x300":["Grande (300×300)","Large (300×300)"],"350x350":["Molto grande (350×350)","Very large (350×350)"]};
+const PRM_UI=[["laneW",["Larghezza corsia","Lane width"],1],["wallT",["Spessore pareti","Wall thickness"],.1],["floorT",["Spessore pavimento","Floor thickness"],.1],["wallH",["Altezza sponde sul pavimento","Wall height above floor"],1],["fillet",["Raccordo pareti","Wall fillet"],.1],["tabH",["Altezza alette di aggancio","Connector tab height"],.1],["slotW",["Larghezza asole","Slot width"],1],["slotInset",["Asole: distanza dai bordi","Slots: distance from ends"],1]];
 let ENG=null,engP=null,engErr="",wsRes=null,wsBusy=false,wsTimer=null,WV=null,wsOn=false;
-const fname=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/°/g,"gradi").replace(/[^\w.-]+/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");
-function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>ko(new Error("Non riesco a caricare "+src));document.head.appendChild(s);});}
+const fname=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/°/g,L("gradi","deg")).replace(/[^\w.-]+/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");
+function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>ko(new Error(L("Non riesco a caricare ","Can't load ")+src));document.head.appendChild(s);});}
 function engine(){
   if(ENG)return Promise.resolve(ENG);
   if(!engP)engP=(async()=>{
-    if(!window.M4Engine)throw new Error("Motore 3D mancante (engine3d.js).");
+    if(!window.M4Engine)throw new Error(L("Motore 3D mancante (engine3d.js).","3D engine missing (engine3d.js)."));
     if(!window.ManifoldModule)await loadScript(window.M4_MANIFOLD_JS||"vendor/manifold.js");
     const opt={};
     if(window.M4_MANIFOLD_WASM_URL)opt.locateFile=()=>window.M4_MANIFOLD_WASM_URL;
     else{if(!window.MANIFOLD_WASM_B64)await loadScript("vendor/manifold-wasm.js");const b=atob(window.MANIFOLD_WASM_B64),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);opt.wasmBinary=u;}
-    const W=await window.ManifoldModule(opt);W.setup();ENG=M4Engine.create(W);return ENG;
+    const W=await window.ManifoldModule(opt);W.setup();M4Engine.lang=LANG;ENG=M4Engine.create(W);return ENG;
   })().catch(e=>{engP=null;throw e;});
   return engP;
 }
@@ -1024,36 +1042,36 @@ async function wsBuild(){
 }
 function wsUpdate(){const el=document.getElementById("wsres");if(el)el.innerHTML=wsResHTML();}
 function wsResHTML(){
-  if(engErr)return `<div class="status bad"><div><b>Il motore 3D non è partito</b><p>${esc(engErr)}</p><div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-retry">Riprova</button></div></div></div>`;
-  if(wsBusy||!wsRes)return `<p class="note">Genero il pezzo…</p>`;
+  if(engErr)return `<div class="status bad"><div><b>${L("Il motore 3D non è partito","The 3D engine didn't start")}</b><p>${esc(engErr)}</p><div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-retry">${L("Riprova","Retry")}</button></div></div></div>`;
+  if(wsBusy||!wsRes)return `<p class="note">${L("Genero il pezzo…","Building the piece…")}</p>`;
   const r=wsRes,bed=wsCfg().bed.replace("x","×");
-  const msg=!r.ok?`Il pezzo non entra in un piatto ${bed} mm nemmeno ruotato: riduci le misure o scegli un piatto più grande.`:r.split>1?`Troppo grande per un piatto ${bed} mm: diviso in ${r.split} parti uguali, ciascuna con le sue alette di aggancio.`:`Entra in un piatto ${bed} mm${r.pieces[0].fit.deg?`, ruotato di ${r.pieces[0].fit.deg}°`:""}.`;
-  let h=`<div class="status ${r.ok?"ok":"warn"}"><div><b>${r.ok?(r.split>1?`Diviso in ${r.split} parti`:"Pronto da stampare"):"Fuori dal piatto"}</b><p>${msg} Generato in ${nf(r.ms/1000,1)} s.</p></div></div>
-  <div class="tw"><table><thead><tr><th>File</th><th class="n">Q.tà</th><th class="n">Ingombro mm</th><th class="n">cm³</th><th></th></tr></thead><tbody>`;
-  r.pieces.forEach((p,i)=>{h+=`<tr><td>${esc(p.label)}${p.fit.ok?"":`<span class="chip">fuori piatto</span>`}</td><td class="n">${p.qty}</td><td class="n">${p.size.map(x=>nf(x)).join("×")}</td><td class="n">${nf(p.volume)}</td><td class="n"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><button class="ab" data-act="ws-stl" data-i="${i}">STL</button><button class="ab" data-act="ws-obj" data-i="${i}">OBJ</button></div></td></tr>`;});
+  const msg=!r.ok?L(`Il pezzo non entra in un piatto ${bed} mm nemmeno ruotato: riduci le misure o scegli un piatto più grande.`,`The piece doesn't fit a ${bed} mm bed even rotated: reduce the sizes or pick a larger bed.`):r.split>1?L(`Troppo grande per un piatto ${bed} mm: diviso in ${r.split} parti uguali, ciascuna con le sue alette di aggancio.`,`Too big for a ${bed} mm bed: split into ${r.split} equal parts, each with its own connector tabs.`):L(`Entra in un piatto ${bed} mm${r.pieces[0].fit.deg?`, ruotato di ${r.pieces[0].fit.deg}°`:""}.`,`Fits a ${bed} mm bed${r.pieces[0].fit.deg?`, rotated ${r.pieces[0].fit.deg}°`:""}.`);
+  let h=`<div class="status ${r.ok?"ok":"warn"}"><div><b>${r.ok?(r.split>1?L(`Diviso in ${r.split} parti`,`Split into ${r.split} parts`):L("Pronto da stampare","Ready to print")):L("Fuori dal piatto","Doesn't fit the bed")}</b><p>${msg} ${L("Generato in","Built in")} ${nf(r.ms/1000,1)} s.</p></div></div>
+  <div class="tw"><table><thead><tr><th>File</th><th class="n">${L("Q.tà","Qty")}</th><th class="n">${L("Ingombro","Size")} mm</th><th class="n">cm³</th><th></th></tr></thead><tbody>`;
+  r.pieces.forEach((p,i)=>{h+=`<tr><td>${esc(p.label)}${p.fit.ok?"":`<span class="chip">${L("fuori piatto","off the bed")}</span>`}</td><td class="n">${p.qty}</td><td class="n">${p.size.map(x=>nf(x)).join("×")}</td><td class="n">${nf(p.volume)}</td><td class="n"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><button class="ab" data-act="ws-stl" data-i="${i}">STL</button><button class="ab" data-act="ws-obj" data-i="${i}">OBJ</button></div></td></tr>`;});
   h+=`</tbody></table></div>`;
-  if(r.type!=="support")h+=`<div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-cat">Aggiungi alla barra pezzi</button></div>`;
+  if(r.type!=="support")h+=`<div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-cat">${L("Aggiungi alla barra pezzi","Add to the piece bar")}</button></div>`;
   return h;
 }
 function paneWs(){
   const c=wsCfg(),T=M4Engine?M4Engine.TYPES:{},P=Object.assign({},M4Engine.DEFAULTS,c.prm),cur=T[c.type]||T.straight;
-  let h=`<p class="note">Crea i tuoi pezzi di pista da stampare, in STL o OBJ. Profilo, sponde e alette di aggancio sono quelli del rettilineo da 200 mm del set: i pezzi si collegano a quelli del kit con le stesse clip Tamiya.</p>
-  <div class="form"><label for="ws-type">Elemento<select id="ws-type" data-wstype="1">${Object.entries(T).map(([k,t])=>`<option value="${k}" ${k===c.type?"selected":""}>${t.name}</option>`).join("")}</select></label>
+  let h=`<p class="note">${L("Crea i tuoi pezzi di pista da stampare, in STL o OBJ. Profilo, sponde e alette di aggancio sono quelli del rettilineo da 200 mm del set: i pezzi si collegano a quelli del kit con le stesse clip Tamiya.","Make your own printable track pieces as STL or OBJ. Profile, walls and connector tabs match the set's 200 mm straight, so the pieces join the kit with the same Tamiya clips.")}</p>
+  <div class="form"><label for="ws-type">${L("Elemento","Element")}<select id="ws-type" data-wstype="1">${Object.entries(T).map(([k,t])=>`<option value="${k}" ${k===c.type?"selected":""}>${t.name}</option>`).join("")}</select></label>
   ${Object.entries(cur.params).map(([k,[d,mi,ma,lab]])=>`<label for="ws-${k}">${lab}<input type="number" id="ws-${k}" data-wsv="${k}" min="${mi}" max="${ma}" step="any" value="${c.v[k]??d}"></label>`).join("")}
-  <label for="ws-bed">Piatto della stampante<select id="ws-bed" data-wsbed="1">${Object.entries(BEDS).map(([k,n])=>`<option value="${k}" ${k===c.bed?"selected":""}>${n}</option>`).join("")}</select></label></div>
+  <label for="ws-bed">${L("Piatto della stampante","Printer bed")}<select id="ws-bed" data-wsbed="1">${Object.entries(BEDS).map(([k,n])=>`<option value="${k}" ${k===c.bed?"selected":""}>${pv(n)}</option>`).join("")}</select></label></div>
   <div id="wsres" aria-live="polite">${wsResHTML()}</div>
-  <details class="box"><summary>Profilo della pista</summary>
-    <div class="form">${PRM_UI.map(([k,l,stp])=>`<label for="wsp-${k}">${l} (mm)<input type="number" id="wsp-${k}" data-wsp="${k}" step="${stp}" value="${P[k]}"></label>`).join("")}</div>
+  <details class="box"><summary>${L("Profilo della pista","Track profile")}</summary>
+    <div class="form">${PRM_UI.map(([k,l,stp])=>`<label for="wsp-${k}">${pv(l)} (mm)<input type="number" id="wsp-${k}" data-wsp="${k}" step="${stp}" value="${P[k]}"></label>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
-      <label class="check" for="wsp-tabs"><input type="checkbox" id="wsp-tabs" data-wsp="tabs" ${P.tabs?"checked":""}> Alette di aggancio Tamiya alle estremità</label>
-      <label class="check" for="wsp-slots"><input type="checkbox" id="wsp-slots" data-wsp="slots" ${P.slots?"checked":""}> Asole di alleggerimento nel pavimento</label>
-      <label class="check" for="wsp-ribs"><input type="checkbox" id="wsp-ribs" data-wsp="ribs" ${P.ribs?"checked":""}> Nervature sotto i tratti rialzati (stampa senza supporti)</label>
+      <label class="check" for="wsp-tabs"><input type="checkbox" id="wsp-tabs" data-wsp="tabs" ${P.tabs?"checked":""}> ${L("Alette di aggancio Tamiya alle estremità","Tamiya connector tabs at the ends")}</label>
+      <label class="check" for="wsp-slots"><input type="checkbox" id="wsp-slots" data-wsp="slots" ${P.slots?"checked":""}> ${L("Asole di alleggerimento nel pavimento","Lightening slots in the floor")}</label>
+      <label class="check" for="wsp-ribs"><input type="checkbox" id="wsp-ribs" data-wsp="ribs" ${P.ribs?"checked":""}> ${L("Nervature sotto i tratti rialzati (stampa senza supporti)","Ribs under raised sections (print without supports)")}</label>
     </div>
-    <div class="btns" style="margin-top:10px"><button class="btn" data-act="ws-reset">Ripristina misure del kit</button></div>
+    <div class="btns" style="margin-top:10px"><button class="btn" data-act="ws-reset">${L("Ripristina misure del kit","Restore kit sizes")}</button></div>
   </details>
-  <div><h2>Pezzi del circuito</h2><p class="note" style="margin:6px 0">Crea in un colpo i file di tutti i pezzi del circuito aperto nella pianta, con la quantità nel nome di ogni file, i supporti per i tratti rialzati e un LEGGIMI con l'elenco.</p>
-  <div class="btns"><button class="btn primary" data-act="ws-zip">Scarica ZIP del circuito</button></div></div>
-  <p class="note">Il cambio corsia, la spirale e il wall non si generano ancora: lo ZIP indica i modelli MakerWorld da usare.</p>`;
+  <div><h2>${L("Pezzi del circuito","Track pieces")}</h2><p class="note" style="margin:6px 0">${L("Crea in un colpo i file di tutti i pezzi del circuito aperto nella pianta, con la quantità nel nome di ogni file, i supporti per i tratti rialzati e un LEGGIMI con l'elenco.","Builds in one go the files for every piece of the track open in the plan, with the quantity in each file name, the supports for raised sections and a README with the list.")}</p>
+  <div class="btns"><button class="btn primary" data-act="ws-zip">${L("Scarica ZIP del circuito","Download the track ZIP")}</button></div></div>
+  <p class="note">${L("Il cambio corsia, la spirale e il wall non si generano ancora: lo ZIP indica i modelli MakerWorld da usare.","The lane change, the spiral and the wall can't be generated yet: the ZIP lists the MakerWorld models to use.")}</p>`;
   return h;
 }
 function wsActivate(on){
@@ -1099,19 +1117,19 @@ function wsShow(){
   V.scene.add(grp);V.group=grp;
   wsSize();V.camera.position.set(cx-span*.75,span*1.45,span*1.65);V.controls.target.set(cx,15,0);V.controls.update();
 }
-// Nell'anteprima di claude.ai i file passano dalla capacità «downloads», che accetta zip ma non stl/obj:
-// lì STL e OBJ vengono consegnati dentro uno zip. Altrove (web, app desktop) download normale.
+// In the claude.ai preview files go through the «downloads» capability, which accepts zip but not stl/obj:
+// there STL and OBJ are delivered inside a zip. Elsewhere (web, desktop app) it's a normal download.
 let DL=null;(async()=>{try{if(window.claude&&typeof window.claude.use==="function")DL=await window.claude.use("downloads");}catch(e){DL=null;}})();
 async function download(name,bytes,mime){
   if(DL){
     let fn=name,data=bytes;
     if(!/\.(zip|txt|json|svg|html|csv)$/i.test(name)){fn=name.replace(/\.[^.]+$/,"")+".zip";data=M4Engine.zip([{name,data:bytes}]);}
-    try{await DL.save({filename:fn,data});toast(`Salvato «${fn}»`);}
-    catch(e){if(!e||e.code!=="declined")toast("Download non riuscito qui: usa l'app desktop o la versione web.");}
+    try{await DL.save({filename:fn,data});toast(L(`Salvato «${fn}»`,`Saved «${fn}»`));}
+    catch(e){if(!e||e.code!=="declined")toast(L("Download non riuscito qui: usa l'app desktop o la versione web.","Download failed here: use the desktop app or the web version."));}
     return;
   }
-  try{const url=URL.createObjectURL(new Blob([bytes],{type:mime}));const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast(`Scaricato «${name}»`);}
-  catch(e){toast("Il download non è consentito qui: usa l'app desktop o la versione web.");}
+  try{const url=URL.createObjectURL(new Blob([bytes],{type:mime}));const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast(L(`Scaricato «${name}»`,`Downloaded «${name}»`));}
+  catch(e){toast(L("Il download non è consentito qui: usa l'app desktop o la versione web.","Downloads aren't allowed here: use the desktop app or the web version."));}
 }
 function specOf(t){
   if(t.gen)return t.gen.spec;
@@ -1130,35 +1148,36 @@ function wsAddToCatalog(){
     r.pieces.forEach((p,i)=>{const pid="g"+uid+i;st.parts.push({id:pid,name:p.label,kit:0,h:Math.round(p.volume*0.0129*100)/100,est:true});parts[pid]=p.qty;});
     const t={id:"G"+uid,custom:true,gen:{spec:s,prm},parts,segs:r.pieces.reduce((a,p)=>a+p.qty,0)};
     const N=x=>nf(x);
-    if(s.type==="curve")Object.assign(t,{kind:"curve",ang:s.ang,r:s.R,label:`${N(s.ang)}°`,name:`Curva ${N(s.ang)}° R${N(s.R)} (Officina)`});
-    else if(s.type==="ramp")Object.assign(t,{kind:"straight",len:s.L,dz:s.h,prof:"ramp",label:"Rampa",name:`Rampa ${N(s.L)}×${N(s.h)} (Officina)`});
-    else if(s.type==="hill")Object.assign(t,{kind:"straight",len:s.L,prof:"hill",hh:s.h,label:"Dosso",name:`Dosso ${N(s.L)}×${N(s.h)} (Officina)`});
-    else if(s.type==="straight")Object.assign(t,{kind:"straight",len:s.L,label:N(s.L),name:`Rettilineo ${N(s.L)} (Officina)`});
-    else Object.assign(t,{kind:"straight",len:s.L,prof:s.type,label:M4Engine.TYPES[s.type].name,name:`${M4Engine.TYPES[s.type].name} ${N(s.L)} (Officina)`});
+    const WS=L("Officina","Workshop"),TN=M4Engine.TYPES[s.type].name;
+    if(s.type==="curve")Object.assign(t,{kind:"curve",ang:s.ang,r:s.R,label:`${N(s.ang)}°`,name:`${TN} ${N(s.ang)}° R${N(s.R)} (${WS})`});
+    else if(s.type==="ramp")Object.assign(t,{kind:"straight",len:s.L,dz:s.h,prof:"ramp",label:TN,name:`${TN} ${N(s.L)}×${N(s.h)} (${WS})`});
+    else if(s.type==="hill")Object.assign(t,{kind:"straight",len:s.L,prof:"hill",hh:s.h,label:TN,name:`${TN} ${N(s.L)}×${N(s.h)} (${WS})`});
+    else if(s.type==="straight")Object.assign(t,{kind:"straight",len:s.L,label:N(s.L),name:`${TN} ${N(s.L)} (${WS})`});
+    else Object.assign(t,{kind:"straight",len:s.L,prof:s.type,label:TN,name:`${TN} ${N(s.L)} (${WS})`});
     st.types.push(t);
   });
-  toast("Aggiunto alla barra pezzi (gruppo «Miei»)");
+  toast(L("Aggiunto alla barra pezzi (gruppo «Miei»)","Added to the piece bar («Mine» group)"));
 }
 async function wsZip(){
-  if(!st.layout.length){toast("Il circuito è vuoto.");return;}
-  toast("Genero i file del circuito…");await new Promise(r=>setTimeout(r,30));
-  let E;try{E=await engine();}catch(e){engErr=e.message;wsUpdate();toast("Il motore 3D non è partito.");return;}
+  if(!st.layout.length){toast(L("Il circuito è vuoto.","The track is empty."));return;}
+  toast(L("Genero i file del circuito…","Building the track files…"));await new Promise(r=>setTimeout(r,30));
+  let E;try{E=await engine();}catch(e){engErr=e.message;wsUpdate();toast(L("Il motore 3D non è partito.","The 3D engine didn't start."));return;}
   const T=typeMap(),counts={},files=[],lines=[],skipped=[];
   for(const it of st.layout)counts[it.t]=(counts[it.t]||0)+1;
   for(const[id,n]of Object.entries(counts)){
     const t=T[id];if(!t)continue;const spec=specOf(t);
-    if(!spec){const m=MODELS.find(x=>x.types.includes(id));skipped.push(`${n} × ${t.name}${m?` → ${m.url}`:""}`);continue;}
+    if(!spec){const m=MODELS.find(x=>x.types.includes(id));skipped.push(`${n} × ${tn(t)}${m?` → ${m.url}`:""}`);continue;}
     const r=E.build(spec,wsPrm(t.gen?t.gen.prm:null));
-    for(const p of r.pieces){const q=p.qty*n;files.push({name:`${q}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${q} × ${p.label}  (${p.size.map(x=>nf(x)).join(" × ")} mm${p.fit.ok?"":", NON entra nel piatto"})`);}
+    for(const p of r.pieces){const q=p.qty*n;files.push({name:`${q}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${q} × ${p.label}  (${p.size.map(x=>nf(x)).join(" × ")} mm${p.fit.ok?"":L(", NON entra nel piatto",", does NOT fit the bed")})`);}
   }
   const hs={};for(const e of geom().els)if(e.z0>0.5){const h=Math.round(e.z0);hs[h]=(hs[h]||0)+1;}
   for(const[h,n]of Object.entries(hs)){const p=E.build({type:"support",hs:+h,d:20},wsPrm()).pieces[0];files.push({name:`${n}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${n} × ${p.label}`);}
-  const txt=[`${st.name||"Circuito"} — Mini4WD Track Planner v${APP_VERSION}`,`Piatto: ${wsCfg().bed.replace("x","×")} mm`,"","DA STAMPARE",...lines,"",`Clip Tamiya: ${AN.clips}`,...(skipped.length?["","DA MODELLI MAKERWORLD (non generati)",...skipped]:[]),"","Pezzi generati con licenza MIT. Il profilo è quello del rettilineo da 200 mm del set MINI4WD 2 LANE DIY TRACK (MakerWorld 542904)."].join("\r\n");
-  files.push({name:"LEGGIMI.txt",data:txt});
-  download(`${fname(st.name||"circuito")}_v${APP_VERSION}_stl.zip`,M4Engine.zip(files),"application/zip");
+  const txt=[`${st.name||L("Circuito","Track")} — Mini4WD Track Planner v${APP_VERSION}`,`${L("Piatto","Bed")}: ${wsCfg().bed.replace("x","×")} mm`,"",L("DA STAMPARE","TO PRINT"),...lines,"",`${L("Clip Tamiya","Tamiya clips")}: ${AN.clips}`,...(skipped.length?["",L("DA MODELLI MAKERWORLD (non generati)","FROM MAKERWORLD MODELS (not generated)"),...skipped]:[]),"",L("Pezzi generati con licenza MIT. Il profilo è quello del rettilineo da 200 mm del set MINI4WD 2 LANE DIY TRACK (MakerWorld 542904).","Pieces generated under the MIT licence. The profile is the 200 mm straight of the MINI4WD 2 LANE DIY TRACK set (MakerWorld 542904).")].join("\r\n");
+  files.push({name:L("LEGGIMI.txt","README.txt"),data:txt});
+  download(`${fname(st.name||L("circuito","track"))}_v${APP_VERSION}_stl.zip`,M4Engine.zip(files),"application/zip");
 }
 
-/* ---------- azioni ---------- */
+/* ---------- actions ---------- */
 function addPiece(id,d,v){
   commit(()=>{
     const it={t:id};if(d)it.d=d;if(v)it.v=+v;
@@ -1195,11 +1214,11 @@ pane.addEventListener("change",e=>{
 pane.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)commit(()=>{sel=null;for(const t of o.pick)st.layout.push({t:t.id});});return;}
-  if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=p.name;sel=null;});fit();if(is3d)build3D(true);toast(`Caricato «${p.name}»`);return;}
+  if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=pv(p.name);sel=null;});fit();if(is3d)build3D(true);toast(L(`Caricato «${pv(p.name)}»`,`Loaded «${pv(p.name)}»`));return;}
   if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x")||k.startsWith("g"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}
   const a=b.dataset.act;
   if(b.dataset.inc){const id=b.dataset.inc;commit(()=>setOwned(id,(+st.owned[id]||0)+(+b.dataset.q),"Modifica manuale"));return;}
-  if(b.dataset.use!=null){const u=b.dataset.use,c=u[0]==="r"?rndRes&&rndRes[+u.slice(1)]:genRes&&genRes[+u.slice(1)];if(c)commit(()=>{st.layout=c.layout.map(x=>({...x}));st.name=c.title;sel=null;});fit();if(is3d)build3D(true);toast("Tracciato caricato: lo trovi nella pianta");return;}
+  if(b.dataset.use!=null){const u=b.dataset.use,c=u[0]==="r"?rndRes&&rndRes[+u.slice(1)]:genRes&&genRes[+u.slice(1)];if(c)commit(()=>{st.layout=c.layout.map(x=>({...x}));st.name=pv(c.title);sel=null;});fit();if(is3d)build3D(true);toast(L("Tracciato caricato: lo trovi nella pianta","Layout loaded: you'll find it in the plan"));return;}
   if(a==="ws-stl"||a==="ws-obj"){const p=wsRes&&wsRes.pieces[+b.dataset.i];if(p){const stl=a==="ws-stl";download(`${fname(p.label)}.${stl?"stl":"obj"}`,stl?M4Engine.toSTL(p.mesh,p.label):M4Engine.toOBJ(p.mesh,p.label),stl?"model/stl":"text/plain");}return;}
   if(a==="ws-cat"){wsAddToCatalog();return;}
   if(a==="ws-zip"){wsZip();return;}
@@ -1208,29 +1227,29 @@ pane.addEventListener("click",e=>{
   if(a==="own-kit")commit(()=>{for(const p of st.parts)if(p.kit)setOwned(p.id,(+st.owned[p.id]||0)+p.kit,"+1 kit base");});
   else if(a==="own-zero")commit(()=>{for(const k of Object.keys(st.owned))setOwned(k,0,"Magazzino azzerato");});
   else if(a==="log-clear")commit(()=>{st.log=[];});
-  else if(a==="own-print"){const need=bom();commit(()=>{for(const[k,n]of Object.entries(need))setOwned(k,Math.max(+st.owned[k]||0,n),`Stampati per «${st.name||"circuito"}»`);if(AN.supports)setOwned("support",Math.max(+st.owned.support||0,AN.supports),`Stampati per «${st.name||"circuito"}»`);setOwned("clip",Math.max(+st.owned.clip||0,AN.clips),`Stampati per «${st.name||"circuito"}»`);});toast("Magazzino aggiornato");}
+  else if(a==="own-print"){const need=bom();commit(()=>{for(const[k,n]of Object.entries(need))setOwned(k,Math.max(+st.owned[k]||0,n),`Stampati per «${st.name||"circuito"}»`);if(AN.supports)setOwned("support",Math.max(+st.owned.support||0,AN.supports),`Stampati per «${st.name||"circuito"}»`);setOwned("clip",Math.max(+st.owned.clip||0,AN.clips),`Stampati per «${st.name||"circuito"}»`);});toast(L("Magazzino aggiornato","Inventory updated"));}
   else if(a==="rnd"){const r=randomGen();rndErr=r.err||"";rndRes=r.res||null;renderPane();}
-  else if(a==="gen"){genRes=generate();renderPane();if(!genRes.length)toast("Nessun tracciato entra nello spazio indicato.");}
-  else if(a==="copy-bom"){const need=bom();const lines=st.parts.filter(p=>need[p.id]).map(p=>`${Math.max(0,need[p.id]-(+st.owned[p.id]||0))} × ${p.name}`);if(AN.supports)lines.push(`${Math.max(0,AN.supports-(+st.owned.support||0))} × Supporto rialzo`);lines.push(`${Math.max(0,AN.clips-(+st.owned.clip||0))} × Tamiya Track Clip`);copy(`${st.name||"Circuito"} — da stampare\n`+lines.join("\n"));}
+  else if(a==="gen"){genRes=generate();renderPane();if(!genRes.length)toast(L("Nessun tracciato entra nello spazio indicato.","No layout fits in the given space."));}
+  else if(a==="copy-bom"){const need=bom();const lines=st.parts.filter(p=>need[p.id]).map(p=>`${Math.max(0,need[p.id]-(+st.owned[p.id]||0))} × ${pn(p)}`);if(AN.supports)lines.push(`${Math.max(0,AN.supports-(+st.owned.support||0))} × ${partName("support")}`);lines.push(`${Math.max(0,AN.clips-(+st.owned.clip||0))} × Tamiya Track Clip`);copy(`${st.name||L("Circuito","Track")} — ${L("da stampare","to print")}\n`+lines.join("\n"));}
   else if(a==="copy-json")copy(JSON.stringify(st));
   else if(a==="copy-svg")copy(exportSVG());
   else if(a==="clear")commit(()=>{st.layout=[];sel=null;});
-  else if(a==="reset"){hist.push(JSON.stringify(st));st=defaults();sel=null;save();render();fit();toast("Ripristinato. Puoi annullare.");}
-  else if(a==="import"){try{const s=JSON.parse($("#imp").value);if(!Array.isArray(s.layout)||!Array.isArray(s.types)||!Array.isArray(s.parts))throw 0;commit(()=>{st=migrate(Object.assign(defaults(),s));sel=null;});fit();toast("Circuito caricato");}catch(_){toast("JSON non valido: incolla il testo copiato con «Copia JSON».");}}
+  else if(a==="reset"){hist.push(JSON.stringify(st));st=defaults();sel=null;save();render();fit();toast(L("Ripristinato. Puoi annullare.","Reset done. You can undo."));}
+  else if(a==="import"){try{const s=JSON.parse($("#imp").value);if(!Array.isArray(s.layout)||!Array.isArray(s.types)||!Array.isArray(s.parts))throw 0;commit(()=>{st=migrate(Object.assign(defaults(),s));sel=null;});fit();toast(L("Circuito caricato","Track loaded"));}catch(_){toast(L("JSON non valido: incolla il testo copiato con «Copia JSON».","Invalid JSON: paste the text copied with «Copy JSON»."));}}
   else if(a==="add-type"){
     const kind=$("#n-kind").value,name=$("#n-name").value.trim(),v=+$("#n-len").value,r=+$("#n-r").value,hh=+$("#n-h").value||0;
-    if(!(v>0)||(kind==="curve"&&!(r>st.settings.width/2))){toast(kind==="curve"?"Indica angolo e un raggio maggiore di metà larghezza pista.":"Indica la lunghezza in mm.");return;}
+    if(!(v>0)||(kind==="curve"&&!(r>st.settings.width/2))){toast(kind==="curve"?L("Indica angolo e un raggio maggiore di metà larghezza pista.","Enter an angle and a radius larger than half the track width."):L("Indica la lunghezza in mm.","Enter the length in mm."));return;}
     const uid=Date.now().toString(36),pid="x"+uid,tid="T"+uid;
-    const nm=name||(kind==="curve"?`Curva ${v}° R${r}`:`Rettilineo ${v}`);
+    const nm=name||(kind==="curve"?`${L("Curva","Curve")} ${v}° R${r}`:`${L("Rettilineo","Straight")} ${v}`);
     commit(()=>{st.parts.push({id:pid,name:nm,kit:0,h:hh});
       st.types.push(kind==="curve"?{id:tid,label:`${v}°`,name:nm,kind,ang:v,r,parts:{[pid]:1},segs:1,custom:true}:{id:tid,label:String(v),name:nm,kind,len:v,parts:{[pid]:1},segs:1,custom:true});});
-    toast(`Aggiunto «${nm}» alla barra dei pezzi`);
+    toast(L(`Aggiunto «${nm}» alla barra dei pezzi`,`Added «${nm}» to the piece bar`));
   }
 });
 
 async function copy(txt){
-  try{await navigator.clipboard.writeText(txt);toast("Copiato negli appunti");}
-  catch(_){tab="file";renderPane();const t=$("#imp");t.value=txt;t.focus();t.select();toast("Copia non consentita: testo selezionato nel riquadro, copialo a mano.");}
+  try{await navigator.clipboard.writeText(txt);toast(L("Copiato negli appunti","Copied to the clipboard"));}
+  catch(_){tab="file";renderPane();const t=$("#imp");t.value=txt;t.focus();t.select();toast(L("Copia non consentita: testo selezionato nel riquadro, copialo a mano.","Copying isn't allowed: the text is selected in the box, copy it by hand."));}
 }
 function exportSVG(){
   const bb=bbox(G)||{x0:-500,y0:-300,w:1000,h:600},m=80,cs=getComputedStyle(document.documentElement);
@@ -1241,7 +1260,7 @@ function exportSVG(){
 }
 let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2800);}
 
-/* ---------- pan, zoom, tocco (2D) ---------- */
+/* ---------- pan, zoom, touch (2D) ---------- */
 const ptrs=new Map();let gest=null;
 svg.addEventListener("pointerdown",e=>{
   svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -1277,8 +1296,23 @@ document.addEventListener("keydown",e=>{
 });
 new ResizeObserver(()=>setViewBox()).observe(svg);
 
+/* ---------- language ---------- */
+function applyLang(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll("[data-en]").forEach(el=>{if(el.dataset.it==null)el.dataset.it=el.textContent;el.textContent=LANG==="en"?el.dataset.en:el.dataset.it;});
+  for(const a of ["aria","title"])document.querySelectorAll(`[data-en-${a}]`).forEach(el=>{const at=a==="aria"?"aria-label":"title",k="it"+a;if(el.dataset[k]==null)el.dataset[k]=el.getAttribute(at)||"";el.setAttribute(at,LANG==="en"?el.dataset[a==="aria"?"enAria":"enTitle"]:el.dataset[k]);});
+  $("#src").innerHTML=L('Pista a 2 corsie compatibile Tamiya · pezzi da <a href="https://makerworld.com/en/models/542904-2-lane-mini-4wd-track">MINI4WD 2 LANE DIY TRACK</a> e modelli collegati','Tamiya-compatible 2-lane track · pieces from <a href="https://makerworld.com/en/models/542904-2-lane-mini-4wd-track">MINI4WD 2 LANE DIY TRACK</a> and related models');
+  $("#ver").title=L("Versione","Version");
+  $("#kofi").title=L("Offrimi un caffè su Ko-fi","Buy me a coffee on Ko-fi");
+  const b=$("#lang");b.textContent=LANG==="en"?"IT":"EN";b.title=LANG==="en"?"Passa all'italiano":"Switch to English";
+  if(window.M4Engine)M4Engine.lang=LANG;
+}
+$("#lang").onclick=()=>{
+  LANG=LANG==="en"?"it":"en";try{localStorage.setItem("m4wd-lang",LANG);}catch(e){}
+  applyLang();render();if(is3d)build3D(true);if(wsOn)wsSchedule();else wsRes=null;
+};
 document.getElementById("ver").textContent="v"+APP_VERSION;
-render();fit();
+applyLang();render();fit();
 </script>
 </body>
 </html>

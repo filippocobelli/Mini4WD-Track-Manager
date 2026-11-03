@@ -1,6 +1,6 @@
-// Prepara le due uscite a partire da app/index.html:
-//  - dist/web/Mini4WD-Track-Planner-v<versione>.html: un solo file con le icone incorporate (per html.cobelli.uk)
-//  - desktop/: copia offline per l'app Electron, con three.js locale al posto del CDN
+// Builds the two outputs from app/index.html:
+//  - dist/web/Mini4WD-Track-Planner-v<version>.html: a single file with the icons embedded (for html.cobelli.uk)
+//  - desktop/: offline copy for the Electron app, with local three.js instead of the CDN
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,13 +11,13 @@ const src = fs.readFileSync(path.join(root, "app", "index.html"), "utf8");
 
 const m = src.match(/const APP_VERSION="([^"]+)"/);
 if (!m || m[1] !== pkg.version) {
-  console.error(`Versione non allineata: app/index.html=${m && m[1]} package.json=${pkg.version}. Esegui: node scripts/sync-version.mjs`);
+  console.error(`Version mismatch: app/index.html=${m && m[1]} package.json=${pkg.version}. Run: node scripts/sync-version.mjs`);
   process.exit(1);
 }
 
 const b64 = f => "data:image/png;base64," + fs.readFileSync(path.join(root, "app", f)).toString("base64");
 
-// 1) file unico per il web: icone, motore 3D e Manifold incorporati; il .wasm arriva dal CDN jsDelivr
+// 1) single file for the web: icons, 3D engine and Manifold embedded; the .wasm comes from the jsDelivr CDN
 const inline = f => fs.readFileSync(path.join(root, "app", f), "utf8").replace(/<\/script/gi, "<\\/script");
 const mfVersion = fs.readFileSync(path.join(root, "app", "vendor", "VERSION-manifold.txt"), "utf8").trim();
 let single = src
@@ -26,12 +26,12 @@ let single = src
   .replace(/\n<link rel="manifest"[^>]*>/, "")
   .replace('<script src="engine3d.js"></script>', () =>
     `<script>${inline("engine3d.js")}</script>\n<script>window.M4_MANIFOLD_WASM_URL="https://cdn.jsdelivr.net/npm/manifold-3d@${mfVersion}/manifold.wasm";</script>\n<script>${inline("vendor/manifold.js")}</script>`);
-if (single.includes('src="engine3d.js"')) { console.error("engine3d.js non incorporato"); process.exit(1); }
+if (single.includes('src="engine3d.js"')) { console.error("engine3d.js not embedded"); process.exit(1); }
 fs.mkdirSync(path.join(root, "dist", "web"), { recursive: true });
 const webOut = path.join(root, "dist", "web", `Mini4WD-Track-Planner-v${pkg.version}.html`);
 fs.writeFileSync(webOut, single);
 
-// 2) copia offline per l'app desktop
+// 2) offline copy for the desktop app
 const desk = path.join(root, "desktop");
 fs.rmSync(desk, { recursive: true, force: true });
 fs.mkdirSync(path.join(desk, "vendor"), { recursive: true });
@@ -42,7 +42,7 @@ fs.copyFileSync(path.join(three, "examples", "js", "controls", "OrbitControls.js
 const deskHtml = src
   .replace("https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js", "vendor/three.min.js")
   .replace("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js", "vendor/OrbitControls.js");
-if (deskHtml.includes("cdn.jsdelivr.net")) { console.error("Riferimento CDN non sostituito in desktop/index.html"); process.exit(1); }
+if (deskHtml.includes("cdn.jsdelivr.net")) { console.error("CDN reference not replaced in desktop/index.html"); process.exit(1); }
 fs.writeFileSync(path.join(desk, "index.html"), deskHtml);
 
 console.log(`v${pkg.version}: ${path.relative(root, webOut)} + desktop/`);

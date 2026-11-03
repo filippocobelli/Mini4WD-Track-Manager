@@ -1,272 +1,285 @@
 # Mini4WD Track Planner
 
-Progetta piste **Mini4WD a 2 corsie** compatibili Tamiya fatte con pezzi stampati in 3D, sai subito
-quanti pezzi servono, quali hai già e quanto tempo di stampa manca.
+**English** · [Italiano](README.it.md)
 
-![Pianta del circuito](docs/screenshots/01-pianta.png)
+Design Tamiya-compatible **2-lane Mini4WD tracks** built from 3D-printed pieces, and see right away
+how many pieces you need, which ones you already have and how much printing time is left.
 
-**[⬇ Scarica l'ultima versione](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest)** · macOS (.dmg) · Windows (.exe) · HTML · gratis e open source ([MIT](LICENSE))
+![Track plan](docs/screenshots/01-plan.png)
+
+**[⬇ Download the latest version](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest)** · macOS (.dmg) · Windows (.exe) · HTML · free and open source ([MIT](LICENSE))
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-buy_me_a_coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/filippocobelli)
 
 ---
 
-## Perché esiste
+## Why it exists
 
-Le piste ufficiali Tamiya in Europa sono difficili da trovare e costose da spedire. Per questo esistono
-set di pezzi da stampare in 3D, come
+Official Tamiya tracks are hard to find in Europe and expensive to ship. That's why there are
+sets of pieces you can 3D print, like
 [MINI4WD 2 LANE DIY TRACK](https://makerworld.com/en/models/542904-2-lane-mini-4wd-track):
-rettilinei, curve da 45°, cambio corsia e clip.
+straights, 45° curves, lane change and clips.
 
-Con i pezzi stampati però le domande diventano altre:
+Once you print your own pieces, the questions change:
 
-- che circuito posso montare con i pezzi che ho già?
-- se ho 3 metri × 2 in garage, che piste ci stanno?
-- quanti pezzi devo ancora stampare, e quante ore di stampante sono?
-- se aggiungo un salto o una curva sopraelevata, il circuito si chiude ancora?
+- what track can I build with the pieces I already have?
+- if I have 3 × 2 metres in the garage, which tracks fit?
+- how many pieces do I still have to print, and how many printer hours is that?
+- if I add a jump or a raised turn, does the track still close?
 
-Track Planner risponde a queste domande prima di accendere la stampante.
+Track Planner answers these questions before you switch the printer on.
 
-## Cosa fa
+## What it does
 
 | | |
 |---|---|
-| **Pianta 2D** | Componi il circuito pezzo per pezzo, verifica che si chiuda, vedi ingombro e lunghezza del giro. |
-| **Vista 3D** | Ruota il circuito con pareti, cambio corsia sopraelevato, rampe e supporti. |
-| **Distinta pezzi** | Pezzi necessari, già in magazzino e da stampare, con ore di stampa e numero di clip. |
-| **Magazzino** | Inventario dei pezzi stampati con storico di ogni movimento. |
-| **Idee** | Tracciati proposti in base allo spazio libero o ai pezzi che hai, anche in modo casuale con opzioni (salto, scambio, velocità, pista jump…). |
-| **Officina** | Motore 3D: crea pezzi da stampare (STL e OBJ) su misura, compatibili con le clip Tamiya. |
-| **Modelli** | Altri elementi compatibili trovati su MakerWorld, con link e misure. |
+| **2D plan** | Build the track piece by piece, check that it closes, see the footprint and the lap length. |
+| **3D view** | Rotate the track with walls, raised lane change, ramps and supports. |
+| **Parts list** | Pieces needed, already in stock and to print, with print hours and number of clips. |
+| **Inventory** | List of your printed pieces with a history of every change. |
+| **Ideas** | Layouts suggested for your free space or the pieces you own, also at random with options (jump, lane change, speed, jump track…). |
+| **Workshop** | 3D engine: makes custom printable pieces (STL and OBJ) that work with Tamiya clips. |
+| **Models** | Other compatible elements found on MakerWorld, with links and sizes. |
+
+The app is in English and Italian: the **IT / EN** button at the top right switches language and remembers your choice.
 
 ---
 
-## Le sezioni
+## The sections
 
-### Pianta e riepilogo
+### Plan and summary
 
-La barra in basso contiene i pezzi: rettilinei 200 / 215 / 100 mm, curve da 45° a sinistra e a destra,
-cambio corsia, più gli **elementi extra**. Il triangolo giallo indica dove verrà agganciato il prossimo pezzo.
-Tocca un pezzo della pista per selezionarlo: i nuovi pezzi vengono inseriti subito dopo.
+The bar at the bottom holds the pieces: 200 / 215 / 100 mm straights, 45° curves to the left and right,
+lane change, plus the **extra elements**. The yellow triangle shows where the next piece will snap on.
+Tap a piece of the track to select it: new pieces are inserted right after it.
 
-Il **Riepilogo** controlla in continuazione:
+The **Summary** keeps checking:
 
-- **chiusura**: errore in mm e angolo; se il circuito è aperto propone quali rettilinei aggiungere;
-- **lunghezza delle corsie**: con un numero dispari di cambi corsia le due auto fanno la stessa distanza in 2 giri;
-- **ingombro** in cm e se entra nello spazio indicato;
-- **altezze**: dislivello da recuperare, quota massima e supporti necessari.
+- **closing**: error in mm and degrees; if the track is open it suggests which straights to add;
+- **lane length**: with an odd number of lane changes both cars cover the same distance over 2 laps;
+- **footprint** in cm and whether it fits the space you entered;
+- **heights**: rise left to recover, maximum height and supports needed.
 
-Rosso e blu in pianta seguono il percorso delle due auto nel primo giro.
+Red and blue in the plan follow the path of the two cars on the first lap.
 
-### Vista 3D
+### 3D view
 
-![Vista 3D](docs/screenshots/08-vista-3d.png)
+![3D view](docs/screenshots/08-3d-view.png)
 
-Pulsante **3D** in alto a destra. Trascina per ruotare, rotella o due dita per lo zoom.
-Si vedono il ponte del cambio corsia, le parti sollevate, i supporti sotto e i salti.
+**3D** button at the top right. Drag to rotate, wheel or two fingers to zoom.
+You can see the lane change bridge, the raised parts, the supports underneath and the jumps.
 
-### Pezzi (distinta)
+### Parts
 
-![Distinta pezzi](docs/screenshots/02-pezzi.png)
+![Parts list](docs/screenshots/02-parts.png)
 
-Per ogni parte stampata: quante ne servono, quante ne hai in magazzino, quante da stampare e le ore.
-Conta anche le **clip** (2 per giunto, modificabile) e i **supporti** per i tratti rialzati.
-Il pulsante **Ho stampato i mancanti** aggiorna il magazzino in un clic.
+For every printed part: how many you need, how many you have in stock, how many to print and the hours.
+It also counts the **clips** (2 per joint, editable) and the **supports** for raised sections.
+The **I printed the missing ones** button updates the inventory in one click.
 
-### Magazzino
+### Inventory
 
-![Magazzino e storico](docs/screenshots/03-magazzino.png)
+![Inventory and history](docs/screenshots/03-inventory.png)
 
-Il magazzino è l'elenco dei pezzi che hai già stampato.
+The inventory is the list of pieces you have already printed.
 
-- Aggiungi o togli pezzi con **+** e **−**, o scrivi direttamente la quantità.
-- **+ 1 kit base completo** carica in un colpo tutti i pezzi del set (8 curve, 2+2+2 rettilinei, cambio corsia).
-- Ogni modifica finisce nello **storico** con data, quantità e motivo (kit, stampati per un circuito, modifica manuale…).
-  Così sai cosa hai stampato e quando, e cosa si è rotto.
+- Add or remove pieces with **+** and **−**, or type the quantity.
+- **+ 1 full base kit** adds every piece of the set in one go (8 curves, 2+2+2 straights, lane change).
+- Every change goes into the **history** with date, quantity and reason (kit, printed for a track, manual change…).
+  So you know what you printed and when, and what broke.
 
-Il magazzino è usato dalla distinta (colonna *In magazzino*) e da tutti i generatori di tracciati.
+The inventory is used by the parts list (*In stock* column) and by every layout generator.
 
-### Idee: tracciati generati
+### Ideas: generated layouts
 
-![Circuito casuale](docs/screenshots/04-idee-casuale.png)
+![Random track](docs/screenshots/04-ideas-random.png)
 
-Inserisci **larghezza e profondità** dello spazio libero, poi scegli da cosa partire:
+Enter the **width and depth** of your free space, then choose what to start from:
 
-| Parti da | Cosa ottieni |
+| Start from | What you get |
 |---|---|
-| **Spazio disponibile** | circuiti che entrano nello spazio; possono richiedere pezzi da stampare |
-| **Solo pezzi in magazzino** | circuiti montabili subito, senza stampare nulla |
-| **Pezzi in magazzino + spazio** | entrambe le condizioni |
+| **Available space** | tracks that fit the space; they may need pieces to print |
+| **Only pieces in stock** | tracks you can build right now, without printing anything |
+| **Pieces in stock + space** | both conditions |
 
-Poi attiva cosa vuoi nel circuito:
+Then pick what you want in the track:
 
-| Opzione | Effetto |
+| Option | Effect |
 |---|---|
-| **Scambio corsia** | inserisce il cambio corsia, per gare alla pari |
-| **Un salto** | un rettilineo Jump |
-| **Pista jump** | salti, sella e dosso |
-| **Velocità** | lati lunghi e poche curve |
-| **Tecnica** | chicane, fagioli, piste a L, tante curve |
-| **Sopraelevata** | una curva a 180° rialzata con le rampe rainbow |
-| **Spirale** | una salita e una discesa a spirale |
-| **Compatta** | il minor ingombro possibile |
+| **Lane change** | adds the lane change, for fair races |
+| **A jump** | a Jump straight |
+| **Jump track** | jumps, saddle and hill |
+| **Speed** | long sides and few curves |
+| **Technical** | chicanes, bean and L shapes, lots of curves |
+| **Raised** | a 180° turn lifted on the rainbow ramps |
+| **Spiral** | a spiral climb and descent |
+| **Compact** | the smallest footprint possible |
 
-**🎲 Genera 3 circuiti** propone ogni volta tre tracciati diversi (ovale, rettangolo, ottagono, ovale con chicane,
-fagiolo, pista a L). Ogni proposta è verificata: si chiude, torna alla quota di partenza ed entra nello spazio.
-Per ognuna vedi anteprima, ingombro, giro, **pezzi che hai** e **pezzi da stampare** con le ore stimate.
-**Usa questo tracciato** lo apre nella pianta per modificarlo.
+**🎲 Generate 3 tracks** gives three different layouts every time (oval, rectangle, octagon, oval with chicane,
+bean, L-shaped track). Every suggestion is checked: it closes, comes back to the starting height and fits the space.
+For each one you see a preview, footprint, lap, **pieces you have** and **pieces to print** with the estimated hours.
+**Use this layout** opens it in the plan so you can edit it.
 
-![Alternative ordinate](docs/screenshots/05-idee-alternative.png)
+![Sorted alternatives](docs/screenshots/05-ideas-alternatives.png)
 
-**Alternative ordinate** fa la stessa ricerca in modo sistematico: per ovali, rettangoli e ottagoni mostra
-il più economico (pochi pezzi da stampare), il più lungo con poche stampe e il più lungo che ci sta.
+**Sorted alternatives** runs the same search systematically: for ovals, rectangles and octagons it shows
+the cheapest (fewest pieces to print), the longest with few prints and the longest that fits.
 
-### Officina: pezzi 3D su misura
+### Workshop: custom 3D pieces
 
-![Officina](docs/screenshots/10-officina.png)
+![Workshop](docs/screenshots/10-workshop.png)
 
-Dalla versione 2.0 il planner ha un **motore 3D** che genera pezzi di pista pronti da stampare, in **STL** o **OBJ**.
-Così non sei limitato ai modelli che trovi in rete: lunghezze, angoli, raggi e altezze li decidi tu.
+Since version 2.0 the planner has a **3D engine** that generates ready-to-print track pieces as **STL** or **OBJ**.
+So you're not limited to the models you find online: you choose lengths, angles, radii and heights.
 
-| Elemento | Parametri |
+| Element | Parameters |
 |---|---|
-| **Rettilineo** | lunghezza |
-| **Curva** | angolo e raggio in asse |
-| **Rampa** | lunghezza e dislivello, con raccordi dolci alle estremità |
-| **Dosso** | lunghezza e altezza |
-| **Salto** | rampa di lancio dentro ogni corsia: lunghezza e altezza |
-| **Sella** | rilievo a triangolo dentro ogni corsia |
-| **Washboard** | serie di piccoli dossi |
-| **Supporto rialzo** | appoggio per i tratti sollevati, alto quanto serve |
+| **Straight** | length |
+| **Curve** | angle and centre-line radius |
+| **Ramp** | length and rise, with smooth transitions at the ends |
+| **Hill** | length and height |
+| **Jump** | kicker ramp inside each lane: length and height |
+| **Saddle** | triangular bump inside each lane |
+| **Washboard** | a series of small bumps |
+| **Raised support** | stand for raised sections, as tall as needed |
 
-Il profilo di partenza è misurato sul rettilineo da 200 mm del set (corsie da 115 mm, pareti e pavimento da 2,5 mm,
-sponde da 50 mm, raccordi, asole e **alette di aggancio Tamiya**): il rettilineo da 200 generato coincide con l'originale
-(250,3 × 200 × 52,5 mm, 178,9 cm³). I pezzi nuovi si collegano a quelli del kit con le stesse clip.
+The starting profile is measured on the set's 200 mm straight (115 mm lanes, 2.5 mm walls and floor,
+50 mm walls, fillets, slots and **Tamiya connector tabs**): the generated 200 mm straight matches the original
+(250.3 × 200 × 52.5 mm, 178.9 cm³). New pieces join the kit with the same clips.
 
-- **Piatto della stampante**: scegli il tuo (Bambu Lab, Prusa, Creality…). Se un pezzo non entra viene ruotato
-  o **diviso in parti uguali**, ognuna con le sue alette (es. una curva 45° R480 diventa 2 × 22,5°).
-- **Profilo della pista**: corsia, pareti, pavimento, sponde, raccordi, alette, asole e nervature sono modificabili.
-- **Aggiungi alla barra pezzi**: il pezzo creato entra nel planner (gruppo *Miei*) e si usa nei circuiti.
-- **Scarica ZIP del circuito**: tutti i pezzi del circuito aperto, con la quantità nel nome del file,
-  i supporti per i tratti rialzati e un LEGGIMI con l'elenco. Il cambio corsia, la spirale e il wall non si generano ancora:
-  il LEGGIMI indica il modello MakerWorld da usare.
+- **Printer bed**: pick yours (Bambu Lab, Prusa, Creality…). If a piece doesn't fit it is rotated
+  or **split into equal parts**, each with its own tabs (e.g. a 45° R480 curve becomes 2 × 22.5°).
+- **Track profile**: lane, walls, floor, wall height, fillets, tabs, slots and ribs can all be changed.
+- **Add to the piece bar**: the new piece goes into the planner (*Mine* group) and can be used in tracks.
+- **Download the track ZIP**: every piece of the open track, with the quantity in the file name,
+  the supports for raised sections and a README with the list. The lane change, the spiral and the wall can't be
+  generated yet: the README names the MakerWorld model to use.
 
-I solidi sono creati con [Manifold](https://github.com/elalish/manifold) (Apache-2.0), che garantisce pezzi chiusi e stampabili.
+The solids are made with [Manifold](https://github.com/elalish/manifold) (Apache-2.0), which guarantees closed, printable pieces.
 
-### Modelli ed elementi extra
+### Models and extra elements
 
-![Modelli MakerWorld](docs/screenshots/06-modelli.png)
+![MakerWorld models](docs/screenshots/06-models.png)
 
-Oltre al kit base, il planner conosce questi elementi compatibili con la pista Tamiya a 2 corsie:
+Besides the base kit, the planner knows these elements compatible with the Tamiya 2-lane track:
 
-| Elemento | Modello | Note |
+| Element | Model | Notes |
 |---|---|---|
-| Rettilineo 200 / 215 / 100, curva 45°, cambio corsia | [2 LANE MINI 4WD TRACK](https://makerworld.com/en/models/542904-2-lane-mini-4wd-track) – Pat | kit base |
-| Salto 200 mm | [Jump](https://makerworld.com/en/models/1373681-2-lane-mini-4wd-track-jump) – Jangyy | ~7 h di stampa |
-| Spirale | [Spiral Track element](https://makerworld.com/en/models/1395843-spiral-track-element-for-2-lane-mini-4wd-track) – Jangyy | misure da verificare |
-| Wall | [Wall Track element](https://makerworld.com/en/models/1418601-wall-track-element-for-2-lane-mini-4wd-track) – Jangyy | misure da verificare |
-| Dosso | 2 LANE MINI 4WD TRACK Ramp/Hill – Jangyy | misure da verificare |
-| Rampa rainbow | [Tamiya rainbow track 2 lane](https://makerworld.com/en/models/1336265-tamiya-rainbow-track-2-lane-no-change-lane) – Sunza83 | rampe e supporti |
-| Sella | [Mini 4WD Track Saddle](https://makerworld.com/en/models/734281-mini-4wd-track-saddle) | 4,6 h di stampa |
-| Rettilineo modulare 240 | [Modular Mini4wd 240mm track set](https://makerworld.com/en/models/248350-modular-mini4wd-240mm-track-set-1) – rucdoc | per stampanti piccole |
-| Curve di altri raggi | [Single Lane Curve pack](https://makerworld.com/en/models/1132759-mini4wd-single-lane-curve-track-pack) – rucdoc | da aggiungere come pezzo personalizzato |
+| 200 / 215 / 100 straights, 45° curve, lane change | [2 LANE MINI 4WD TRACK](https://makerworld.com/en/models/542904-2-lane-mini-4wd-track) – Pat | base kit |
+| 200 mm jump | [Jump](https://makerworld.com/en/models/1373681-2-lane-mini-4wd-track-jump) – Jangyy | ~7 h of printing |
+| Spiral | [Spiral Track element](https://makerworld.com/en/models/1395843-spiral-track-element-for-2-lane-mini-4wd-track) – Jangyy | sizes to check |
+| Wall | [Wall Track element](https://makerworld.com/en/models/1418601-wall-track-element-for-2-lane-mini-4wd-track) – Jangyy | sizes to check |
+| Hill | 2 LANE MINI 4WD TRACK Ramp/Hill – Jangyy | sizes to check |
+| Rainbow ramp | [Tamiya rainbow track 2 lane](https://makerworld.com/en/models/1336265-tamiya-rainbow-track-2-lane-no-change-lane) – Sunza83 | ramps and supports |
+| Saddle | [Mini 4WD Track Saddle](https://makerworld.com/en/models/734281-mini-4wd-track-saddle) | 4.6 h of printing |
+| Modular 240 straight | [Modular Mini4wd 240mm track set](https://makerworld.com/en/models/248350-modular-mini4wd-240mm-track-set-1) – rucdoc | for small printers |
+| Curves with other radii | [Single Lane Curve pack](https://makerworld.com/en/models/1132759-mini4wd-single-lane-curve-track-pack) – rucdoc | add them as a custom piece |
 
-L'app contiene solo i link: i file STL si scaricano da MakerWorld, con le licenze dei rispettivi autori.
+The app only holds the links: the STL files are downloaded from MakerWorld, under their authors' licences.
 
-### Catalogo
+### Catalogue
 
-![Catalogo](docs/screenshots/07-catalogo.png)
+![Catalogue](docs/screenshots/07-catalogue.png)
 
-Tutte le misure sono modificabili: larghezza pista, raggio delle curve, lunghezza del cambio corsia,
-dislivello delle rampe, quantità nel kit e ore di stampa per pezzo. Puoi aggiungere **pezzi personalizzati**
-(rettilinei o curve di qualsiasi angolo e raggio) che compaiono nella barra come gruppo *Miei*.
+Every size can be changed: track width, curve radius, lane change length, ramp rise,
+quantity in the kit and print hours per piece. You can add **custom pieces**
+(straights or curves of any angle and radius) that show up in the bar as the *Mine* group.
 
-> Il raggio delle curve (480 mm in asse) e la lunghezza del cambio corsia (830 mm) sono stimati dall'ovale
-> Tamiya 216 × 120 cm. Misurali sui tuoi pezzi e correggili qui: tutti i calcoli si aggiornano.
+> The curve radius (480 mm on the centre line) and the lane change length (830 mm) are estimated from the
+> 216 × 120 cm Tamiya oval. Measure your pieces and fix them here: every calculation updates.
 
-### Circuiti
+### Tracks
 
-Circuiti pronti (ovale del kit, ovale lungo, rettangolo, ovale con salto e sella, ovale con rainbow),
-esportazione e importazione in JSON (circuito + magazzino + storico) e copia della pianta in SVG.
+Ready-made tracks (kit oval, long oval, rectangle, oval with jump and saddle, rainbow oval),
+JSON export and import (track + inventory + history) and copying the plan as SVG.
 
-### Da telefono
+### On a phone
 
-<img src="docs/screenshots/09-mobile.png" width="300" alt="Versione mobile">
+<img src="docs/screenshots/09-mobile.png" width="300" alt="Mobile version">
 
-La versione HTML funziona anche su telefono: pianta con pan e zoom a due dita, barra pezzi scorrevole.
+The HTML version also works on phones: plan with two-finger pan and zoom, scrolling piece bar.
 
 ---
 
-## Download e installazione
+## Download and install
 
-Ogni versione è nella pagina **[Releases](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases)**:
+Every version is on the **[Releases](https://github.com/filippocobelli/Mini4WD-Track-Manager/releases)** page:
 
-| File | Per |
+| File | For |
 |---|---|
-| `Mini4WD-Track-Planner-<versione>-mac-universal.dmg` | macOS (Intel e Apple Silicon) |
-| `Mini4WD-Track-Planner-<versione>-win-setup.exe` | Windows, con installazione |
-| `Mini4WD-Track-Planner-<versione>-win-portable.exe` | Windows, senza installazione |
-| `Mini4WD-Track-Planner-v<versione>.html` | qualsiasi browser o sito statico |
+| `Mini4WD-Track-Planner-<version>-mac-universal.dmg` | macOS (Intel and Apple Silicon) |
+| `Mini4WD-Track-Planner-<version>-win-setup.exe` | Windows, with installer |
+| `Mini4WD-Track-Planner-<version>-win-portable.exe` | Windows, no install |
+| `Mini4WD-Track-Planner-v<version>.html` | any browser or static site |
 
-Versione web sempre aggiornata: **[lab.cobelli.uk/Mini4WD-Track-Manager](https://lab.cobelli.uk/Mini4WD-Track-Manager/)**.
+Always up-to-date web version: **[lab.cobelli.uk/Mini4WD-Track-Manager](https://lab.cobelli.uk/Mini4WD-Track-Manager/)**.
 
-Le app desktop funzionano offline. Non hanno la firma a pagamento di Apple e Microsoft:
-- **macOS**: al primo avvio, tasto destro sull'app → *Apri*. Se macOS la blocca: *Impostazioni di Sistema → Privacy e sicurezza → Apri comunque*.
-  Se compare «è danneggiata e non può essere aperta», apri il Terminale e scrivi
-  `xattr -cr "/Applications/Mini4WD Track Planner.app"`, poi riaprila.
-- **Windows**: se compare SmartScreen, *Ulteriori informazioni → Esegui comunque*.
+The desktop apps work offline. They don't have Apple's or Microsoft's paid signature:
+- **macOS**: on first launch, right-click the app → *Open*. If macOS blocks it: *System Settings → Privacy & Security → Open Anyway*.
+  If you see "is damaged and can't be opened", open Terminal and type
+  `xattr -cr "/Applications/Mini4WD Track Planner.app"`, then open it again.
+- **Windows**: if SmartScreen appears, *More info → Run anyway*.
 
-I dati (circuito, magazzino, storico) restano sul dispositivo. Per spostarli: *Circuiti → Copia JSON* e *Carica JSON*.
+Your data (track, inventory, history) stays on your device. To move it: *Tracks → Copy JSON* and *Load JSON*.
 
 ---
 
-## Partecipa
+## Contribute
 
-Mini4WD Track Planner è un progetto della community: chiunque può proporre modifiche.
+Mini4WD Track Planner is a community project: anyone can suggest changes.
 
-- **Non programmi?** Segnala un problema, proponi un'idea o mandaci le **misure reali** dei pezzi stampati
-  (raggio delle curve, lunghezza del cambio corsia): apri una [issue](../../issues/new/choose).
-- **Programmi?** Fai un fork, sviluppa la modifica e apri una **pull request**. I test automatici girano su ogni proposta;
-  se va bene entra nella versione successiva. Tutto è spiegato in **[CONTRIBUTING.md](CONTRIBUTING.md)** (in inglese).
+- **Not a programmer?** Report a problem, suggest an idea or send us the **real sizes** of your printed pieces
+  (curve radius, lane change length): open an [issue](../../issues/new/choose).
+- **A programmer?** Fork, make your change and open a **pull request**. Automated tests run on every proposal;
+  if it's good it goes into the next version. Everything is explained in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-Il codice scritto con strumenti AI è benvenuto, purché chi lo propone l'abbia letto e provato.
+Code written with AI tools is welcome, as long as whoever proposes it has read and tested it.
 
-## Sviluppo
+## Support the project
+
+The planner is free and will stay free. If you find it useful you can buy me a coffee on **[Ko-fi](https://ko-fi.com/filippocobelli)** ☕
+
+## Development
 
 ```
-app/                 sorgente unico (index.html, icone, manifest)
-app/engine3d.js      motore 3D: genera i pezzi STL/OBJ
-app/vendor/          Manifold (WASM), preparato da npm run vendor
-tests/               test automatici
-electron/main.js     finestra dell'app desktop
-scripts/build.mjs    genera dist/web/*.html (file unico) e desktop/ (versione offline)
-build/icon.png       icona delle app desktop
-docs/screenshots/    immagini di questo README
-.github/workflows/   build e release automatiche
+app/                 single source (index.html, icons, manifest)
+app/engine3d.js      3D engine: builds the STL/OBJ pieces
+app/vendor/          Manifold (WASM), prepared by npm run vendor
+tests/               automated tests
+electron/main.js     desktop app window
+scripts/build.mjs    builds dist/web/*.html (single file) and desktop/ (offline version)
+build/icon.png       desktop app icon
+docs/screenshots/    README images (it/ for the Italian version)
+.github/workflows/   automated builds and releases
 ```
 
 ```bash
 npm install
-npm test             # build + test automatici (motore 3D e app)
-npm start            # apre l'app desktop
-npm run build:web    # crea il file HTML unico in dist/web/
-npm run vendor       # aggiorna Manifold in app/vendor/ (solo quando cambia versione)
+npm test             # build + automated tests (3D engine and app)
+npm start            # opens the desktop app
+npm run build:web    # creates the single HTML file in dist/web/
+npm run vendor       # updates Manifold in app/vendor/ (only when its version changes)
 ```
 
-### Versioni e release
+User-facing text lives in `app/index.html` as `L("italiano", "English")` pairs, and in `app/engine3d.js` as `tr(...)`.
+Please add both languages when you add text.
 
-Ogni build ha un numero di versione `MAJOR.MINOR.PATCH`, visibile accanto al titolo dell'app.
+### Versions and releases
 
-1. Aggiungi la sezione della nuova versione in `CHANGELOG.md`.
-2. `npm version patch` (oppure `minor` / `major`): aggiorna `package.json` e `app/index.html` e crea il commit.
+Every build has a `MAJOR.MINOR.PATCH` version number, shown next to the app title.
+
+1. Add the new version's section to `CHANGELOG.md`.
+2. `npm version patch` (or `minor` / `major`): updates `package.json` and `app/index.html` and makes the commit.
 3. `git push`
 
-Quando su `main` arriva una versione non ancora rilasciata, GitHub Actions costruisce `.dmg` ed `.exe`,
-crea il tag `vX.Y.Z` e la Release con anche il file HTML. Il workflow si ferma se `package.json`,
-`app/index.html` e `CHANGELOG.md` non hanno la stessa versione.
+When `main` gets a version that hasn't been released yet, GitHub Actions builds the `.dmg` and `.exe`,
+creates the `vX.Y.Z` tag and the Release, with the HTML file too. The workflow stops if `package.json`,
+`app/index.html` and `CHANGELOG.md` don't have the same version.
 
-## Licenza
+## Licence
 
-Codice rilasciato con licenza **[MIT](LICENSE)**: puoi usarlo, modificarlo e ridistribuirlo liberamente,
-anche in altri progetti, mantenendo la nota di copyright.
+Code released under the **[MIT](LICENSE)** licence: you can use, change and redistribute it freely,
+in other projects too, as long as you keep the copyright notice.
 
-La licenza riguarda solo il codice di questa app. I modelli 3D dei pezzi (MakerWorld e altri siti)
-appartengono ai rispettivi autori e seguono le loro licenze: l'app contiene solo i link.
+The licence only covers this app's code. The 3D models of the pieces (MakerWorld and other sites)
+belong to their authors and follow their licences: the app only holds the links.
