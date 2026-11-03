@@ -5,6 +5,11 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [2.0.1] - 2026-11-03
+
+- Officina nell'anteprima di claude.ai: i download passano dalla funzione di salvataggio di Claude
+  (STL e OBJ consegnati dentro uno zip, che è il formato accettato lì). Web e app desktop invariati.
+
 ## [2.0.0] - 2026-11-03
 
 **Officina: motore 3D per creare pezzi di pista da stampare.**

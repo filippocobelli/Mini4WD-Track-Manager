@@ -249,7 +249,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 <script src="engine3d.js"></script>
 <script>
 "use strict";
-const APP_VERSION="2.0.0";
+const APP_VERSION="2.0.1";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1099,7 +1099,17 @@ function wsShow(){
   V.scene.add(grp);V.group=grp;
   wsSize();V.camera.position.set(cx-span*.75,span*1.45,span*1.65);V.controls.target.set(cx,15,0);V.controls.update();
 }
-function download(name,bytes,mime){
+// Nell'anteprima di claude.ai i file passano dalla capacità «downloads», che accetta zip ma non stl/obj:
+// lì STL e OBJ vengono consegnati dentro uno zip. Altrove (web, app desktop) download normale.
+let DL=null;(async()=>{try{if(window.claude&&typeof window.claude.use==="function")DL=await window.claude.use("downloads");}catch(e){DL=null;}})();
+async function download(name,bytes,mime){
+  if(DL){
+    let fn=name,data=bytes;
+    if(!/\.(zip|txt|json|svg|html|csv)$/i.test(name)){fn=name.replace(/\.[^.]+$/,"")+".zip";data=M4Engine.zip([{name,data:bytes}]);}
+    try{await DL.save({filename:fn,data});toast(`Salvato «${fn}»`);}
+    catch(e){if(!e||e.code!=="declined")toast("Download non riuscito qui: usa l'app desktop o la versione web.");}
+    return;
+  }
   try{const url=URL.createObjectURL(new Blob([bytes],{type:mime}));const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast(`Scaricato «${name}»`);}
   catch(e){toast("Il download non è consentito qui: usa l'app desktop o la versione web.");}
 }
