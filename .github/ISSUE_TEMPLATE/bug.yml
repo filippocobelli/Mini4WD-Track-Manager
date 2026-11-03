@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as expected
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time! Italian or English are both fine.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown next to the title in the app (e.g. v2.0.0)
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Web (browser), macOS app, Windows app, claude.ai preview]
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Track JSON (optional)
+      description: "Circuiti → Copia JSON, then paste it here. It helps reproduce the problem."
+      render: json

@@ -5,6 +5,20 @@ Versioni secondo [Semantic Versioning](https://semver.org/lang/it/): MAJOR.MINOR
 - MINOR: nuove funzioni compatibili (es. 1.1.0)
 - MAJOR: cambi che rompono i circuiti o i dati salvati (es. 2.0.0)
 
+## [2.0.0] - 2026-11-03
+
+**Officina: motore 3D per creare pezzi di pista da stampare.**
+
+- Nuova scheda **Officina**: genera pezzi in STL e OBJ, con anteprima 3D. Elementi: rettilineo, curva (angolo e raggio),
+  rampa, dosso, salto, sella, washboard, supporto per tratti rialzati.
+- Profilo misurato sul rettilineo da 200 mm del set (corsie 115 mm, pareti e pavimento 2,5 mm, sponde 50 mm, raccordi,
+  asole, alette di aggancio Tamiya): il pezzo generato coincide con l'originale. Profilo modificabile.
+- Piatto della stampante selezionabile: i pezzi troppo grandi vengono ruotati o divisi in parti uguali con le loro alette.
+- I pezzi creati si aggiungono alla barra del planner; ZIP con tutti i pezzi del circuito, i supporti e un LEGGIMI.
+- Larghezza pista del planner aggiornata alle misure reali (238 mm, corsie a 59 mm dal centro).
+- Progetto aperto ai contributi: CONTRIBUTING.md, modelli per bug, idee e nuovi pezzi, modello per le pull request.
+- Test automatici (motore 3D e app) su ogni pull request e prima di ogni release.
+
 ## [1.0.5] - 2026-11-03
 
 - Il progetto diventa open source con licenza MIT (file `LICENSE`, `package.json`, README).

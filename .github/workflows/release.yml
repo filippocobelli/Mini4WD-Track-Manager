@@ -41,8 +41,24 @@ jobs:
           echo "version=$PKG" >> "$GITHUB_OUTPUT"
           echo "release=$REL" >> "$GITHUB_OUTPUT"
 
-  build:
+  test:
     needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+
+  build:
+    needs: [check, test]
     if: needs.check.outputs.release == 'true'
     strategy:
       fail-fast: false
@@ -75,7 +91,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [check, build]
+    needs: [check, test, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

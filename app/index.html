@@ -58,6 +58,14 @@ h1 span{color:var(--muted);font-weight:600}
 .stage.is3d #cv{display:none}
 .stage.is3d #v3{display:block}
 .stage.is3d .only2d{display:none}
+#vw{position:absolute;inset:0;display:none;touch-action:none}
+#vw canvas{display:block;width:100%;height:100%}
+.stage.isws #cv,.stage.isws #v3,.stage.isws .only2d,.stage.isws .mode,.stage.isws .hud{display:none}
+.stage.isws #vw{display:block}
+.stage.isws .tip3d{display:block}
+details.box{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+details.box summary{cursor:pointer;font-weight:600}
+details.box[open] summary{margin-bottom:10px}
 .hud{position:absolute;left:10px;top:10px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none;max-width:calc(100% - 120px)}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font:500 12.5px/1.2 var(--mono);white-space:nowrap}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
@@ -192,6 +200,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
   <div class="stage" id="stage">
     <svg id="cv" xmlns="http://www.w3.org/2000/svg" aria-label="Pianta del circuito"></svg>
     <div id="v3" aria-label="Vista 3D del circuito"></div>
+    <div id="vw" aria-label="Anteprima 3D del pezzo da stampare"></div>
     <div class="hud" id="hud"></div>
     <div class="mode" role="group" aria-label="Vista">
       <button id="m2d" aria-pressed="true">2D</button>
@@ -225,6 +234,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
       <button role="tab" data-tab="bom">Pezzi</button>
       <button role="tab" data-tab="inv">Magazzino</button>
       <button role="tab" data-tab="gen">Idee</button>
+      <button role="tab" data-tab="ws">Officina</button>
       <button role="tab" data-tab="mod">Modelli</button>
       <button role="tab" data-tab="cat">Catalogo</button>
       <button role="tab" data-tab="file">Circuiti</button>
@@ -236,9 +246,10 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="engine3d.js"></script>
 <script>
 "use strict";
-const APP_VERSION="1.0.5";
+const APP_VERSION="2.0.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -305,12 +316,12 @@ const PRESETS={
   rainbow:{name:"Ovale con rainbow",desc:"Una curva a 180° sollevata con le rampe rainbow.",items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
 function defaults(){return{name:"Ovale del kit",parts:defaultParts(),types:defaultTypes(),
-  settings:{width:240,lane:60,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
+  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
   for(const p of d.parts)if(!s.parts.find(x=>x.id===p.id))s.parts.push(p);
   for(const t of d.types){const e=s.types.find(x=>x.id===t.id);if(!e)s.types.push(t);else{e.m=t.m;if(t.x)e.x=true;}}
-  s.settings=Object.assign({},d.settings,s.settings||{});s.owned=s.owned||{};s.log=s.log||[];
+  s.settings=Object.assign({},d.settings,s.settings||{});if(s.settings.width===240&&s.settings.lane===60){s.settings.width=238;s.settings.lane=59;}s.owned=s.owned||{};s.log=s.log||[];
   return s;
 }
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.layout)&&Array.isArray(s.types)&&Array.isArray(s.parts))return migrate(s);}catch(e){}return null;}
@@ -353,7 +364,7 @@ function pointAt(e,u,o){
 function zAt(e,u){
   const t=e.t;let z=e.z0+(e.z1-e.z0)*(t.kind==="curve"?u:smooth(u));
   if(t.prof==="jump")z+=28*(u<.8?u/.8:0);
-  else if(t.prof==="hill")z+=60*Math.sin(Math.PI*u);
+  else if(t.prof==="hill")z+=(t.hh||60)*Math.sin(Math.PI*u)**2;
   else if(t.prof==="saddle")z+=18*Math.max(0,1-Math.abs(u-.5)/.18);
   return z;
 }
@@ -454,7 +465,7 @@ function renderSVG(){
       s+=`<path class="${e.flip?"x2":"x1"}" d="M${f(A)}L${f(B)}" opacity=".7"/><path class="${e.flip?"x1":"x2"}" d="M${f(C)}L${f(D)}" opacity=".7"/>`;
     }else{
       s+=`<path class="${a}" d="${band(e,-w,0)}"/><path class="${b}" d="${band(e,0,w)}"/><path class="div" d="${midline(e,0)}"/>`;
-      if(e.t.prof==="jump"||e.t.prof==="saddle"||e.t.prof==="hill"){
+      if(e.t.prof==="jump"||e.t.prof==="saddle"||e.t.prof==="hill"||e.t.prof==="washboard"){
         const u0=e.t.prof==="jump"?.55:e.t.prof==="saddle"?.4:.35,u1=e.t.prof==="jump"?.8:e.t.prof==="saddle"?.6:.65;
         s+=`<path class="feat" d="M${f(pointAt(e,u0,-w+8))}L${f(pointAt(e,u1,-w+8))}L${f(pointAt(e,u1,w-8))}L${f(pointAt(e,u0,w-8))}Z"/>`;
       }
@@ -491,6 +502,7 @@ function setViewBox(){
   svg.setAttribute("viewBox",`${(view.cx-W/2/z).toFixed(1)} ${(view.cy-H/2/z).toFixed(1)} ${(W/z).toFixed(1)} ${(H/z).toFixed(1)}`);
 }
 function fit(){
+  if(wsOn){wsShow();return;}
   if(is3d){fit3D();return;}
   const bb=bbox(geom())||{x0:-600,y0:-400,x1:600,y1:400,w:1200,h:800};
   const r=svg.getBoundingClientRect(),W=r.width||600,H=r.height||400,m=160;
@@ -640,7 +652,7 @@ function renderPane(){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   const P=$("#pane"),same=P.dataset.tab===tab,top=P.scrollTop,wy=window.scrollY;
   P.dataset.tab=tab;
-  P.innerHTML=tab==="sum"?paneSum():tab==="bom"?paneBom():tab==="inv"?paneInv():tab==="gen"?paneGen():tab==="mod"?paneMod():tab==="cat"?paneCat():paneFile();
+  P.innerHTML=tab==="sum"?paneSum():tab==="bom"?paneBom():tab==="inv"?paneInv():tab==="gen"?paneGen():tab==="ws"?paneWs():tab==="mod"?paneMod():tab==="cat"?paneCat():paneFile();
   if(same){P.scrollTop=top;if(window.scrollY!==wy)window.scrollTo(0,wy);}else P.scrollTop=0;
 }
 function paneSum(){
@@ -982,6 +994,160 @@ function paneGen(){
   return h+`</div>`;
 }
 
+/* ---------- officina 3D (motore STL/OBJ) ---------- */
+const BEDS={"256x256":"Bambu Lab A1 / P1 / X1 / H2 (256×256)","180x180":"Bambu Lab A1 mini (180×180)","250x210":"Prusa MK4 / Core One (250×210)","220x220":"Creality Ender 3 (220×220)","235x235":"Creality K1 / Ender 3 V3 (235×235)","300x300":"Grande (300×300)","350x350":"Molto grande (350×350)"};
+const PRM_UI=[["laneW","Larghezza corsia",1],["wallT","Spessore pareti",.1],["floorT","Spessore pavimento",.1],["wallH","Altezza sponde sul pavimento",1],["fillet","Raccordo pareti",.1],["tabH","Altezza alette di aggancio",.1],["slotW","Larghezza asole",1],["slotInset","Asole: distanza dai bordi",1]];
+let ENG=null,engP=null,engErr="",wsRes=null,wsBusy=false,wsTimer=null,WV=null,wsOn=false;
+const fname=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/°/g,"gradi").replace(/[^\w.-]+/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");
+function loadScript(src){return new Promise((ok,ko)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>ko(new Error("Non riesco a caricare "+src));document.head.appendChild(s);});}
+function engine(){
+  if(ENG)return Promise.resolve(ENG);
+  if(!engP)engP=(async()=>{
+    if(!window.M4Engine)throw new Error("Motore 3D mancante (engine3d.js).");
+    if(!window.ManifoldModule)await loadScript(window.M4_MANIFOLD_JS||"vendor/manifold.js");
+    const opt={};
+    if(window.M4_MANIFOLD_WASM_URL)opt.locateFile=()=>window.M4_MANIFOLD_WASM_URL;
+    else{if(!window.MANIFOLD_WASM_B64)await loadScript("vendor/manifold-wasm.js");const b=atob(window.MANIFOLD_WASM_B64),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);opt.wasmBinary=u;}
+    const W=await window.ManifoldModule(opt);W.setup();ENG=M4Engine.create(W);return ENG;
+  })().catch(e=>{engP=null;throw e;});
+  return engP;
+}
+const wsCfg=()=>st.settings.ws;
+function wsPrm(extra){const[bx,by]=wsCfg().bed.split("x").map(Number);return Object.assign({},wsCfg().prm,extra||{},{bedX:bx,bedY:by});}
+function wsSpec(){const c=wsCfg(),T=M4Engine.TYPES[c.type]||M4Engine.TYPES.straight,s={type:M4Engine.TYPES[c.type]?c.type:"straight"};for(const k in T.params)s[k]=c.v[k]??T.params[k][0];return s;}
+function wsSchedule(){clearTimeout(wsTimer);wsBusy=true;wsUpdate();wsTimer=setTimeout(wsBuild,180);}
+async function wsBuild(){
+  wsBusy=true;wsUpdate();
+  try{const E=await engine();await new Promise(r=>setTimeout(r,20));const t=performance.now();wsRes=E.build(wsSpec(),wsPrm());wsRes.ms=performance.now()-t;engErr="";}
+  catch(e){wsRes=null;engErr=(e&&e.message)||String(e);}
+  wsBusy=false;wsUpdate();wsShow();
+}
+function wsUpdate(){const el=document.getElementById("wsres");if(el)el.innerHTML=wsResHTML();}
+function wsResHTML(){
+  if(engErr)return `<div class="status bad"><div><b>Il motore 3D non è partito</b><p>${esc(engErr)}</p><div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-retry">Riprova</button></div></div></div>`;
+  if(wsBusy||!wsRes)return `<p class="note">Genero il pezzo…</p>`;
+  const r=wsRes,bed=wsCfg().bed.replace("x","×");
+  const msg=!r.ok?`Il pezzo non entra in un piatto ${bed} mm nemmeno ruotato: riduci le misure o scegli un piatto più grande.`:r.split>1?`Troppo grande per un piatto ${bed} mm: diviso in ${r.split} parti uguali, ciascuna con le sue alette di aggancio.`:`Entra in un piatto ${bed} mm${r.pieces[0].fit.deg?`, ruotato di ${r.pieces[0].fit.deg}°`:""}.`;
+  let h=`<div class="status ${r.ok?"ok":"warn"}"><div><b>${r.ok?(r.split>1?`Diviso in ${r.split} parti`:"Pronto da stampare"):"Fuori dal piatto"}</b><p>${msg} Generato in ${nf(r.ms/1000,1)} s.</p></div></div>
+  <div class="tw"><table><thead><tr><th>File</th><th class="n">Q.tà</th><th class="n">Ingombro mm</th><th class="n">cm³</th><th></th></tr></thead><tbody>`;
+  r.pieces.forEach((p,i)=>{h+=`<tr><td>${esc(p.label)}${p.fit.ok?"":`<span class="chip">fuori piatto</span>`}</td><td class="n">${p.qty}</td><td class="n">${p.size.map(x=>nf(x)).join("×")}</td><td class="n">${nf(p.volume)}</td><td class="n"><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><button class="ab" data-act="ws-stl" data-i="${i}">STL</button><button class="ab" data-act="ws-obj" data-i="${i}">OBJ</button></div></td></tr>`;});
+  h+=`</tbody></table></div>`;
+  if(r.type!=="support")h+=`<div class="btns" style="margin-top:8px"><button class="btn" data-act="ws-cat">Aggiungi alla barra pezzi</button></div>`;
+  return h;
+}
+function paneWs(){
+  const c=wsCfg(),T=M4Engine?M4Engine.TYPES:{},P=Object.assign({},M4Engine.DEFAULTS,c.prm),cur=T[c.type]||T.straight;
+  let h=`<p class="note">Crea i tuoi pezzi di pista da stampare, in STL o OBJ. Profilo, sponde e alette di aggancio sono quelli del rettilineo da 200 mm del set: i pezzi si collegano a quelli del kit con le stesse clip Tamiya.</p>
+  <div class="form"><label for="ws-type">Elemento<select id="ws-type" data-wstype="1">${Object.entries(T).map(([k,t])=>`<option value="${k}" ${k===c.type?"selected":""}>${t.name}</option>`).join("")}</select></label>
+  ${Object.entries(cur.params).map(([k,[d,mi,ma,lab]])=>`<label for="ws-${k}">${lab}<input type="number" id="ws-${k}" data-wsv="${k}" min="${mi}" max="${ma}" step="any" value="${c.v[k]??d}"></label>`).join("")}
+  <label for="ws-bed">Piatto della stampante<select id="ws-bed" data-wsbed="1">${Object.entries(BEDS).map(([k,n])=>`<option value="${k}" ${k===c.bed?"selected":""}>${n}</option>`).join("")}</select></label></div>
+  <div id="wsres" aria-live="polite">${wsResHTML()}</div>
+  <details class="box"><summary>Profilo della pista</summary>
+    <div class="form">${PRM_UI.map(([k,l,stp])=>`<label for="wsp-${k}">${l} (mm)<input type="number" id="wsp-${k}" data-wsp="${k}" step="${stp}" value="${P[k]}"></label>`).join("")}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+      <label class="check" for="wsp-tabs"><input type="checkbox" id="wsp-tabs" data-wsp="tabs" ${P.tabs?"checked":""}> Alette di aggancio Tamiya alle estremità</label>
+      <label class="check" for="wsp-slots"><input type="checkbox" id="wsp-slots" data-wsp="slots" ${P.slots?"checked":""}> Asole di alleggerimento nel pavimento</label>
+      <label class="check" for="wsp-ribs"><input type="checkbox" id="wsp-ribs" data-wsp="ribs" ${P.ribs?"checked":""}> Nervature sotto i tratti rialzati (stampa senza supporti)</label>
+    </div>
+    <div class="btns" style="margin-top:10px"><button class="btn" data-act="ws-reset">Ripristina misure del kit</button></div>
+  </details>
+  <div><h2>Pezzi del circuito</h2><p class="note" style="margin:6px 0">Crea in un colpo i file di tutti i pezzi del circuito aperto nella pianta, con la quantità nel nome di ogni file, i supporti per i tratti rialzati e un LEGGIMI con l'elenco.</p>
+  <div class="btns"><button class="btn primary" data-act="ws-zip">Scarica ZIP del circuito</button></div></div>
+  <p class="note">Il cambio corsia, la spirale e il wall non si generano ancora: lo ZIP indica i modelli MakerWorld da usare.</p>`;
+  return h;
+}
+function wsActivate(on){
+  wsOn=on;$("#stage").classList.toggle("isws",on);
+  if(on){const V=wsViewer();if(V)wsSize();if(!wsRes&&!engErr)wsSchedule();else wsShow();}
+  else if(is3d){size3D();}else setViewBox();
+}
+function wsViewer(){
+  if(WV)return WV;
+  if(!window.THREE||!THREE.OrbitControls)return null;
+  const host=$("#vw");let renderer;
+  try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){return null;}
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));host.appendChild(renderer.domElement);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(40,1,1,20000),controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=.12;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x6d747d,.55));const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(-300,500,450);scene.add(sun);const fill=new THREE.DirectionalLight(0xffffff,.25);fill.position.set(400,200,-300);scene.add(fill);
+  WV={renderer,scene,camera,controls,host,group:null};
+  new ResizeObserver(wsSize).observe(host);
+  (function loop(){requestAnimationFrame(loop);if(!wsOn)return;controls.update();renderer.render(scene,camera);})();
+  return WV;
+}
+function wsSize(){if(!WV)return;const r=WV.host.getBoundingClientRect();if(!r.width)return;WV.renderer.setSize(r.width,r.height,false);WV.camera.aspect=r.width/r.height;WV.camera.updateProjectionMatrix();}
+function wsShow(){
+  const V=wsViewer();if(!V)return;
+  if(V.group){V.scene.remove(V.group);V.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});V.group=null;}
+  V.scene.background=new THREE.Color(cssColor("--bg"));
+  if(!wsRes)return;
+  const grp=new THREE.Group(),[bx,by]=wsCfg().bed.split("x").map(Number);
+  const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(cssColor("--track")).lerp(new THREE.Color("#8f9aa6"),.45).lerp(new THREE.Color(cssColor("--lane2")),.18),roughness:.75,metalness:0});
+  let off=0,minX=0,maxX=0,prevHalf=0;
+  wsRes.pieces.forEach((p,i)=>{
+    const v=p.mesh.vert,np=p.mesh.numProp||3,pos=new Float32Array(p.mesh.tri.length*3);
+    for(let k=0;k<p.mesh.tri.length;k++){const o=p.mesh.tri[k]*np;pos[3*k]=v[o];pos[3*k+1]=v[o+2];pos[3*k+2]=-v[o+1];}
+    const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.BufferAttribute(pos,3));geo.computeVertexNormals();
+    const half=Math.max(bx,p.size[0])/2;
+    if(i){off+=prevHalf+half+40;}else minX=-half;
+    const mesh=new THREE.Mesh(geo,mat.clone());mesh.position.x=off;grp.add(mesh);
+    const bed=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>new THREE.Vector3(off+a*bx/2,0,b*by/2))),new THREE.LineBasicMaterial({color:new THREE.Color(p.fit.ok?cssColor("--ok"):cssColor("--bad"))}));grp.add(bed);
+    prevHalf=half;maxX=off+half;
+  });
+  const span=Math.max(maxX-minX,by),cx=(minX+maxX)/2;
+  const grid=new THREE.GridHelper(span*3,Math.round(span*3/50),new THREE.Color(cssColor("--line")),new THREE.Color(cssColor("--grid")));grid.position.set(cx,-.2,0);grp.add(grid);
+  V.scene.add(grp);V.group=grp;
+  wsSize();V.camera.position.set(cx-span*.75,span*1.45,span*1.65);V.controls.target.set(cx,15,0);V.controls.update();
+}
+function download(name,bytes,mime){
+  try{const url=URL.createObjectURL(new Blob([bytes],{type:mime}));const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast(`Scaricato «${name}»`);}
+  catch(e){toast("Il download non è consentito qui: usa l'app desktop o la versione web.");}
+}
+function specOf(t){
+  if(t.gen)return t.gen.spec;
+  if(t.kind==="lane"||t.prof==="wall"||(t.kind==="curve"&&t.ang>=270))return null;
+  if(t.kind==="curve")return{type:"curve",ang:t.ang,R:t.r};
+  if(t.dz)return{type:"ramp",L:t.len,h:t.dz};
+  if(t.prof==="hill")return{type:"hill",L:t.len,h:t.hh||60};
+  if(t.prof==="jump")return{type:"jump",L:t.len};
+  if(t.prof==="saddle")return{type:"saddle",L:t.len};
+  if(t.prof==="washboard")return{type:"washboard",L:t.len};
+  return{type:"straight",L:t.len};
+}
+function wsAddToCatalog(){
+  const r=wsRes;if(!r)return;const s=wsSpec(),uid=Date.now().toString(36),parts={},prm=JSON.parse(JSON.stringify(wsCfg().prm));
+  commit(()=>{
+    r.pieces.forEach((p,i)=>{const pid="g"+uid+i;st.parts.push({id:pid,name:p.label,kit:0,h:Math.round(p.volume*0.0129*100)/100,est:true});parts[pid]=p.qty;});
+    const t={id:"G"+uid,custom:true,gen:{spec:s,prm},parts,segs:r.pieces.reduce((a,p)=>a+p.qty,0)};
+    const N=x=>nf(x);
+    if(s.type==="curve")Object.assign(t,{kind:"curve",ang:s.ang,r:s.R,label:`${N(s.ang)}°`,name:`Curva ${N(s.ang)}° R${N(s.R)} (Officina)`});
+    else if(s.type==="ramp")Object.assign(t,{kind:"straight",len:s.L,dz:s.h,prof:"ramp",label:"Rampa",name:`Rampa ${N(s.L)}×${N(s.h)} (Officina)`});
+    else if(s.type==="hill")Object.assign(t,{kind:"straight",len:s.L,prof:"hill",hh:s.h,label:"Dosso",name:`Dosso ${N(s.L)}×${N(s.h)} (Officina)`});
+    else if(s.type==="straight")Object.assign(t,{kind:"straight",len:s.L,label:N(s.L),name:`Rettilineo ${N(s.L)} (Officina)`});
+    else Object.assign(t,{kind:"straight",len:s.L,prof:s.type,label:M4Engine.TYPES[s.type].name,name:`${M4Engine.TYPES[s.type].name} ${N(s.L)} (Officina)`});
+    st.types.push(t);
+  });
+  toast("Aggiunto alla barra pezzi (gruppo «Miei»)");
+}
+async function wsZip(){
+  if(!st.layout.length){toast("Il circuito è vuoto.");return;}
+  toast("Genero i file del circuito…");await new Promise(r=>setTimeout(r,30));
+  let E;try{E=await engine();}catch(e){engErr=e.message;wsUpdate();toast("Il motore 3D non è partito.");return;}
+  const T=typeMap(),counts={},files=[],lines=[],skipped=[];
+  for(const it of st.layout)counts[it.t]=(counts[it.t]||0)+1;
+  for(const[id,n]of Object.entries(counts)){
+    const t=T[id];if(!t)continue;const spec=specOf(t);
+    if(!spec){const m=MODELS.find(x=>x.types.includes(id));skipped.push(`${n} × ${t.name}${m?` → ${m.url}`:""}`);continue;}
+    const r=E.build(spec,wsPrm(t.gen?t.gen.prm:null));
+    for(const p of r.pieces){const q=p.qty*n;files.push({name:`${q}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${q} × ${p.label}  (${p.size.map(x=>nf(x)).join(" × ")} mm${p.fit.ok?"":", NON entra nel piatto"})`);}
+  }
+  const hs={};for(const e of geom().els)if(e.z0>0.5){const h=Math.round(e.z0);hs[h]=(hs[h]||0)+1;}
+  for(const[h,n]of Object.entries(hs)){const p=E.build({type:"support",hs:+h,d:20},wsPrm()).pieces[0];files.push({name:`${n}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${n} × ${p.label}`);}
+  const txt=[`${st.name||"Circuito"} — Mini4WD Track Planner v${APP_VERSION}`,`Piatto: ${wsCfg().bed.replace("x","×")} mm`,"","DA STAMPARE",...lines,"",`Clip Tamiya: ${AN.clips}`,...(skipped.length?["","DA MODELLI MAKERWORLD (non generati)",...skipped]:[]),"","Pezzi generati con licenza MIT. Il profilo è quello del rettilineo da 200 mm del set MINI4WD 2 LANE DIY TRACK (MakerWorld 542904)."].join("\r\n");
+  files.push({name:"LEGGIMI.txt",data:txt});
+  download(`${fname(st.name||"circuito")}_v${APP_VERSION}_stl.zip`,M4Engine.zip(files),"application/zip");
+}
+
 /* ---------- azioni ---------- */
 function addPiece(id,d,v){
   commit(()=>{
@@ -998,11 +1164,15 @@ $("#rot").onclick=()=>commit(()=>{st.settings.startH=((st.settings.startH||0)+45
 $("#desel").onclick=()=>{sel=null;render();};
 $("#del").onclick=()=>{if(!st.layout.length)return;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});};
 $("#zin").onclick=()=>zoomAt(1.3);$("#zout").onclick=()=>zoomAt(1/1.3);$("#zfit").onclick=fit;
-document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=b.dataset.tab;renderPane();}});
+document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=b.dataset.tab;renderPane();wsActivate(tab==="ws");}});
 
 const pane=$("#pane");
 pane.addEventListener("change",e=>{
   const el=e.target,v=el.value;
+  if(el.dataset.wstype){commit(()=>{st.settings.ws.type=v;});wsSchedule();return;}
+  if(el.dataset.wsv){const k=el.dataset.wsv,T=M4Engine.TYPES[st.settings.ws.type].params[k];let x=+v;if(!(x>0))x=T[0];x=Math.min(T[2],Math.max(T[1],x));commit(()=>{st.settings.ws.v[k]=x;});wsSchedule();return;}
+  if(el.dataset.wsbed){commit(()=>{st.settings.ws.bed=v;});wsSchedule();return;}
+  if(el.dataset.wsp){const k=el.dataset.wsp;commit(()=>{st.settings.ws.prm[k]=el.type==="checkbox"?el.checked:Math.max(0.4,+v||M4Engine.DEFAULTS[k]);});wsSchedule();return;}
   if(el.dataset.rf){commit(()=>{st.settings.rnd.feat[el.dataset.rf]=el.checked;});}
   else if(el.dataset.rsrc){commit(()=>{st.settings.rnd.src=v;});}
   else if(el.type==="checkbox"&&el.dataset.set){commit(()=>{st.settings[el.dataset.set]=el.checked;genRes=null;});}
@@ -1016,10 +1186,15 @@ pane.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)commit(()=>{sel=null;for(const t of o.pick)st.layout.push({t:t.id});});return;}
   if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=p.name;sel=null;});fit();if(is3d)build3D(true);toast(`Caricato «${p.name}»`);return;}
-  if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}
+  if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x")||k.startsWith("g"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}
   const a=b.dataset.act;
   if(b.dataset.inc){const id=b.dataset.inc;commit(()=>setOwned(id,(+st.owned[id]||0)+(+b.dataset.q),"Modifica manuale"));return;}
   if(b.dataset.use!=null){const u=b.dataset.use,c=u[0]==="r"?rndRes&&rndRes[+u.slice(1)]:genRes&&genRes[+u.slice(1)];if(c)commit(()=>{st.layout=c.layout.map(x=>({...x}));st.name=c.title;sel=null;});fit();if(is3d)build3D(true);toast("Tracciato caricato: lo trovi nella pianta");return;}
+  if(a==="ws-stl"||a==="ws-obj"){const p=wsRes&&wsRes.pieces[+b.dataset.i];if(p){const stl=a==="ws-stl";download(`${fname(p.label)}.${stl?"stl":"obj"}`,stl?M4Engine.toSTL(p.mesh,p.label):M4Engine.toOBJ(p.mesh,p.label),stl?"model/stl":"text/plain");}return;}
+  if(a==="ws-cat"){wsAddToCatalog();return;}
+  if(a==="ws-zip"){wsZip();return;}
+  if(a==="ws-reset"){commit(()=>{st.settings.ws.prm={};});wsSchedule();return;}
+  if(a==="ws-retry"){engErr="";wsSchedule();renderPane();return;}
   if(a==="own-kit")commit(()=>{for(const p of st.parts)if(p.kit)setOwned(p.id,(+st.owned[p.id]||0)+p.kit,"+1 kit base");});
   else if(a==="own-zero")commit(()=>{for(const k of Object.keys(st.owned))setOwned(k,0,"Magazzino azzerato");});
   else if(a==="log-clear")commit(()=>{st.log=[];});

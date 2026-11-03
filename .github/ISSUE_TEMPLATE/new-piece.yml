@@ -1,0 +1,27 @@
+name: New track piece or real measurements
+description: Add a printable piece (MakerWorld or other) or send measurements of real printed parts
+title: "[Piece] "
+labels: [pieces]
+body:
+  - type: input
+    id: link
+    attributes:
+      label: Model link
+      description: MakerWorld, Printables, Thangs… (leave empty if it's a new piece for the 3D engine)
+  - type: textarea
+    id: measures
+    attributes:
+      label: Measurements
+      description: "Length, curve angle and radius (at the track centre line), height difference, lanes. For curves: radius measured at the centre wall."
+    validations:
+      required: true
+  - type: dropdown
+    id: lanes
+    attributes:
+      label: Lanes
+      options: ["2 lanes (Tamiya compatible)", "1 lane", "3 lanes (needs redesign for 2 lanes)"]
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Print settings, licence of the model, anything else.

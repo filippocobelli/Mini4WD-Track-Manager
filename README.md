@@ -34,6 +34,7 @@ Track Planner risponde a queste domande prima di accendere la stampante.
 | **Distinta pezzi** | Pezzi necessari, già in magazzino e da stampare, con ore di stampa e numero di clip. |
 | **Magazzino** | Inventario dei pezzi stampati con storico di ogni movimento. |
 | **Idee** | Tracciati proposti in base allo spazio libero o ai pezzi che hai, anche in modo casuale con opzioni (salto, scambio, velocità, pista jump…). |
+| **Officina** | Motore 3D: crea pezzi da stampare (STL e OBJ) su misura, compatibili con le clip Tamiya. |
 | **Modelli** | Altri elementi compatibili trovati su MakerWorld, con link e misure. |
 
 ---
@@ -118,6 +119,38 @@ Per ognuna vedi anteprima, ingombro, giro, **pezzi che hai** e **pezzi da stampa
 **Alternative ordinate** fa la stessa ricerca in modo sistematico: per ovali, rettangoli e ottagoni mostra
 il più economico (pochi pezzi da stampare), il più lungo con poche stampe e il più lungo che ci sta.
 
+### Officina: pezzi 3D su misura
+
+![Officina](docs/screenshots/10-officina.png)
+
+Dalla versione 2.0 il planner ha un **motore 3D** che genera pezzi di pista pronti da stampare, in **STL** o **OBJ**.
+Così non sei limitato ai modelli che trovi in rete: lunghezze, angoli, raggi e altezze li decidi tu.
+
+| Elemento | Parametri |
+|---|---|
+| **Rettilineo** | lunghezza |
+| **Curva** | angolo e raggio in asse |
+| **Rampa** | lunghezza e dislivello, con raccordi dolci alle estremità |
+| **Dosso** | lunghezza e altezza |
+| **Salto** | rampa di lancio dentro ogni corsia: lunghezza e altezza |
+| **Sella** | rilievo a triangolo dentro ogni corsia |
+| **Washboard** | serie di piccoli dossi |
+| **Supporto rialzo** | appoggio per i tratti sollevati, alto quanto serve |
+
+Il profilo di partenza è misurato sul rettilineo da 200 mm del set (corsie da 115 mm, pareti e pavimento da 2,5 mm,
+sponde da 50 mm, raccordi, asole e **alette di aggancio Tamiya**): il rettilineo da 200 generato coincide con l'originale
+(250,3 × 200 × 52,5 mm, 178,9 cm³). I pezzi nuovi si collegano a quelli del kit con le stesse clip.
+
+- **Piatto della stampante**: scegli il tuo (Bambu Lab, Prusa, Creality…). Se un pezzo non entra viene ruotato
+  o **diviso in parti uguali**, ognuna con le sue alette (es. una curva 45° R480 diventa 2 × 22,5°).
+- **Profilo della pista**: corsia, pareti, pavimento, sponde, raccordi, alette, asole e nervature sono modificabili.
+- **Aggiungi alla barra pezzi**: il pezzo creato entra nel planner (gruppo *Miei*) e si usa nei circuiti.
+- **Scarica ZIP del circuito**: tutti i pezzi del circuito aperto, con la quantità nel nome del file,
+  i supporti per i tratti rialzati e un LEGGIMI con l'elenco. Il cambio corsia, la spirale e il wall non si generano ancora:
+  il LEGGIMI indica il modello MakerWorld da usare.
+
+I solidi sono creati con [Manifold](https://github.com/elalish/manifold) (Apache-2.0), che garantisce pezzi chiusi e stampabili.
+
 ### Modelli ed elementi extra
 
 ![Modelli MakerWorld](docs/screenshots/06-modelli.png)
@@ -185,10 +218,24 @@ I dati (circuito, magazzino, storico) restano sul dispositivo. Per spostarli: *C
 
 ---
 
+## Partecipa
+
+Mini4WD Track Planner è un progetto della community: chiunque può proporre modifiche.
+
+- **Non programmi?** Segnala un problema, proponi un'idea o mandaci le **misure reali** dei pezzi stampati
+  (raggio delle curve, lunghezza del cambio corsia): apri una [issue](../../issues/new/choose).
+- **Programmi?** Fai un fork, sviluppa la modifica e apri una **pull request**. I test automatici girano su ogni proposta;
+  se va bene entra nella versione successiva. Tutto è spiegato in **[CONTRIBUTING.md](CONTRIBUTING.md)** (in inglese).
+
+Il codice scritto con strumenti AI è benvenuto, purché chi lo propone l'abbia letto e provato.
+
 ## Sviluppo
 
 ```
 app/                 sorgente unico (index.html, icone, manifest)
+app/engine3d.js      motore 3D: genera i pezzi STL/OBJ
+app/vendor/          Manifold (WASM), preparato da npm run vendor
+tests/               test automatici
 electron/main.js     finestra dell'app desktop
 scripts/build.mjs    genera dist/web/*.html (file unico) e desktop/ (versione offline)
 build/icon.png       icona delle app desktop
@@ -198,8 +245,10 @@ docs/screenshots/    immagini di questo README
 
 ```bash
 npm install
+npm test             # build + test automatici (motore 3D e app)
 npm start            # apre l'app desktop
 npm run build:web    # crea il file HTML unico in dist/web/
+npm run vendor       # aggiorna Manifold in app/vendor/ (solo quando cambia versione)
 ```
 
 ### Versioni e release
