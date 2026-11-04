@@ -256,7 +256,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.1.0";
+const APP_VERSION="2.1.1";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));

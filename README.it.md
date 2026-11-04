@@ -214,7 +214,7 @@ Ogni versione è nella pagina **[Releases](https://github.com/filippocobelli/Min
 | `Mini4WD-Track-Planner-<versione>-win-portable.exe` | Windows, senza installazione |
 | `Mini4WD-Track-Planner-v<versione>.html` | qualsiasi browser o sito statico |
 
-Versione web sempre aggiornata: **[lab.cobelli.uk/Mini4WD-Track-Manager](https://lab.cobelli.uk/Mini4WD-Track-Manager/)**.
+Versione web sempre aggiornata: **[lab.cobelli.uk/Mini4WD-Track-Manager/app](https://lab.cobelli.uk/Mini4WD-Track-Manager/app/)** · pagina del progetto: [lab.cobelli.uk/Mini4WD-Track-Manager](https://lab.cobelli.uk/Mini4WD-Track-Manager/it/).
 
 Le app desktop funzionano offline. Non hanno la firma a pagamento di Apple e Microsoft:
 - **macOS**: al primo avvio, tasto destro sull'app → *Apri*. Se macOS la blocca: *Impostazioni di Sistema → Privacy e sicurezza → Apri comunque*.
@@ -249,6 +249,7 @@ app/engine3d.js      motore 3D: genera i pezzi STL/OBJ
 app/vendor/          Manifold (WASM), preparato da npm run vendor
 tests/               test automatici
 electron/main.js     finestra dell'app desktop
+site/                pagina del progetto su lab.cobelli.uk (EN + it/)
 scripts/build.mjs    genera dist/web/*.html (file unico) e desktop/ (versione offline)
 build/icon.png       icona delle app desktop
 docs/screenshots/    immagini dei README (it/ per la versione italiana)

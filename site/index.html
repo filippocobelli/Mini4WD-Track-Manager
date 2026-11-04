@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini4WD Track Planner · lab.cobelli.uk</title>
+<meta name="description" content="Plan two-lane Mini4WD tracks built from 3D-printed pieces: 2D plan and 3D view, parts list with print hours, inventory, layout generator and a 3D engine that makes printable STL/OBJ pieces. Free, in the browser or as a Mac and Windows app.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="alternate" hreflang="it" href="https://lab.cobelli.uk/Mini4WD-Track-Manager/it/">
+<link rel="alternate" hreflang="en" href="https://lab.cobelli.uk/Mini4WD-Track-Manager/">
+<script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<style>
+/* Mini4WD Track Planner site v2.1.1 — same style as lab.cobelli.uk */
+@font-face{font-family:"Barlow";src:url(/fonts/Barlow-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Barlow";src:url(/fonts/Barlow-SemiBold.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Barlow Condensed";src:url(/fonts/BarlowCondensed-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(/fonts/JetBrainsMono-500.woff2) format("woff2");font-weight:500;font-display:swap}
+[data-theme=dark]{--bg:#1C1C1C;--card:#232323;--text:#F2F1EC;--soft:#A3A29C;--line:#343433;--accent:#F2C400;--on-accent:#1C1C1C;--link:#FAFAF7}
+[data-theme=light]{--bg:#FAFAF7;--card:#FFFFFF;--text:#1C1C1C;--soft:#5A5C62;--line:#E2E1DB;--accent:#C42424;--on-accent:#FFFFFF;--link:#1C1C1C}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--text);background:var(--bg);font:400 18px/1.6 "Barlow",system-ui,sans-serif}
+a{color:var(--link);text-decoration-color:var(--accent);text-underline-offset:3px;text-decoration-thickness:2px}
+a:hover{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:14px;letter-spacing:-.2px}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px}
+header{border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:16px;height:64px}
+.home{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:auto}
+.cursor{display:inline-block;width:10px;height:18px;background:var(--accent);vertical-align:-3px}
+nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+nav a{text-decoration:none;color:var(--soft)}nav a:hover{color:var(--text)}
+.toggle{background:none;border:1px solid var(--line);color:var(--soft);border-radius:6px;padding:6px 10px;cursor:pointer}
+.toggle:hover{color:var(--text);border-color:var(--soft)}
+@media(max-width:620px){nav .opt{display:none}}
+.hero{padding:64px 0 28px}
+.prompt{color:var(--soft);margin:0 0 14px}.prompt b{color:var(--accent);font-weight:500}
+h1{font:700 clamp(52px,10vw,104px)/.88 "Barlow Condensed",sans-serif;margin:0 0 20px;letter-spacing:-1px;text-wrap:balance}
+.lead{font-size:21px;max-width:34em;margin:0 0 26px}
+.status{display:inline-block;margin:0 0 18px;padding:2px 8px;border-radius:4px;color:var(--on-accent);background:var(--accent)}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 34px}
+.btn{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid var(--line);text-decoration:none;font-weight:600;background:var(--card)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{color:var(--on-accent);filter:brightness(1.07)}
+.shot{display:block;width:100%;height:auto;margin:0 0 20px}
+h2{font:700 34px/1.1 "Barlow Condensed",sans-serif;margin:0 0 10px;text-wrap:balance}
+h3{font:700 26px/1.1 "Barlow Condensed",sans-serif;margin:0 0 8px}
+section{padding:30px 0}
+.label{color:var(--soft);margin:0 0 10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:720px){.two{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px}
+.card p{margin:0 0 12px;color:var(--soft)}
+.card ul{margin:0;padding-left:20px;color:var(--soft)}
+.card li{margin:4px 0}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0;padding:0;list-style:none}
+.tags li{padding:2px 8px;border-radius:4px;background:var(--bg);border:1px solid var(--line);color:var(--soft);margin:0}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:16px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+thead th{font:700 20px/1 "Barlow Condensed",sans-serif}
+td.y{color:var(--accent);font-weight:600}td.n{color:var(--soft)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;position:relative;padding:0 0 12px 40px;color:var(--soft)}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font:500 13px "JetBrains Mono",monospace;color:var(--text)}
+.steps b{color:var(--text);font-weight:600}
+code{font-family:"JetBrains Mono",monospace;font-size:.85em;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.about{margin:10px 0 0;padding:22px 24px;border-left:3px solid var(--accent);background:var(--card);border-radius:0 12px 12px 0}
+.about p{margin:0}
+.risk{margin:28px auto 0;font-size:.8rem;line-height:1.5;color:var(--soft)}
+footer{padding:16px 0 56px;color:var(--soft)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.shot.framed{border:1px solid var(--line);border-radius:12px}
+.card img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin:0 0 14px}
+.phone{display:grid;grid-template-columns:200px 1fr;gap:22px;align-items:center}
+.phone img{width:200px;height:auto;border:1px solid var(--line);border-radius:12px}
+@media(max-width:620px){.phone{grid-template-columns:1fr}.phone img{margin:0 auto}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="home" href="/"><span class="mono">lab.cobelli.uk</span><span class="cursor" aria-hidden="true"></span></a>
+  <nav class="mono">
+    <a class="opt" href="#features">features</a>
+    <a class="opt" href="#start">get started</a>
+    <a href="https://github.com/filippocobelli/Mini4WD-Track-Manager">github</a>
+    <a href="it/" hreflang="it" lang="it">it</a>
+    <button class="toggle mono" id="toggle" type="button" aria-label="Switch colour theme">light</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="prompt mono"><b>~/lab/mini4wd-track-planner</b> $ ./open</p>
+    <h1>Mini4WD Track Planner</h1>
+    <span class="status mono" data-repo="filippocobelli/Mini4WD-Track-Manager">v2.1.1 · live</span>
+    <p class="lead">Plan two-lane Mini4WD tracks built from 3D-printed pieces. See how many pieces you need, which ones you already have and how many printer hours are left, then make your own pieces as STL.</p>
+    <div class="cta">
+      <a class="btn primary" href="app/">Open in the browser</a>
+      <a class="btn" href="https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest">Download for Mac / Windows</a>
+      <a class="btn" href="https://ko-fi.com/filippocobelli">☕ Support on Ko-fi</a>
+      <a class="btn" href="https://github.com/filippocobelli/Mini4WD-Track-Manager">Source</a>
+    </div>
+    <img class="shot framed" src="img/hero-en.webp" alt="3D view of a two-lane Mini4WD oval with a raised turn on rainbow ramps, a jump and the lane change" width="1600" height="1000">
+  </section>
+
+  <section id="features">
+    <p class="label mono">plan, count, print</p>
+    <div class="two">
+      <div class="card">
+        <img src="img/plan-en.webp" alt="The track plan with the summary: closed track, lap length, footprint and the two lanes" width="1200" height="750" loading="lazy">
+        <h3>Plan and parts list</h3>
+        <p>Build the track piece by piece and the planner checks everything as you go.</p>
+        <ul>
+          <li>Closing check in mm and degrees, with the straights to add if it is open</li>
+          <li>Equal lane lengths over 2 laps with the lane change</li>
+          <li>Footprint, lap length, heights and supports for raised sections</li>
+          <li>Pieces needed, in stock and to print, with print hours and clips</li>
+        </ul>
+        <ul class="tags mono"><li>2D · 3D</li><li>three.js</li><li>MakerWorld 542904</li></ul>
+      </div>
+      <div class="card">
+        <img src="img/ideas-en.webp" alt="Three generated tracks with preview, footprint, pieces you have and pieces to print" width="1200" height="750" loading="lazy">
+        <h3>Ideas</h3>
+        <p>Tell it how much space you have, or let it use only the pieces you own.</p>
+        <ul>
+          <li>Three random tracks per click: oval, octagon, chicane, bean, L-shape…</li>
+          <li>Options: lane change, jump, jump track, speed, technical, raised turn, spiral, compact</li>
+          <li>Every layout closes, comes back to the start height and fits the space</li>
+          <li>Sorted alternatives from the cheapest to the longest that fits</li>
+        </ul>
+        <ul class="tags mono"><li>generator</li><li>inventory</li></ul>
+      </div>
+      <div class="card">
+        <img src="img/workshop-en.webp" alt="The Workshop with a generated 250 mm ramp ready to print" width="1200" height="750" loading="lazy">
+        <h3>Workshop</h3>
+        <p>A 3D engine that makes printable track pieces as STL or OBJ, not limited to the models online.</p>
+        <ul>
+          <li>Straight, curve, ramp, hill, jump, saddle, washboard and supports</li>
+          <li>Profile measured on the kit's 200 mm straight: same Tamiya clips</li>
+          <li>Pieces too big for your bed are split into equal parts, each with its tabs</li>
+          <li>One ZIP with every piece of the track and a README</li>
+        </ul>
+        <ul class="tags mono"><li>STL · OBJ</li><li>Manifold</li><li>Bambu · Prusa · Creality</li></ul>
+      </div>
+      <div class="card">
+        <img src="img/inventory-en.webp" alt="The inventory with the pieces of the kit and the history" width="1200" height="750" loading="lazy">
+        <h3>Inventory</h3>
+        <p>Keeps the printed pieces you own, with a history of every change.</p>
+        <ul>
+          <li>+ and − or type the quantity; a full base kit in one click</li>
+          <li>History with date, quantity and reason</li>
+          <li>Used by the parts list and by every generator</li>
+        </ul>
+        <ul class="tags mono"><li>history</li><li>JSON backup</li></ul>
+      </div>
+    </div>
+    <p style="margin:18px 0 0;color:var(--soft)">The base pieces come from <a href="https://makerworld.com/en/models/542904-2-lane-mini-4wd-track">MINI4WD 2 LANE DIY TRACK</a> by Pat on MakerWorld; jump, saddle, hill, rainbow ramp, spiral and wall from other MakerWorld designers. The app only links to their models.</p>
+  </section>
+
+  <section id="start">
+    <h2>Get started</h2>
+    <div class="two">
+      <div class="card">
+        <h3>In the browser</h3>
+        <ol class="steps">
+          <li><b>Press “Open in the browser” above.</b> It works on computers, tablets and phones.</li>
+          <li>Add it to the home screen or the Dock to use it like an app.</li>
+          <li>Your track and inventory stay in that browser: <b>Tracks → Copy JSON</b> to move them.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Mac and Windows app</h3>
+        <ol class="steps">
+          <li>Download the <code>.dmg</code> (Mac, Intel and Apple Silicon) or the <code>.exe</code> (installer or portable) from the <a href="https://github.com/filippocobelli/Mini4WD-Track-Manager/releases/latest">latest release</a>.</li>
+          <li>It works offline.</li>
+          <li>First launch on a Mac: right-click → <b>Open</b>. On Windows: <b>More info → Run anyway</b>.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="card phone" style="margin:18px 0 0">
+      <img src="img/mobile-en.webp" alt="The planner on a phone" width="390" height="844" loading="lazy">
+      <div><h3>On a phone</h3><p style="margin:0">Same app on a phone: pan and zoom the plan with two fingers, scroll the piece bar, switch between English and Italian with the IT / EN button.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;margin:0 0 18px">
+      <p style="margin:0;max-width:34em">Mini4WD Track Planner is free and open source (MIT). If it is useful to you, you can buy me a coffee: it helps pay for the time and the filament spent on test prints.</p>
+      <a class="btn primary" href="https://ko-fi.com/filippocobelli">☕ Support on Ko-fi</a>
+    </div>
+    <div class="about">
+      <p>I'm not a programmer. I designed Track Planner for my own Mini4WD track and built it with AI (Claude): I decide what it should do and test it at home, the AI writes the code. Issues and pull requests are welcome on <a href="https://github.com/filippocobelli/Mini4WD-Track-Manager">GitHub</a>.</p>
+    </div>
+  </section>
+</main>
+
+<p class="risk wrap"><strong>Use at your own risk.</strong> The software is provided as is, without warranty of any kind. Check the printed files before using them and keep a backup of your data.</p>
+
+<footer><div class="wrap mono">
+  <a href="/">lab.cobelli.uk</a>
+  <a href="https://github.com/filippocobelli/Mini4WD-Track-Manager">github</a>
+  <a href="https://ko-fi.com/filippocobelli">ko-fi</a>
+</div></footer>
+<script>
+(function(){
+  var b=document.getElementById("toggle"),r=document.documentElement;
+  function label(){b.textContent=r.dataset.theme==="dark"?"light":"dark"}
+  label();
+  b.onclick=function(){r.dataset.theme=r.dataset.theme==="dark"?"light":"dark";try{localStorage.setItem("theme",r.dataset.theme)}catch(e){}label()};
+})();
+(function(){
+  document.querySelectorAll("[data-repo]").forEach(function(el){
+    var repo=el.getAttribute("data-repo"),key="release:"+repo,now=Date.now(),c=null;
+    function show(tag){if(tag)el.textContent="v"+String(tag).replace(/^v/i,"")+" · live"}
+    try{c=JSON.parse(localStorage.getItem(key))}catch(e){}
+    if(c&&c.tag){show(c.tag);if(now-c.t<3600000)return}
+    fetch("https://api.github.com/repos/"+repo+"/releases/latest",{headers:{Accept:"application/vnd.github+json"}})
+      .then(function(r){return r.ok?r.json():null})
+      .then(function(j){if(j&&j.tag_name){show(j.tag_name);try{localStorage.setItem(key,JSON.stringify({tag:j.tag_name,t:now}))}catch(e){}}})
+      .catch(function(){});
+  });
+})();
+</script>
+</body>
+</html>

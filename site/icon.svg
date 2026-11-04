@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#ffffff"/>
+  <path d="M0 0H512V150L0 22Z" fill="#0b4ea2"/>
+  <path d="M0 22L512 150V176L0 48Z" fill="#e1251b"/>
+  <g fill="none" transform="translate(0 30)">
+    <path d="M126 512V300A130 130 0 0 1 386 300V512" stroke="#14213a" stroke-width="152"/>
+    <path d="M91 512V300A165 165 0 0 1 421 300V512" stroke="#e1251b" stroke-width="58"/>
+    <path d="M161 512V300A95 95 0 0 1 351 300V512" stroke="#0b4ea2" stroke-width="58"/>
+    <path d="M126 512V300A130 130 0 0 1 386 300V512" stroke="#ffffff" stroke-width="6" stroke-dasharray="22 16"/>
+  </g>
+  <g transform="translate(52 400)">
+    <rect width="148" height="36" fill="#14213a"/>
+    <g fill="#ffffff">
+      <rect x="0" y="0" width="18" height="18"/><rect x="36" y="0" width="18" height="18"/><rect x="72" y="0" width="18" height="18"/><rect x="108" y="0" width="18" height="18"/>
+      <rect x="18" y="18" width="18" height="18"/><rect x="54" y="18" width="18" height="18"/><rect x="90" y="18" width="18" height="18"/><rect x="126" y="18" width="18" height="18"/>
+    </g>
+  </g>
+</svg>

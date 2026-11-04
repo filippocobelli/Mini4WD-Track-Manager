@@ -1,6 +1,7 @@
 name: Pages
 
-# Publishes the web version (app/ folder) to GitHub Pages: lab.cobelli.uk/Mini4WD-Track-Manager/
+# Publishes to GitHub Pages: the project page (site/) at lab.cobelli.uk/Mini4WD-Track-Manager/
+# and the web app (app/) at lab.cobelli.uk/Mini4WD-Track-Manager/app/
 # Runs on every change to main and can be started by hand from Actions → Pages → Run workflow.
 on:
   push:
@@ -25,8 +26,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/configure-pages@v6
+      - name: Project page + app in /app/
+        run: |
+          mkdir -p _site
+          cp -r site/. _site/
+          cp -r app _site/app
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: app
+          path: _site
       - id: deploy
         uses: actions/deploy-pages@v5

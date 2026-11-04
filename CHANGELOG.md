@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.1.1] - 2026-11-04
+
+- New project page at lab.cobelli.uk/Mini4WD-Track-Manager/ (English, with Italian at /it/), in the same style as the
+  other lab.cobelli.uk projects: what it does, screenshots, how to start, Ko-fi and links to GitHub.
+- The web app moves to lab.cobelli.uk/Mini4WD-Track-Manager/app/.
+
 ## [2.1.0] - 2026-11-03
 
 **English and Italian.**
