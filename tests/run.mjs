@@ -42,6 +42,32 @@ for (const type of Object.keys(globalThis.M4Engine.TYPES)) {
   ok(z[0] === 0x50 && z[1] === 0x4b && z.length === 30 + 5 + 4 + 46 + 5 + 22, "valid ZIP");
 }
 
+/* ---------- layout solver (trace.js) ---------- */
+console.log("Layout solver");
+vm.runInThisContext(fs.readFileSync(path.join(root, "app", "trace.js"), "utf8"));
+{
+  const Tr = globalThis.M4Trace;
+  const types = { S200: { kind: "straight", len: 200 }, S215: { kind: "straight", len: 215 }, S100: { kind: "straight", len: 100 }, C45: { kind: "curve", ang: 45, r: 480 }, RUP: { kind: "straight", len: 250, dz: 75 }, LC: { kind: "lane", len: 830 } };
+  const cat = { straights: [{ id: "S200", len: 200 }, { id: "S215", len: 215 }, { id: "S100", len: 100 }], curve: { id: "C45", ang: 45, r: 480 }, ramps: [{ id: "RUP", len: 250, dz: 75 }], lookup: id => types[id] };
+  const O = { x: 0, y: 0, h: 0, z: 0 }, R4 = Array(4).fill({ t: "C45", d: "R" });
+  const half = Tr.run({ ...O }, [{ t: "S200" }, { t: "S215" }, { t: "S215" }, { t: "S200" }, ...R4], cat);
+  const c1 = Tr.close(half, O, cat)[0];
+  ok(c1 && !c1.custom && Tr.residual(Tr.run({ ...half }, c1.items, cat), O).dist < 0.01, "closes half an oval with kit pieces only");
+  const c2 = Tr.close({ x: -137, y: 0, h: 0, z: 0 }, O, cat)[0];
+  ok(c2 && c2.custom === 1 && c2.items[0].gen && Math.abs(c2.items[0].gen.L - 137) < 0.1, "a 137 mm gap becomes a made-to-measure straight");
+  const c3 = Tr.close({ x: -250, y: 0, h: 0, z: 75 }, O, cat)[0];
+  ok(c3 && c3.items.some(i => i.t === "RUP" && i.v === -1), "height difference closed with a down ramp");
+  const ov = [{ t: "S200" }, { t: "S215" }, { t: "S215" }, { t: "S200" }, ...R4, { t: "S200" }, { t: "S215" }, { t: "S215" }, { t: "S200" }, ...R4];
+  let p = { x: 300, y: 500, h: 0, z: 0 }; const pts = [];
+  for (const it of ov) { const pc = Tr.pieceOf(it, cat); for (let k = 0; k < 10; k++) { const q = Tr.step(p, { ...pc, ang: (pc.ang || 0) * k / 10, len: (pc.len || 0) * k / 10 }); pts.push({ x: q.x + Math.sin(pts.length) * 6, y: q.y }); } p = Tr.step(p, pc); }
+  const fit = Tr.fitPath(pts, cat, { lc: { id: "LC", len: 830 } });
+  ok(!fit.err && !fit.open && fit.dev < 25 && fit.items.filter(i => i.t === "C45").length === 8 && fit.lc, "sketch of the kit oval rebuilt: closed, 8 curves, lane change", JSON.stringify({ n: fit.items && fit.items.length, dev: fit.dev, open: fit.open }));
+  const W = 400, H = 260, px = new Uint8ClampedArray(W * H * 4).fill(255);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const r = Math.hypot((x - 200) / 150, (y - 130) / 90); if (r > 0.8 && r < 1) for (let c = 0; c < 3; c++) px[4 * (y * W + x) + c] = 30; }
+  const im = Tr.traceImage(px, W, H);
+  ok(!im.err && im.band && Math.abs(im.bbox.w - 270) < 8 && Math.abs(im.bbox.h - 162) < 8, "image: centre line of a drawn ring", JSON.stringify(im.bbox));
+}
+
 /* ---------- app in the browser ---------- */
 console.log("App");
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || undefined, args: ["--use-gl=swiftshader", "--ignore-gpu-blocklist"] });
@@ -72,6 +98,38 @@ for (const [k, v] of Object.entries(res)) ok(v, k);
 await page.click('[data-tab="ws"]');
 await page.waitForFunction(() => !wsBusy && (wsRes || engErr), null, { timeout: 60000 });
 const ws = await page.evaluate(() => ({ err: engErr, label: wsRes && wsRes.pieces[0].label }));
+const cl = await page.evaluate(() => {
+  const out = {}, labels = () => closeOptions(geom()).map(o => o.edit ? editLabel(o) : itemsLabel(o.items));
+  st.layout = PRESETS.ovale.items().slice(0, -3); CS.key = null;
+  const o1 = closeOptions(geom()); applyClose(o1[0]);
+  out["open track: first suggestion closes it exactly"] = AN.exact;
+  st.layout = [{ t: "S200" }, { t: "S215" }, ...Array(2).fill({ t: "C45", d: "R" }), { t: "S200" }, ...Array(2).fill({ t: "C45", d: "R" }), { t: "S200" }, { t: "S200" }, ...Array(2).fill({ t: "C45", d: "R" }), { t: "S200" }, ...Array(2).fill({ t: "C45", d: "R" })]; CS.key = null;
+  out["15 mm short: suggests swapping a straight"] = closeOptions(geom()).some(o => o.edit === "swap");
+  st.layout = PRESETS.rainbow.items().filter(x => !(x.t === "RUP" && x.v === -1)); CS.key = null;
+  const o3 = closeOptions(geom()).find(o => o.edit === "ins" && o.item.t === "RUP" && o.item.v === -1);
+  if (o3) applyClose(o3);
+  out["missing down ramp: suggests inserting it, track closes"] = !!o3 && AN.exact;
+  return out;
+});
+for (const [k, v] of Object.entries(cl)) ok(v, k);
+await page.click('[data-tab="gen"]');
+await page.click("#draw");
+const box = await page.locator("#cv").boundingBox(), z = await page.evaluate(() => view.z);
+const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+await page.mouse.move(cx + 1250 * z, cy); await page.mouse.down();
+for (let i = 1; i <= 100; i++) { const t = i / 100 * 2 * Math.PI; await page.mouse.move(cx + 1250 * z * Math.cos(t), cy + 560 * z * Math.sin(t)); }
+await page.mouse.up(); await page.waitForTimeout(500);
+const dr = await page.evaluate(() => ({ fit: FIT, exact: AN.exact, draw: drawMode }));
+ok(dr.fit && !dr.fit.open && dr.exact && !dr.draw, "drawing with the mouse becomes a closed track", JSON.stringify(dr));
+const png = await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 600; c.height = 380; const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 600, 380); x.strokeStyle = "#222"; x.lineWidth = 28; x.beginPath(); x.moveTo(150, 60); x.lineTo(450, 60); x.arc(450, 190, 130, -Math.PI / 2, Math.PI / 2); x.lineTo(150, 320); x.arc(150, 190, 130, Math.PI / 2, Math.PI * 1.5); x.stroke(); return c.toDataURL("image/png"); });
+const tmpPng = path.join(root, "dist", "test-oval.png"); fs.mkdirSync(path.dirname(tmpPng), { recursive: true }); fs.writeFileSync(tmpPng, Buffer.from(png.split(",")[1], "base64"));
+await page.setInputFiles("#imgfile", tmpPng); await page.waitForFunction(() => FIT && FIT.src === "image", null, { timeout: 20000 });
+const ig = await page.evaluate(() => ({ fit: FIT, exact: AN.exact, w: bbox(G).w }));
+ok(!ig.fit.open && ig.exact && ig.fit.dev < 30 && Math.abs(ig.w - 3270) < 150, "image of a layout becomes a closed track at the given width", JSON.stringify(ig));
+await page.evaluate(() => { tab = "bom"; renderPane(); });
+ok(await page.evaluate(() => document.querySelectorAll("#pane a.ab.sm[href*='makerworld']").length > 0 && document.querySelectorAll("#pane [data-gen]").length > 0), "parts to print: MakerWorld links and Make STL buttons");
+await page.click("#pane [data-gen]"); await page.waitForFunction(() => !wsBusy && wsRes && tab === "ws", null, { timeout: 60000 });
+ok(await page.evaluate(() => tab === "ws" && wsRes.ok), "Make STL opens the Workshop with that piece");
 ok(!ws.err && ws.label === "straight 200mm", "Workshop: the engine starts in the browser and builds the straight", JSON.stringify(ws));
 
 const en = await page.evaluate(() => ({ lang: document.documentElement.lang, tab: document.querySelector('[data-tab="inv"]').textContent }));

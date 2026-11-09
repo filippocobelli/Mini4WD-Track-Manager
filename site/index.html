@@ -10,7 +10,7 @@
 <link rel="alternate" hreflang="en" href="https://lab.cobelli.uk/Mini4WD-Track-Manager/">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
-/* Mini4WD Track Planner site v2.1.1 — same style as lab.cobelli.uk */
+/* Mini4WD Track Planner site v2.2.0 — same style as lab.cobelli.uk */
 @font-face{font-family:"Barlow";src:url(/fonts/Barlow-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Barlow";src:url(/fonts/Barlow-SemiBold.woff2) format("woff2");font-weight:600;font-display:swap}
 @font-face{font-family:"Barlow Condensed";src:url(/fonts/BarlowCondensed-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
@@ -96,7 +96,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
   <section class="hero">
     <p class="prompt mono"><b>~/lab/mini4wd-track-planner</b> $ ./open</p>
     <h1>Mini4WD Track Planner</h1>
-    <span class="status mono" data-repo="filippocobelli/Mini4WD-Track-Manager">v2.1.1 · live</span>
+    <span class="status mono" data-repo="filippocobelli/Mini4WD-Track-Manager">v2.2.0 · live</span>
     <p class="lead">Plan two-lane Mini4WD tracks built from 3D-printed pieces. See how many pieces you need, which ones you already have and how many printer hours are left, then make your own pieces as STL.</p>
     <div class="cta">
       <a class="btn primary" href="app/">Open in the browser</a>
@@ -115,7 +115,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
         <h3>Plan and parts list</h3>
         <p>Build the track piece by piece and the planner checks everything as you go.</p>
         <ul>
-          <li>Closing check in mm and degrees, with the straights to add if it is open</li>
+          <li>Closing check in position, heading and height, with one-tap fixes: swap, insert or remove a piece</li>
           <li>Equal lane lengths over 2 laps with the lane change</li>
           <li>Footprint, lap length, heights and supports for raised sections</li>
           <li>Pieces needed, in stock and to print, with print hours and clips</li>
@@ -123,10 +123,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
         <ul class="tags mono"><li>2D · 3D</li><li>three.js</li><li>MakerWorld 542904</li></ul>
       </div>
       <div class="card">
-        <img src="img/ideas-en.webp" alt="Three generated tracks with preview, footprint, pieces you have and pieces to print" width="1200" height="750" loading="lazy">
+        <img src="img/ideas-en.webp" alt="A layout rebuilt from a picture with kit pieces, lane change included" width="1200" height="750" loading="lazy">
         <h3>Ideas</h3>
-        <p>Tell it how much space you have, or let it use only the pieces you own.</p>
+        <p>Draw it, upload a picture, tell it how much space you have, or let it use only the pieces you own.</p>
         <ul>
+          <li>Draw the lap with the mouse or a finger, or upload a picture of a layout: it is rebuilt with kit pieces and closed</li>
           <li>Three random tracks per click: oval, octagon, chicane, bean, L-shape…</li>
           <li>Options: lane change, jump, jump track, speed, technical, raised turn, spiral, compact</li>
           <li>Every layout closes, comes back to the start height and fits the space</li>

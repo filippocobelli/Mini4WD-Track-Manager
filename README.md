@@ -34,6 +34,7 @@ Track Planner answers these questions before you switch the printer on.
 | | |
 |---|---|
 | **2D plan** | Build the track piece by piece, check that it closes, see the footprint and the lap length. |
+| **Draw or upload a picture** | Draw the lap with the mouse or a finger, or upload a drawing of a layout: it is rebuilt with kit pieces and closed. |
 | **3D view** | Rotate the track with walls, raised lane change, ramps and supports. |
 | **Parts list** | Pieces needed, already in stock and to print, with print hours and number of clips. |
 | **Inventory** | List of your printed pieces with a history of every change. |
@@ -55,12 +56,27 @@ Tap a piece of the track to select it: new pieces are inserted right after it.
 
 The **Summary** keeps checking:
 
-- **closing**: error in mm and degrees; if the track is open it suggests which straights to add;
+- **closing**: position, heading and height. If the track is open, or closes only thanks to the play in the clips, it proposes
+  fixes you apply with one tap: swap, insert or remove one piece anywhere, complete the loop from the end, or a made-to-measure piece (★);
 - **lane length**: with an odd number of lane changes both cars cover the same distance over 2 laps;
 - **footprint** in cm and whether it fits the space you entered;
 - **heights**: rise left to recover, maximum height and supports needed.
 
 Red and blue in the plan follow the path of the two cars on the first lap.
+
+![Closing suggestions](docs/screenshots/12-closing.png)
+
+### From a drawing or an image
+
+![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)
+
+- **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at real scale (each grid square is 10 cm).
+  When you lift your finger the planner rebuilds it with kit pieces: straights and 45° curves that follow your line,
+  the lane change on a straight stretch, and the loop closed exactly.
+- **🖼 Image**: upload a drawing or a plan of a layout (track dark on a light background, or the other way round).
+  The planner finds the track's centre line, scales it to the real width you enter and rebuilds it the same way;
+  the picture stays under the plan as a guide.
+- The *Ideas* tab shows how far the result is from the drawing and how many pieces are left to print.
 
 ### 3D view
 
@@ -76,6 +92,9 @@ You can see the lane change bridge, the raised parts, the supports underneath an
 For every printed part: how many you need, how many you have in stock, how many to print and the hours.
 It also counts the **clips** (2 per joint, editable) and the **supports** for raised sections.
 The **I printed the missing ones** button updates the inventory in one click.
+
+For every piece still to print there are two buttons: **MakerWorld** opens the original model, **Make STL** builds it in the
+Workshop with your sizes. **STL ZIP of the missing ones** downloads only the pieces you don't have in stock.
 
 ### Inventory
 
@@ -244,6 +263,7 @@ The planner is free and will stay free. If you find it useful you can buy me a c
 ```
 app/                 single source (index.html, icons, manifest)
 app/engine3d.js      3D engine: builds the STL/OBJ pieces
+app/trace.js         closing solver, sketch fitting and image tracing
 app/vendor/          Manifold (WASM), prepared by npm run vendor
 tests/               automated tests
 electron/main.js     desktop app window

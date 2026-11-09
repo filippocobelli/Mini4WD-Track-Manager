@@ -34,6 +34,7 @@ Track Planner risponde a queste domande prima di accendere la stampante.
 | | |
 |---|---|
 | **Pianta 2D** | Componi il circuito pezzo per pezzo, verifica che si chiuda, vedi ingombro e lunghezza del giro. |
+| **Disegno o immagine** | Disegna il giro con il mouse o con il dito, oppure carica il disegno di un tracciato: viene ricostruito con i pezzi del kit e chiuso. |
 | **Vista 3D** | Ruota il circuito con pareti, cambio corsia sopraelevato, rampe e supporti. |
 | **Distinta pezzi** | Pezzi necessari, già in magazzino e da stampare, con ore di stampa e numero di clip. |
 | **Magazzino** | Inventario dei pezzi stampati con storico di ogni movimento. |
@@ -53,12 +54,27 @@ Tocca un pezzo della pista per selezionarlo: i nuovi pezzi vengono inseriti subi
 
 Il **Riepilogo** controlla in continuazione:
 
-- **chiusura**: errore in mm e angolo; se il circuito è aperto propone quali rettilinei aggiungere;
+- **chiusura**: posizione, direzione e altezza. Se il circuito è aperto, o si chiude solo grazie al gioco delle clip, propone
+  correzioni da applicare con un tocco: cambiare, inserire o togliere un pezzo in qualsiasi punto, completare il giro dalla fine, o un pezzo su misura (★);
 - **lunghezza delle corsie**: con un numero dispari di cambi corsia le due auto fanno la stessa distanza in 2 giri;
 - **ingombro** in cm e se entra nello spazio indicato;
 - **altezze**: dislivello da recuperare, quota massima e supporti necessari.
 
 Rosso e blu in pianta seguono il percorso delle due auto nel primo giro.
+
+![Suggerimenti di chiusura](docs/screenshots/it/12-closing.png)
+
+### Da disegno o immagine
+
+![Tracciato ricostruito da un'immagine](docs/screenshots/it/11-from-image.png)
+
+- **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, in scala reale (ogni quadretto è 10 cm).
+  Quando alzi il dito il planner lo ricostruisce con i pezzi del kit: rettilinei e curve da 45° che seguono la tua linea,
+  il cambio corsia su un tratto dritto e il giro chiuso con precisione.
+- **🖼 Immagine**: carica il disegno o la pianta di un tracciato (pista scura su fondo chiaro, o il contrario).
+  Il planner trova la linea centrale, la porta alla larghezza reale che indichi e la ricostruisce allo stesso modo;
+  l'immagine resta sotto la pianta come guida.
+- La scheda *Idee* mostra quanto il risultato si discosta dal disegno e quanti pezzi restano da stampare.
 
 ### Vista 3D
 
@@ -74,6 +90,9 @@ Si vedono il ponte del cambio corsia, le parti sollevate, i supporti sotto e i s
 Per ogni parte stampata: quante ne servono, quante ne hai in magazzino, quante da stampare e le ore.
 Conta anche le **clip** (2 per giunto, modificabile) e i **supporti** per i tratti rialzati.
 Il pulsante **Ho stampato i mancanti** aggiorna il magazzino in un clic.
+
+Per ogni pezzo ancora da stampare ci sono due pulsanti: **MakerWorld** apre il modello originale, **Genera STL** lo crea
+nell'Officina con le tue misure. **ZIP STL dei mancanti** scarica solo i pezzi che non hai in magazzino.
 
 ### Magazzino
 
@@ -246,6 +265,7 @@ Il planner è gratis e lo resterà. Se ti è utile puoi offrirmi un caffè su **
 ```
 app/                 sorgente unico (index.html, icone, manifest)
 app/engine3d.js      motore 3D: genera i pezzi STL/OBJ
+app/trace.js         chiusura del giro, ricostruzione da disegno e da immagine
 app/vendor/          Manifold (WASM), preparato da npm run vendor
 tests/               test automatici
 electron/main.js     finestra dell'app desktop

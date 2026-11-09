@@ -5,6 +5,23 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.2.0] - 2026-11-09
+
+**Draw a track or start from a picture, and close every loop exactly.**
+
+- **Draw** (✏️ in the toolbar or in *Ideas*): draw the lap in the plan with the mouse or a finger, at real scale.
+  The planner rebuilds it with kit pieces, puts the lane change on a straight stretch and closes the loop.
+- **Image** (🖼): upload a drawing or a plan of a layout. The planner finds the track in the picture, scales it to the
+  real width you enter and rebuilds it the same way; the picture stays under the plan as a guide.
+- **Closing suggestions** in *Summary*: the planner now checks position, heading **and height**, and proposes ready-to-apply fixes:
+  swapping, inserting or removing one piece anywhere (e.g. "Piece 2: 215 → 200", "Insert Ramp ↓ after piece 9"),
+  completing the loop from the end, or a made-to-measure piece (★) from the Workshop when kit pieces can't do it.
+- A track that closes only within the clip tolerance is now shown as **"Closed, but offset"**, with the offset
+  sideways, lengthwise and in degrees, instead of plain "Closed".
+- **Parts**: every piece to print has a **MakerWorld** link and a **Make STL** button that opens it in the Workshop;
+  new **STL ZIP of the missing ones** with only the pieces you don't have in stock.
+- New geometry module `app/trace.js` (solver, sketch fitting, image tracing) with its own tests.
+
 ## [2.1.1] - 2026-11-04
 
 - New project page at lab.cobelli.uk/Mini4WD-Track-Manager/ (English, with Italian at /it/), in the same style as the

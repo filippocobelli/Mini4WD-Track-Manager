@@ -24,9 +24,11 @@ let single = src
   .replace('href="mini4wd-icon-32.png"', `href="${b64("mini4wd-icon-32.png")}"`)
   .replace('href="mini4wd-icon-180.png"', `href="${b64("mini4wd-icon-180.png")}"`)
   .replace(/\n<link rel="manifest"[^>]*>/, "")
+  .replace('<script src="trace.js"></script>', () => `<script>${inline("trace.js")}</script>`)
   .replace('<script src="engine3d.js"></script>', () =>
     `<script>${inline("engine3d.js")}</script>\n<script>window.M4_MANIFOLD_WASM_URL="https://cdn.jsdelivr.net/npm/manifold-3d@${mfVersion}/manifold.wasm";</script>\n<script>${inline("vendor/manifold.js")}</script>`);
 if (single.includes('src="engine3d.js"')) { console.error("engine3d.js not embedded"); process.exit(1); }
+if (single.includes('src="trace.js"')) { console.error("trace.js not embedded"); process.exit(1); }
 fs.mkdirSync(path.join(root, "dist", "web"), { recursive: true });
 const webOut = path.join(root, "dist", "web", `Mini4WD-Track-Planner-v${pkg.version}.html`);
 fs.writeFileSync(webOut, single);

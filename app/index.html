@@ -181,6 +181,13 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 .start{stroke:var(--ink);stroke-width:14;stroke-dasharray:14 14}
 .gap{stroke:var(--bad);stroke-width:5;stroke-dasharray:16 12;fill:none}
 .empty{font:600 46px var(--display);fill:var(--muted);text-anchor:middle}
+.sketch{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.9}
+.sketch.fit{stroke-dasharray:6 6;opacity:.75}
+.stage.isdraw #cv{cursor:crosshair}
+.stage.isdraw{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.ab.on{background:var(--accent);border-color:var(--accent);color:#15202c}
+.ab.sm{height:28px;padding:0 9px;font-size:12px;display:inline-flex;align-items:center;text-decoration:none}
+.acts{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 @media (min-width:980px){
   .app{grid-template-columns:minmax(0,1fr) 410px;grid-template-rows:auto 1fr auto;height:100%}
   header{grid-column:1/3}
@@ -222,6 +229,9 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
   <div class="tools">
     <div class="row" id="pieces" aria-label="Aggiungi pezzo" data-en-aria="Add piece"></div>
     <div class="row">
+      <button class="ab" id="draw" data-en="✏️ Draw">✏️ Disegna</button>
+      <button class="ab" id="imgbtn" data-en="🖼 Image">🖼 Immagine</button>
+      <input type="file" id="imgfile" accept="image/*" hidden>
       <button class="ab" id="undo" data-en="↶ Undo">↶ Annulla</button>
       <button class="ab" id="redo" data-en="↷ Redo">↷ Ripeti</button>
       <button class="ab" id="flip" data-en="⇄ Flip curve">⇄ Inverti curva</button>
@@ -252,11 +262,12 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="engine3d.js"></script>
+<script src="trace.js"></script>
 <script>
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.1.1";
+const APP_VERSION="2.2.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -332,7 +343,7 @@ const PRESETS={
   rainbow:{name:["Ovale con rainbow","Rainbow oval"],desc:["Una curva a 180° sollevata con le rampe rainbow.","A 180° turn raised with the rainbow ramps."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
 function defaults(){return{name:L("Ovale del kit","Kit oval"),parts:defaultParts(),types:defaultTypes(),
-  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
+  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,imgW:0,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
   for(const p of d.parts)if(!s.parts.find(x=>x.id===p.id))s.parts.push(p);
@@ -423,29 +434,97 @@ function analyse(g){
   const supports=g.els.filter((e,k)=>e.z0>0.5&&(k>0||closed)).length;
   const maxZ=g.els.reduce((m,e)=>Math.max(m,e.z1,e.z0),0);
   const below=g.els.find(e=>e.z1<-0.5);
-  return{dist,dh,dzEnd,planClosed,closed,near,center,lanes:{A:[a1.L,a2.L],B:[b1.L,b2.L]},lc,joints,clips:joints*st.settings.clips,supports,maxZ,below,gx,gy};
+  const exact=closed&&dist<=1&&Math.abs(dh)<=0.2;
+  const he=g.end.h,along=gx*Math.cos(he)+gy*Math.sin(he),lat=-gx*Math.sin(he)+gy*Math.cos(he);
+  return{dist,dh,dzEnd,planClosed,closed,exact,near,along,lat,center,lanes:{A:[a1.L,a2.L],B:[b1.L,b2.L]},lc,joints,clips:joints*st.settings.clips,supports,maxZ,below,gx,gy};
 }
-function suggestions(g,an){
-  if(!g.els.length||an.closed)return{msg:"",opts:[]};
-  const zmsg=Math.abs(an.dzEnd)>=1?L(` Dislivello da recuperare: ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"in discesa":"in salita"} (usa una rampa ${an.dzEnd>0?"↓":"↑"}).`,` Height to recover: ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"going down":"going up"} (use a ${an.dzEnd>0?"↓":"↑"} ramp).`):"";
-  if(an.planClosed)return{msg:L("In pianta il circuito si chiude.","In plan the track closes.")+zmsg,opts:[]};
-  if(Math.abs(an.dh)>=0.5){
-    const t45=st.types.find(t=>t.id==="C45")||st.types.find(t=>t.kind==="curve");
-    const k=t45?Math.round(Math.abs(an.dh)/t45.ang):0;
-    return{msg:L(`La direzione finale è sfasata di ${nf(Math.abs(an.dh))}°: servono altre curve ${an.dh>0?"a destra":"a sinistra"}${k?` (circa ${k} da ${t45.ang}°)`:""}.`,`The final heading is off by ${nf(Math.abs(an.dh))}°: you need more ${an.dh>0?"right":"left"} curves${k?` (about ${k} × ${t45.ang}°)`:""}.`)+zmsg,opts:[]};
+/* ---------- closing the loop ---------- */
+// Catalogue for the solver (trace.js). For sketches only the kit and the user's own pieces are used.
+function solverCat(forFit){
+  const ext=st.settings.extras,T=typeMap();
+  const straights=st.types.filter(t=>t.kind==="straight"&&!t.prof&&!t.dz&&(!t.x||ext&&!forFit)&&!(forFit&&t.gen)).map(t=>({id:t.id,len:t.len}));
+  const cnt={};for(const it of st.layout){const t=T[it.t];if(t&&t.kind==="curve"&&t.ang<270)cnt[t.id]=(cnt[t.id]||0)+1;}
+  let cid=forFit?null:Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  const c=T[cid||"C45"]||st.types.find(t=>t.kind==="curve"&&t.ang<270);
+  const ramps=st.types.filter(t=>t.kind==="straight"&&t.dz&&(!t.x||ext)).map(t=>({id:t.id,len:t.len,dz:t.dz}));
+  return{straights,curve:c?{id:c.id,ang:c.ang,r:c.r}:null,ramps,lookup:id=>T[id]};
+}
+// Made-to-measure piece from the Workshop, added to the catalogue once (call inside commit).
+function ensureGenType(spec){
+  const key=JSON.stringify(spec),ex=st.types.find(t=>t.gen&&JSON.stringify(t.gen.spec)===key);if(ex)return ex.id;
+  const uid=Date.now().toString(36)+Math.random().toString(36).slice(2,5),pid="g"+uid+"0",N=x=>nf(x,1).replace(/[.,]0$/,""),WS=L("Officina","Workshop"),TN=M4Engine.TYPES[spec.type].name;
+  const t={id:"G"+uid,custom:true,gen:{spec,prm:{}},parts:{[pid]:1},segs:1};let h,pl;
+  if(spec.type==="curve"){Object.assign(t,{kind:"curve",ang:spec.ang,r:spec.R,label:`${N(spec.ang)}°`,name:`${TN} ${N(spec.ang)}° R${N(spec.R)} (${WS})`});h=0.44*spec.ang/45*spec.R/480;pl=`${TN.toLowerCase()} ${N(spec.ang)}° R${N(spec.R)}`;}
+  else if(spec.type==="ramp"){Object.assign(t,{kind:"straight",len:spec.L,dz:spec.h,prof:"ramp",label:TN,name:`${TN} ${N(spec.L)}×${N(spec.h)} (${WS})`});h=spec.L/250*3;pl=`${TN.toLowerCase()} ${N(spec.L)}x${N(spec.h)}mm`;}
+  else{Object.assign(t,{kind:"straight",len:spec.L,label:N(spec.L),name:`${TN} ${N(spec.L)} (${WS})`});h=spec.L/200*2.3;pl=`${TN.toLowerCase()} ${N(spec.L)}mm`;}
+  st.parts.push({id:pid,name:pl,kit:0,h:Math.round(h*100)/100,est:true});st.types.push(t);return t.id;
+}
+const toLayout=items=>items.map(it=>{if(!it.gen)return{...it};const o={t:ensureGenType(it.gen)};if(it.d)o.d=it.d;if(it.v)o.v=it.v;return o;});
+function itemsLabel(items){
+  const T=typeMap(),parts=[];
+  for(const it of items){
+    let s;
+    if(it.gen){const g=it.gen;s=g.type==="curve"?`★${nf(g.ang,1)}°${it.d==="L"?L(" SX"," L"):L(" DX"," R")}`:g.type==="ramp"?`★${L("rampa","ramp")} ${nf(g.h)} ${it.v>0?"↑":"↓"}`:`★${nf(g.L,1)}`;}
+    else{const t=T[it.t];if(!t)continue;s=tl(t)+(t.kind==="curve"?(it.d==="L"?L(" SX"," L"):L(" DX"," R")):"")+(t.dz?(it.v<0?" ↓":" ↑"):"");}
+    const l=parts[parts.length-1];if(l&&l.s===s)l.n++;else parts.push({s,n:1});
   }
-  const h=g.end.h, along=an.gx*Math.cos(h)+an.gy*Math.sin(h), lat=-an.gx*Math.sin(h)+an.gy*Math.cos(h);
-  if(Math.abs(lat)>st.settings.tol) return{msg:L(`Le estremità sono parallele ma sfalsate di ${nf(Math.abs(lat))} mm di lato: allunga o accorcia uno dei lati.`,`The ends are parallel but ${nf(Math.abs(lat))} mm apart sideways: lengthen or shorten one side.`)+zmsg,opts:[]};
-  if(along<0) return{msg:L(`La fine supera la partenza di ${nf(-along)} mm: togli rettilinei.`,`The end overshoots the start by ${nf(-along)} mm: remove straights.`)+zmsg,opts:[]};
-  const str=st.types.filter(t=>t.kind==="straight"&&!t.prof&&!t.dz&&(!t.x||st.settings.extras)).sort((a,b)=>b.len-a.len), res=[], lim=Math.max(st.settings.tol,12);
-  (function dfs(i,sum,pick){
-    if(res.length>400)return;
-    if(Math.abs(sum-along)<=lim&&pick.length)res.push({pick:[...pick],err:sum-along});
-    if(pick.length>=8||sum>along+lim||i>=str.length)return;
-    pick.push(str[i]);dfs(i,sum+str[i].len,pick);pick.pop();dfs(i+1,sum,pick);
-  })(0,0,[]);
-  res.sort((a,b)=>(Math.abs(a.err)>st.settings.tol)-(Math.abs(b.err)>st.settings.tol)||a.pick.length-b.pick.length||Math.abs(a.err)-Math.abs(b.err));
-  return{msg:L(`Mancano ${nf(along)} mm in linea retta per chiudere.`,`${nf(along)} mm of straight are missing to close the loop.`)+zmsg,opts:res.slice(0,4)};
+  return parts.map(p=>p.n>1?`${p.n}× ${p.s}`:p.s).join(" + ");
+}
+let CS={key:null,val:[]};
+// Ways to close the track: from the end, or after removing up to 3 of the last pieces.
+function closeOptions(g){
+  const key=JSON.stringify([st.layout,st.types.length,st.settings.extras,st.settings.startH]);
+  if(CS.key===key)return CS.val;
+  const cat=solverCat(false),n=g.els.length,all=[];
+  if(cat.curve&&n){
+    for(let r=0;r<=Math.min(3,n-1);r++){
+      if(r&&g.els[n-r].t.kind==="lane")break;
+      const pose=r?{...g.els[n-1-r].p1,z:g.els[n-1-r].z1}:{...g.end};
+      for(const o of M4Trace.close(pose,g.start,cat,{tol:1})){o.remove=r;o.cost+=r*15;all.push(o);}
+    }
+  }
+  // one change anywhere in the track: swap, insert or remove a single catalogue piece
+  const edits=[],ext=st.settings.extras,pool=[];
+  for(const t of st.types){if(t.kind==="lane"||(t.x&&!ext)||t.prof&&t.prof!=="ramp"&&!t.dz)continue;
+    if(t.kind==="curve"){if(t.ang<270)for(const d of["L","R"])pool.push({t:t.id,d});}else if(t.dz)for(const v of[1,-1])pool.push({t:t.id,v});else pool.push({t:t.id});}
+  const ok=lay=>{const gg=geom(lay),a=analyse(gg);return a.exact&&Math.abs(a.dzEnd)<1&&!a.below;};
+  const lay0=st.layout;
+  for(let k=0;k<=lay0.length&&edits.length<6;k++){
+    for(const pc of pool){
+      if(k<lay0.length){const cur=lay0[k];if(cur.t!==pc.t||cur.d!==pc.d||(cur.v||1)!==(pc.v||1)){const ty=typeMap()[cur.t];
+        if(ty&&ty.kind!=="lane"){const l=lay0.slice();l[k]={...pc};if(ok(l))edits.push({edit:"swap",k,item:pc,cost:5});}}}
+      const l2=lay0.slice();l2.splice(k,0,{...pc});if(ok(l2))edits.push({edit:"ins",k,item:pc,cost:6});
+    }
+    if(k<lay0.length&&typeMap()[lay0[k].t]&&typeMap()[lay0[k].t].kind!=="lane"){const l3=lay0.slice();l3.splice(k,1);if(l3.length&&ok(l3))edits.push({edit:"del",k,cost:8});}
+  }
+  all.sort((a,b)=>a.cost-b.cost);
+  edits.sort((a,b)=>a.cost-b.cost||a.k-b.k);
+  const stock=all.filter(o=>!o.custom&&o.pieces<=(edits.length?6:12)).slice(0,edits.length?1:2),cust=all.filter(o=>o.custom&&o.pieces<=(edits.length?4:8)).slice(0,1);
+  const val=edits.slice(0,3).concat(stock,cust);
+  // planar loop closed but the height isn't: a straight becomes a made-to-measure ramp
+  const an=analyse(g);
+  if(an.planClosed&&Math.abs(an.dzEnd)>=1){
+    const dz=an.dzEnd;
+    for(let k=n-1;k>=0;k--){const e=g.els[k];if(e.t.kind!=="straight"||e.t.prof||e.t.dz)continue;
+      let ok=true;for(let j=k;j<n;j++)if(g.els[j].z1-dz<-0.5){ok=false;break;}
+      if(ok){val.unshift({replace:k,items:[{gen:{type:"ramp",L:e.t.len,h:Math.round(Math.abs(dz)*10)/10},v:dz>0?-1:1}],custom:1});break;}}
+  }
+  CS={key,val};return val;
+}
+function editLabel(o){
+  const T=typeMap(),nm=it=>itemsLabel([it]),cur=st.layout[o.k];
+  if(o.edit==="swap")return L(`Pezzo ${o.k+1}: ${nm(cur)} → ${nm(o.item)}`,`Piece ${o.k+1}: ${nm(cur)} → ${nm(o.item)}`);
+  if(o.edit==="ins")return L(`Inserisci ${nm(o.item)} ${o.k?`dopo il pezzo ${o.k}`:"all'inizio"}`,`Insert ${nm(o.item)} ${o.k?`after piece ${o.k}`:"at the start"}`);
+  return L(`Togli il pezzo ${o.k+1} (${nm(cur)})`,`Remove piece ${o.k+1} (${nm(cur)})`);
+}
+function applyClose(o){
+  commit(()=>{sel=null;
+    if(o.replace!=null){st.layout[o.replace]=toLayout(o.items)[0];return;}
+    if(o.edit==="swap"){st.layout[o.k]={...o.item};return;}
+    if(o.edit==="ins"){st.layout.splice(o.k,0,{...o.item});return;}
+    if(o.edit==="del"){st.layout.splice(o.k,1);return;}
+    if(o.remove)st.layout.splice(st.layout.length-o.remove,o.remove);
+    st.layout.push(...toLayout(o.items));});
 }
 
 /* ---------- bill of materials ---------- */
@@ -470,6 +549,8 @@ function renderSVG(){
   const w=st.settings.width/2;
   let s=`<defs><pattern id="gp" width="100" height="100" patternUnits="userSpaceOnUse"><path class="gridl" d="M100 0H0V100"/></pattern></defs>`;
   s+=`<rect x="-30000" y="-30000" width="60000" height="60000" fill="url(#gp)"/>`;
+  if(OV.img||OV.path){s+=`<g class="ovl">`;if(OV.img){const I=OV.img;s+=`<image href="${I.href}" x="${I.x.toFixed(1)}" y="${I.y.toFixed(1)}" width="${I.w.toFixed(1)}" height="${I.h.toFixed(1)}" opacity=".4" preserveAspectRatio="none"/>`;}
+    if(OV.path)s+=`<path class="sketch fit" d="M${OV.path.map(f).join("L")}Z"/>`;s+=`</g>`;}
   if(!G.els.length) s+=`<text class="empty" x="0" y="-${w+60}">${L("Tocca un pezzo qui sotto per iniziare","Tap a piece below to start")}</text>`;
   for(const e of G.els){
     const isSel=e.i===sel, a=e.flip?"l2":"l1", b=e.flip?"l1":"l2", elev=Math.max(e.z0,e.z1)>0.5;
@@ -504,7 +585,7 @@ function renderSVG(){
   setViewBox();
   const bb=bbox(G), room=roomCheck(bb);
   $("#hud").innerHTML=
-    `<span class="pill ${AN.closed?"ok":AN.near?"warn":"bad"}"><i></i>${!G.els.length?L("Vuoto","Empty"):AN.closed?L("Chiuso","Closed"):AN.near?L("Quasi chiuso","Almost closed"):L("Aperto","Open")}</span>`+
+    `<span class="pill ${AN.exact?"ok":AN.closed||AN.near?"warn":"bad"}"><i></i>${!G.els.length?L("Vuoto","Empty"):AN.exact?L("Chiuso","Closed"):AN.closed?L(`Chiuso ±${nf(AN.dist,1)} mm`,`Closed ±${nf(AN.dist,1)} mm`):AN.near?L("Quasi chiuso","Almost closed"):L("Aperto","Open")}</span>`+
     `<span class="pill">${nf(AN.center/1000,2)} ${L("m/giro","m/lap")}</span>`+
     (bb?`<span class="pill ${room===false?"bad":room?"ok":""}"><i></i>${nf(bb.w/10)} × ${nf(bb.h/10)} cm</span>`:"")+
     (AN.maxZ>0.5?`<span class="pill">h max ${nf(AN.maxZ)} mm</span>`:"");
@@ -659,7 +740,7 @@ function renderTools(){
   $("#flip").disabled=!(ty&&ty.kind==="curve");$("#flipv").disabled=!(ty&&ty.dz);
   $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;
   $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
-  $("#hint").textContent=sel!=null?L(`Pezzo ${sel+1} selezionato: i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
+  $("#hint").textContent=drawMode?L("Disegna il giro in scala reale con un solo tratto (ogni quadretto è 10 cm), poi alza il dito: il planner lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap at real scale in one stroke (each grid square is 10 cm), then lift your finger: the planner rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
     :L("Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.","The yellow triangle shows where the next piece will snap on. Tap a piece of the track to select it; drag to move the view.");
 }
 
@@ -672,16 +753,22 @@ function renderPane(){
   if(same){P.scrollTop=top;if(window.scrollY!==wy)window.scrollTo(0,wy);}else P.scrollTop=0;
 }
 function paneSum(){
-  const g=G,an=AN,bb=bbox(g),sg=suggestions(g,an),room=roomCheck(bb);
-  let cls="bad",title=L("Circuito aperto","Open track"),txt=sg.msg;
+  const g=G,an=AN,bb=bbox(g),room=roomCheck(bb);
+  const zmsg=Math.abs(an.dzEnd)>=1?L(` La fine è ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"più in alto":"più in basso"} della partenza.`,` The end is ${nf(Math.abs(an.dzEnd))} mm ${an.dzEnd>0?"higher":"lower"} than the start.`):"";
+  const off=L(`${nf(Math.abs(an.lat),1)} mm di lato, ${nf(Math.abs(an.along),1)} mm in lunghezza, ${nf(Math.abs(an.dh),1)}° di angolo`,`${nf(Math.abs(an.lat),1)} mm sideways, ${nf(Math.abs(an.along),1)} mm lengthwise, ${nf(Math.abs(an.dh),1)}° of angle`);
+  let cls="bad",title=L("Circuito aperto","Open track"),txt=(an.planClosed?L("In pianta si chiude.","It closes in plan."):L(`Alla partenza mancano ${off}.`,`To reach the start: ${off}.`))+zmsg;
   if(!g.els.length){cls="warn";title=L("Nessun pezzo","No pieces");txt=L("Aggiungi pezzi dalla barra o carica un circuito dalla scheda «Circuiti».","Add pieces from the bar or load a track from the «Tracks» tab.");}
-  else if(an.closed){cls="ok";title=L("Circuito chiuso","Closed track");txt=L(`Errore di chiusura ${nf(an.dist,1)} mm (tolleranza ${st.settings.tol} mm).`,`Closing error ${nf(an.dist,1)} mm (tolerance ${st.settings.tol} mm).`);}
-  else if(an.near){cls="warn";title=L("Quasi chiuso","Almost closed");txt=L(`Distanza ${nf(an.dist,1)} mm, sfasamento ${nf(Math.abs(an.dh),1)}°: probabilmente si chiude con il gioco delle clip.`,`Gap ${nf(an.dist,1)} mm, heading off ${nf(Math.abs(an.dh),1)}°: the play in the clips will probably close it.`);}
+  else if(an.exact){cls="ok";title=L("Circuito chiuso","Closed track");txt=L(`I pezzi combaciano: errore ${nf(an.dist,1)} mm.`,`The pieces line up: error ${nf(an.dist,1)} mm.`);}
+  else if(an.closed){cls="warn";title=L("Chiuso, ma sfasato","Closed, but offset");txt=L(`Si chiude entro la tolleranza di ${st.settings.tol} mm, ma l'ultimo giunto non combacia: ${off}. Le clip possono assorbirlo; per un giunto preciso:`,`It closes within the ${st.settings.tol} mm tolerance, but the last joint doesn't line up: ${off}. The clips can take it up; for a precise joint:`);}
+  else if(an.near){cls="warn";title=L("Quasi chiuso","Almost closed");txt=L(`Mancano ${off}: forse si chiude con il gioco delle clip.`,`Missing ${off}: the play in the clips may close it.`)+zmsg;}
   let h=`<div class="status ${cls}"><div><b>${title}</b><p>${txt}</p>`;
-  if(sg.opts.length){h+=`<div class="sugg">`+sg.opts.map((o,k)=>`<button data-sugg="${k}">+ ${o.pick.map(t=>t.len).join(" + ")}${Math.abs(o.err)>st.settings.tol?` (${o.err>0?"+":""}${nf(o.err)} mm)`:""}</button>`).join("")+`</div>`;}
+  const opts=g.els.length&&!an.exact?closeOptions(g):[];
+  window._sugg=opts;
+  if(opts.length){h+=`<p style="margin-top:8px">${L("Per chiuderlo:","To close it:")}</p><div class="sugg" style="flex-direction:column;align-items:flex-start">`+opts.map((o,k)=>`<button data-sugg="${k}">${o.edit?editLabel(o):o.replace!=null?L(`Sostituisci il pezzo ${o.replace+1} con `,`Replace piece ${o.replace+1} with `):(o.remove?L(`Togli ${o.remove===1?"l'ultimo pezzo":`gli ultimi ${o.remove} pezzi`}`,`Remove the last ${o.remove===1?"piece":`${o.remove} pieces`}`)+(o.items.length?", ":""):"")+(o.items.length?(o.replace!=null?"":"+ ")+esc(itemsLabel(o.items)):"")}</button>`).join("")+`</div>`;
+    if(opts.some(o=>o.custom))h+=`<p class="note" style="margin-top:6px">${L("★ = pezzo su misura: lo generi in Officina o dalla scheda «Pezzi».","★ = made-to-measure piece: build it in the Workshop or from the «Parts» tab.")}</p>`;}
+  else if(g.els.length&&!an.exact&&!an.closed)h+=`<p style="margin-top:8px">${L("Non trovo una chiusura con i pezzi del catalogo: prova a togliere qualche pezzo.","I can't find a way to close it with the catalogue pieces: try removing a few pieces.")}</p>`;
   h+=`</div></div>`;
   if(an.below)h+=`<div class="status bad"><div><b>${L("Pista sotto il pavimento","Track below the floor")}</b><p>${L(`Dal pezzo ${an.below.i+1} la quota scende sotto zero: inverti una rampa con «Salita/discesa».`,`From piece ${an.below.i+1} the height drops below zero: flip a ramp with «Up/down».`)}</p></div></div>`;
-  window._sugg=sg.opts;
   const need=bom(),tot=Object.values(need).reduce((a,b)=>a+b,0);
   h+=`<div class="stats">
     <div class="stat"><span>${L("Pezzi stampati","Printed pieces")}</span><b>${tot}</b></div>
@@ -705,6 +792,23 @@ function paneSum(){
     ${room===null?"":`<p class="note" style="margin-top:6px;color:var(${room?"--ok":"--bad"})">${room?L("Il circuito ci sta.","The track fits."):L("Il circuito non ci sta, nemmeno ruotato.","The track doesn't fit, even rotated.")}</p>`}</div>`;
   return h;
 }
+// MakerWorld page and Workshop spec of a printed part
+function partModel(pid){const t=st.types.find(t=>t.parts&&t.parts[pid]&&t.m);const m=t&&MODELS.find(m=>m.id===t.m);return m?m.url:null;}
+function partSpec(pid){
+  const g=st.types.find(t=>t.gen&&t.parts[pid]);if(g)return{spec:g.gen.spec,prm:g.gen.prm};
+  if(pid==="saddle")return{spec:{type:"saddle",L:200}};
+  if(pid==="support")return{spec:{type:"support",hs:Math.max(10,Math.round(AN.maxZ)||75),d:20}};
+  const t=st.types.find(t=>t.parts&&Object.keys(t.parts).length===1&&t.parts[pid]===1);const sp=t&&specOf(t);return sp?{spec:sp}:null;
+}
+function partActs(pid){
+  const u=partModel(pid),g=partSpec(pid);if(!u&&!g)return "";
+  return `<div class="acts">${u?`<a class="ab sm" href="${esc(u)}" target="_blank" rel="noopener">MakerWorld ↗</a>`:""}${g?`<button class="ab sm" data-gen="${esc(pid)}">${L("Genera STL","Make STL")}</button>`:""}</div>`;
+}
+function wsOpen(pid){
+  const g=partSpec(pid);if(!g)return;const{type,...v}=g.spec;
+  commit(()=>{st.settings.ws.type=type;st.settings.ws.v=v;if(g.prm)st.settings.ws.prm=JSON.parse(JSON.stringify(g.prm));});
+  tab="ws";renderPane();wsActivate(true);wsSchedule();
+}
 function paneBom(){
   const need=bom();
   let rows="",tp=0,th=0,tn=0;
@@ -712,17 +816,18 @@ function paneBom(){
     const n=need[p.id]||0,o=+(st.owned[p.id]||0),todo=Math.max(0,n-o),extra=p.kit?Math.max(0,n-p.kit):0;
     if(p.id==="support"||(!n&&!o))continue;
     tn+=n;tp+=todo;th+=todo*p.h;
-    rows+=`<tr><td>${esc(pn(p))}${p.est?`<span class="chip" title="${L("Ore di stampa stimate","Estimated print hours")}">${L("stima","est.")}</span>`:""}${extra?`<br><small style="color:var(--muted)">${extra} ${L("oltre il kit base","beyond the base kit")}</small>`:""}</td><td class="n">${n}</td>
+    rows+=`<tr><td>${esc(pn(p))}${p.est?`<span class="chip" title="${L("Ore di stampa stimate","Estimated print hours")}">${L("stima","est.")}</span>`:""}${extra?`<br><small style="color:var(--muted)">${extra} ${L("oltre il kit base","beyond the base kit")}</small>`:""}${todo?partActs(p.id):""}</td><td class="n">${n}</td>
       <td class="n"><input type="number" min="0" id="own-${p.id}" aria-label="${L("Già stampati","Already printed")} ${esc(pn(p))}" data-own="${p.id}" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*p.h,1)}</td></tr>`;
   }
   const sp=st.parts.find(p=>p.id==="support");
   if(AN.supports&&sp){const o=+(st.owned.support||0),todo=Math.max(0,AN.supports-o);tp+=todo;th+=todo*sp.h;tn+=AN.supports;
-    rows+=`<tr><td>${esc(pn(sp))}<span class="chip">${L("stima","est.")}</span><br><small style="color:var(--muted)">${L("1 per giunto sopraelevato","1 per raised joint")}</small></td><td class="n">${AN.supports}</td><td class="n"><input type="number" min="0" id="own-support" aria-label="${L("Supporti già stampati","Supports already printed")}" data-own="support" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*sp.h,1)}</td></tr>`;}
+    rows+=`<tr><td>${esc(pn(sp))}<span class="chip">${L("stima","est.")}</span><br><small style="color:var(--muted)">${L("1 per giunto sopraelevato","1 per raised joint")}</small>${todo?partActs("support"):""}</td><td class="n">${AN.supports}</td><td class="n"><input type="number" min="0" id="own-support" aria-label="${L("Supporti già stampati","Supports already printed")}" data-own="support" value="${o}"></td><td class="n"><b>${todo}</b></td><td class="n">${nf(todo*sp.h,1)}</td></tr>`;}
   const clips=AN.clips,oc=+(st.owned.clip||0);
   rows+=`<tr><td>Tamiya Track Clip</td><td class="n">${clips}</td><td class="n"><input type="number" min="0" id="own-clip" aria-label="${L("Clip già stampate","Clips already printed")}" data-own="clip" value="${oc}"></td><td class="n"><b>${Math.max(0,clips-oc)}</b></td><td class="n">–</td></tr>`;
   return `<div class="tw"><table><thead><tr><th>${L("Parte","Part")}</th><th class="n">${L("Servono","Needed")}</th><th class="n">${L("In magazzino","In stock")}</th><th class="n">${L("Da stampare","To print")}</th><th class="n">${L("Ore","Hours")}</th></tr></thead><tbody>${rows}</tbody>
     <tfoot><tr><td>${L("Totale pezzi pista","Total track pieces")}</td><td class="n">${tn}</td><td></td><td class="n">${tp}</td><td class="n">${nf(th,1)} h</td></tr></tfoot></table></div>
-    <div class="btns"><button class="btn primary" data-act="own-print">${L("Ho stampato i mancanti","I printed the missing ones")}</button><button class="btn" data-act="copy-bom">${L("Copia lista","Copy list")}</button></div>
+    <div class="btns"><button class="btn primary" data-act="own-print">${L("Ho stampato i mancanti","I printed the missing ones")}</button><button class="btn" data-act="ws-zip-miss">${L("ZIP STL dei mancanti","STL ZIP of the missing ones")}</button><button class="btn" data-act="copy-bom">${L("Copia lista","Copy list")}</button></div>
+    <p class="note">${L("Per ogni pezzo da stampare: «MakerWorld» apre il modello originale, «Genera STL» lo crea nell'Officina con le tue misure. Lo ZIP contiene solo i pezzi che non hai in magazzino.","For each piece to print: «MakerWorld» opens the original model, «Make STL» builds it in the Workshop with your sizes. The ZIP holds only the pieces you don't have in stock.")}</p>
     <p class="note">${L(`Ore riferite ai profili di stampa pubblicati. Curve, 215, Jump e Sella dai dati MakerWorld; le altre sono stime. Clip: ${st.settings.clips} per giunto, ${AN.joints} giunti. «In magazzino» è condiviso con la scheda Magazzino.`,`Hours refer to the published print profiles. Curves, 215, Jump and Saddle come from MakerWorld; the others are estimates. Clips: ${st.settings.clips} per joint, ${AN.joints} joints. «In stock» is shared with the Inventory tab.`)}</p>`;
 }
 function paneMod(){
@@ -992,6 +1097,9 @@ function cardHTML(c,key){
     <button class="btn" data-use="${key}">${L("Usa questo tracciato","Use this layout")}</button></div>`;
 }
 function paneGen(){
+  return paneFit()+paneGen0();
+}
+function paneGen0(){
   const s=st.settings,RS=s.rnd;
   let h=`<div class="form"><label for="g-w">${L("Larghezza spazio","Space width")} (cm)<input type="number" id="g-w" data-set="roomW" min="0" value="${s.roomW||""}" placeholder="${L("es.","e.g.")} 300"></label>
   <label for="g-h">${L("Profondità spazio","Space depth")} (cm)<input type="number" id="g-h" data-set="roomH" min="0" value="${s.roomH||""}" placeholder="${L("es.","e.g.")} 150"></label></div>
@@ -1158,23 +1266,95 @@ function wsAddToCatalog(){
   });
   toast(L("Aggiunto alla barra pezzi (gruppo «Miei»)","Added to the piece bar («Mine» group)"));
 }
-async function wsZip(){
+async function wsZip(missing){
   if(!st.layout.length){toast(L("Il circuito è vuoto.","The track is empty."));return;}
+  const T0=typeMap(),cnt0={};for(const it of st.layout)cnt0[it.t]=(cnt0[it.t]||0)+1;
+  if(missing){const need=bom(),miss={};for(const k in need)miss[k]=Math.max(0,need[k]-(+st.owned[k]||0));
+    for(const id of Object.keys(cnt0)){const t=T0[id];if(!t){delete cnt0[id];continue;}let n=cnt0[id];for(const[p,q]of Object.entries(t.parts))n=Math.min(n,Math.floor((miss[p]||0)/q));for(const[p,q]of Object.entries(t.parts))miss[p]-=n*q;if(n)cnt0[id]=n;else delete cnt0[id];}
+    if(!Object.keys(cnt0).length&&AN.supports<=(+st.owned.support||0)){toast(L("Hai già tutti i pezzi in magazzino.","You already have every piece in stock."));return;}}
   toast(L("Genero i file del circuito…","Building the track files…"));await new Promise(r=>setTimeout(r,30));
   let E;try{E=await engine();}catch(e){engErr=e.message;wsUpdate();toast(L("Il motore 3D non è partito.","The 3D engine didn't start."));return;}
-  const T=typeMap(),counts={},files=[],lines=[],skipped=[];
-  for(const it of st.layout)counts[it.t]=(counts[it.t]||0)+1;
+  const T=T0,counts=cnt0,files=[],lines=[],skipped=[];
   for(const[id,n]of Object.entries(counts)){
     const t=T[id];if(!t)continue;const spec=specOf(t);
     if(!spec){const m=MODELS.find(x=>x.types.includes(id));skipped.push(`${n} × ${tn(t)}${m?` → ${m.url}`:""}`);continue;}
     const r=E.build(spec,wsPrm(t.gen?t.gen.prm:null));
     for(const p of r.pieces){const q=p.qty*n;files.push({name:`${q}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${q} × ${p.label}  (${p.size.map(x=>nf(x)).join(" × ")} mm${p.fit.ok?"":L(", NON entra nel piatto",", does NOT fit the bed")})`);}
   }
-  const hs={};for(const e of geom().els)if(e.z0>0.5){const h=Math.round(e.z0);hs[h]=(hs[h]||0)+1;}
+  const hs={};let supLeft=missing?Math.max(0,AN.supports-(+st.owned.support||0)):Infinity;
+  for(const e of geom().els.slice().sort((a,b)=>b.z0-a.z0))if(e.z0>0.5&&supLeft>0){const h=Math.round(e.z0);hs[h]=(hs[h]||0)+1;supLeft--;}
   for(const[h,n]of Object.entries(hs)){const p=E.build({type:"support",hs:+h,d:20},wsPrm()).pieces[0];files.push({name:`${n}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${n} × ${p.label}`);}
   const txt=[`${st.name||L("Circuito","Track")} — Mini4WD Track Planner v${APP_VERSION}`,`${L("Piatto","Bed")}: ${wsCfg().bed.replace("x","×")} mm`,"",L("DA STAMPARE","TO PRINT"),...lines,"",`${L("Clip Tamiya","Tamiya clips")}: ${AN.clips}`,...(skipped.length?["",L("DA MODELLI MAKERWORLD (non generati)","FROM MAKERWORLD MODELS (not generated)"),...skipped]:[]),"",L("Pezzi generati con licenza MIT. Il profilo è quello del rettilineo da 200 mm del set MINI4WD 2 LANE DIY TRACK (MakerWorld 542904).","Pieces generated under the MIT licence. The profile is the 200 mm straight of the MINI4WD 2 LANE DIY TRACK set (MakerWorld 542904).")].join("\r\n");
   files.push({name:L("LEGGIMI.txt","README.txt"),data:txt});
-  download(`${fname(st.name||L("circuito","track"))}_v${APP_VERSION}_stl.zip`,M4Engine.zip(files),"application/zip");
+  download(`${fname(st.name||L("circuito","track"))}${missing?L("_mancanti","_missing"):""}_v${APP_VERSION}_stl.zip`,M4Engine.zip(files),"application/zip");
+}
+
+/* ---------- from a drawing or an image ---------- */
+// OV: what is shown under the track (not saved): the imported image and the sketch, in plan coordinates.
+let OV={img:null,path:null},drawMode=false,IMG=null,FIT=null;
+const worldOf=(cx,cy)=>{const r=svg.getBoundingClientRect();return{x:view.cx+(cx-r.left-r.width/2)/view.z,y:view.cy+(cy-r.top-r.height/2)/view.z};};
+function setDraw(on){
+  drawMode=on;$("#stage").classList.toggle("isdraw",on);$("#draw").classList.toggle("on",on);
+  if(on){if(is3d)setMode(false);if(wsOn){tab="gen";renderPane();wsActivate(false);}sel=null;
+    const r=svg.getBoundingClientRect();if(r.width/view.z<2500){view.z=r.width/4000;setViewBox();}}
+  renderTools();
+}
+// Runs the fit on a closed sketch (points in mm) and loads the result in the plan.
+function runFit(pts,src){
+  const lc=st.types.find(t=>t.kind==="lane");
+  const res=M4Trace.fitPath(pts,solverCat(true),{lc:st.settings.fitLC&&lc?{id:lc.id,len:lc.len}:null,allowCustom:st.settings.fitCustom,tol:Math.min(st.settings.tol,1.5)});
+  if(res.err){toast(res.err==="short"?L("Disegno troppo piccolo: la pista va disegnata in scala reale (ogni quadretto è 10 cm).","Drawing too small: draw the track at real scale (each grid square is 10 cm)."):L("Non riesco a ricostruire il tracciato con i pezzi.","I can't rebuild this layout with the pieces."));return false;}
+  const dx=-res.start.x,dy=-res.start.y;
+  OV.path=res.sketch.filter((_,i)=>i%2===0).map(p=>({x:p.x+dx,y:p.y+dy}));
+  if(OV.img){OV.img.x+=dx;OV.img.y+=dy;}
+  if(IMG){IMG.ox=(IMG.ox||0)+dx;IMG.oy=(IMG.oy||0)+dy;}
+  commit(()=>{st.layout=toLayout(res.items);st.settings.startH=Math.round(res.start.h/DEG*100)/100;st.name=src==="image"?(IMG&&IMG.name)||L("Da immagine","From image"):L("Dal disegno","From drawing");sel=null;});
+  FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src};
+  tab="gen";render();fit();
+  toast(res.open?L("Tracciato ricostruito, ma non si chiude: vedi «Riepilogo».","Layout rebuilt, but it doesn't close: see «Summary»."):L(`Tracciato ricostruito con ${res.items.length} pezzi`,`Layout rebuilt with ${res.items.length} pieces`));
+  return true;
+}
+// Image: the centre line is found in a reduced copy (max 500 px), then scaled to the real width.
+function importImage(href,name){
+  const im=new Image();
+  im.onload=()=>{
+    const k=Math.min(1,500/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*k)),h=Math.max(1,Math.round(im.height*k));
+    const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);
+    let d;try{d=x.getImageData(0,0,w,h).data;}catch(e){toast(L("Non riesco a leggere l'immagine.","I can't read the image."));return;}
+    const tr=M4Trace.traceImage(d,w,h);
+    if(tr.err){toast(L("Non trovo un tracciato nell'immagine: serve un disegno con la pista ben visibile sullo sfondo.","I can't find a layout in the image: it needs a drawing with the track clearly visible on the background."));return;}
+    IMG={href,name:(name||"").replace(/\.[^.]+$/,""),w,h,tr};
+    if(!st.settings.imgW)st.settings.imgW=Math.round(+st.settings.roomW||300);
+    fitImage();
+  };
+  im.onerror=()=>toast(L("Formato immagine non supportato.","Image format not supported."));
+  im.src=href;
+}
+function fitImage(){
+  if(!IMG)return;
+  const tr=IMG.tr,sc=st.settings.imgW*10/Math.max(1,tr.bbox.w),ox=-tr.bbox.x0*sc,oy=-tr.bbox.y0*sc;
+  OV.img={href:IMG.href,x:ox,y:oy,w:IMG.w*sc,h:IMG.h*sc};IMG.ox=0;IMG.oy=0;
+  runFit(tr.pts.map(p=>({x:p.x*sc+ox,y:p.y*sc+oy})),"image");
+}
+function paneFit(){
+  const lc=st.types.find(t=>t.kind==="lane");
+  let h=`<div><h2>${L("Da disegno o immagine","From a drawing or an image")}</h2>
+  <p class="note" style="margin:6px 0 8px">${L("Disegna il giro nella pianta con il mouse o con il dito, oppure carica l'immagine di un tracciato: il planner lo ricostruisce con i pezzi del kit, chiude il giro e ti dice cosa manca da stampare.","Draw the lap in the plan with the mouse or your finger, or upload a picture of a layout: the planner rebuilds it with the kit pieces, closes the loop and tells you what is left to print.")}</p>
+  <div class="btns"><button class="btn primary" data-act="draw">✏️ ${L("Disegna nella pianta","Draw in the plan")}</button><button class="btn" data-act="img">🖼 ${L("Carica immagine","Upload image")}</button>${OV.img||OV.path?`<button class="btn" data-act="ovl-clear">${L("Nascondi disegno","Hide drawing")}</button>`:""}</div>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+    <label class="check" for="f-lc"><input type="checkbox" id="f-lc" data-set="fitLC" ${st.settings.fitLC?"checked":""} ${lc?"":"disabled"}> ${L("Metti il cambio corsia su un tratto dritto","Put the lane change on a straight stretch")}</label>
+    <label class="check" for="f-cu"><input type="checkbox" id="f-cu" data-set="fitCustom" ${st.settings.fitCustom?"checked":""}> ${L("Per chiudere il giro usa anche pezzi su misura (Officina)","Use made-to-measure pieces (Workshop) to close the loop")}</label>
+  </div>`;
+  if(IMG)h+=`<div class="form" style="margin-top:10px"><label for="f-iw">${L("Larghezza reale del tracciato nell'immagine (cm)","Real width of the layout in the image (cm)")}<input type="number" id="f-iw" data-set="imgW" min="50" value="${st.settings.imgW}"></label></div>`;
+  if(FIT){
+    const need=bom(),miss=Object.entries(need).reduce((a,[k,n])=>a+Math.max(0,n-(+st.owned[k]||0)),0);
+    h+=`<div class="status ${FIT.open?"warn":"ok"}" style="margin-top:10px"><div><b>${FIT.open?L("Ricostruito, ma aperto","Rebuilt, but open"):L(`Ricostruito con ${FIT.n} pezzi`,`Rebuilt with ${FIT.n} pieces`)}</b><p>${L(`Scarto medio dal ${FIT.src==="image"?"tracciato dell'immagine":"disegno"}: ${nf(FIT.dev/10,1)} cm.`,`Average distance from the ${FIT.src==="image"?"image layout":"drawing"}: ${nf(FIT.dev/10,1)} cm.`)}
+      ${FIT.custom?L(` ${FIT.custom} pezz${FIT.custom>1?"i":"o"} su misura (★) per chiudere il giro.`,` ${FIT.custom} made-to-measure piece${FIT.custom>1?"s":""} (★) to close the loop.`):""}
+      ${st.settings.fitLC&&lc&&!FIT.lc?L(" Nessun tratto dritto lungo come il cambio corsia: aggiungilo a mano."," No straight stretch as long as the lane change: add it by hand."):""}
+      ${miss?L(` Da stampare: <b style="display:inline">${miss}</b> pezzi oltre a quelli in magazzino.`,` To print: <b style="display:inline">${miss}</b> pieces beyond those in stock.`):L(" Hai già tutti i pezzi."," You already have every piece.")}</p>
+      <div class="btns" style="margin-top:8px"><button class="btn" data-act="go-bom">${L("Pezzi da stampare","Pieces to print")}</button></div></div></div>`;
+  }
+  return h+`<p class="note" style="margin-top:8px">${L("Disegna in scala reale: ogni quadretto della griglia è 10 cm e le curve del kit hanno un raggio di circa 48 cm. Per le immagini funzionano meglio piante e disegni con la pista scura su fondo chiaro (o il contrario).","Draw at real scale: each grid square is 10 cm and the kit curves have a radius of about 48 cm. For images, plans and drawings with a dark track on a light background (or the other way round) work best.")}</p></div>`;
 }
 
 /* ---------- actions ---------- */
@@ -1191,6 +1371,9 @@ $("#flip").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel];
 $("#flipv").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel];it.v=(it.v||1)>0?-1:1;});};
 $("#rot").onclick=()=>commit(()=>{st.settings.startH=((st.settings.startH||0)+45)%360;});
 $("#desel").onclick=()=>{sel=null;render();};
+$("#draw").onclick=()=>setDraw(!drawMode);
+$("#imgbtn").onclick=()=>$("#imgfile").click();
+$("#imgfile").onchange=e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>importImage(r.result,fl.name);r.readAsDataURL(fl);e.target.value="";};
 $("#del").onclick=()=>{if(!st.layout.length)return;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});};
 $("#zin").onclick=()=>zoomAt(1.3);$("#zout").onclick=()=>zoomAt(1/1.3);$("#zfit").onclick=fit;
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=b.dataset.tab;renderPane();wsActivate(tab==="ws");}});
@@ -1205,7 +1388,7 @@ pane.addEventListener("change",e=>{
   if(el.dataset.rf){commit(()=>{st.settings.rnd.feat[el.dataset.rf]=el.checked;});}
   else if(el.dataset.rsrc){commit(()=>{st.settings.rnd.src=v;});}
   else if(el.type==="checkbox"&&el.dataset.set){commit(()=>{st.settings[el.dataset.set]=el.checked;genRes=null;});}
-  else if(el.dataset.set){commit(()=>{st.settings[el.dataset.set]=v===""?0:+v;if(/^room/.test(el.dataset.set))genRes=null;});}
+  else if(el.dataset.set){commit(()=>{st.settings[el.dataset.set]=v===""?0:+v;if(/^room/.test(el.dataset.set))genRes=null;});if(el.dataset.set==="imgW"&&IMG&&+v>=50)fitImage();}
   else if(el.dataset.own){commit(()=>{setOwned(el.dataset.own,v,"Modifica manuale");});}
   else if(el.dataset.type){const t=st.types.find(x=>x.id===el.dataset.type);if(t&&+v>0)commit(()=>{t[el.dataset.k]=+v;});else render();}
   else if(el.dataset.part){const p=st.parts.find(x=>x.id===el.dataset.part);if(p)commit(()=>{p[el.dataset.k]=Math.max(0,+v||0);});}
@@ -1213,7 +1396,7 @@ pane.addEventListener("change",e=>{
 });
 pane.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)commit(()=>{sel=null;for(const t of o.pick)st.layout.push({t:t.id});});return;}
+  if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)applyClose(o);return;}
   if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=pv(p.name);sel=null;});fit();if(is3d)build3D(true);toast(L(`Caricato «${pv(p.name)}»`,`Loaded «${pv(p.name)}»`));return;}
   if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x")||k.startsWith("g"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}
   const a=b.dataset.act;
@@ -1221,6 +1404,12 @@ pane.addEventListener("click",e=>{
   if(b.dataset.use!=null){const u=b.dataset.use,c=u[0]==="r"?rndRes&&rndRes[+u.slice(1)]:genRes&&genRes[+u.slice(1)];if(c)commit(()=>{st.layout=c.layout.map(x=>({...x}));st.name=pv(c.title);sel=null;});fit();if(is3d)build3D(true);toast(L("Tracciato caricato: lo trovi nella pianta","Layout loaded: you'll find it in the plan"));return;}
   if(a==="ws-stl"||a==="ws-obj"){const p=wsRes&&wsRes.pieces[+b.dataset.i];if(p){const stl=a==="ws-stl";download(`${fname(p.label)}.${stl?"stl":"obj"}`,stl?M4Engine.toSTL(p.mesh,p.label):M4Engine.toOBJ(p.mesh,p.label),stl?"model/stl":"text/plain");}return;}
   if(a==="ws-cat"){wsAddToCatalog();return;}
+  if(a==="draw"){setDraw(true);return;}
+  if(a==="img"){$("#imgfile").click();return;}
+  if(a==="ovl-clear"){OV={img:null,path:null};IMG=null;FIT=null;render();return;}
+  if(a==="go-bom"){tab="bom";renderPane();return;}
+  if(a==="ws-zip-miss"){wsZip(true);return;}
+  if(b.dataset.gen){wsOpen(b.dataset.gen);return;}
   if(a==="ws-zip"){wsZip();return;}
   if(a==="ws-reset"){commit(()=>{st.settings.ws.prm={};});wsSchedule();return;}
   if(a==="ws-retry"){engErr="";wsSchedule();renderPane();return;}
@@ -1253,7 +1442,7 @@ async function copy(txt){
 }
 function exportSVG(){
   const bb=bbox(G)||{x0:-500,y0:-300,w:1000,h:600},m=80,cs=getComputedStyle(document.documentElement);
-  const body=svg.innerHTML.replace(/<rect[^>]*url\(#gp\)[^>]*\/>/,"");
+  const body=svg.innerHTML.replace(/<rect[^>]*url\(#gp\)[^>]*\/>/,"").replace(/<g class="ovl">[\s\S]*?<\/g>/,"").replace(/<path class="sketch[^>]*>/g,"");
   const css=["--track","--wall","--lane1","--lane2","--muted","--ink","--accent","--bad","--grid"].reduce((s,k)=>s.split(`var(${k})`).join(cs.getPropertyValue(k).trim()),
     `.body{fill:var(--track);stroke:var(--wall);stroke-width:6}.l1{fill:var(--lane1);fill-opacity:.2}.l2{fill:var(--lane2);fill-opacity:.2}.div{stroke:var(--wall);stroke-width:4;fill:none}.joint{stroke:var(--wall);stroke-width:3;stroke-dasharray:8 6}.lbl{font:600 40px sans-serif;fill:var(--muted);text-anchor:middle;dominant-baseline:central}.x1{stroke:var(--lane1);stroke-width:12;fill:none}.x2{stroke:var(--lane2);stroke-width:12;fill:none}.bridge{fill:var(--wall);fill-opacity:.18;stroke:var(--wall);stroke-width:3}.feat{fill:var(--accent);fill-opacity:.35}.start{stroke:var(--ink);stroke-width:14;stroke-dasharray:14 14}.gap{stroke:var(--bad);stroke-width:5;stroke-dasharray:16 12}.cursor{display:none}`);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${((bb.w+2*m)/10).toFixed(0)}mm" height="${((bb.h+2*m)/10).toFixed(0)}mm" viewBox="${bb.x0-m} ${bb.y0-m} ${bb.w+2*m} ${bb.h+2*m}"><style>${css}</style>${body}</svg>`;
@@ -1262,13 +1451,21 @@ let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on
 
 /* ---------- pan, zoom, touch (2D) ---------- */
 const ptrs=new Map();let gest=null;
+let live=null;
 svg.addEventListener("pointerdown",e=>{
   svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(ptrs.size===1)gest={moved:false,target:e.target,sx:e.clientX,sy:e.clientY};else if(gest)gest.moved=true;
+  if(ptrs.size===1){gest={moved:false,target:e.target,sx:e.clientX,sy:e.clientY};
+    if(drawMode){gest.draw=[worldOf(e.clientX,e.clientY)];live=document.createElementNS("http://www.w3.org/2000/svg","path");live.setAttribute("class","sketch");svg.appendChild(live);}}
+  else if(gest){gest.moved=true;if(gest.draw){gest.draw=null;if(live){live.remove();live=null;}}}
 });
 svg.addEventListener("pointermove",e=>{
   if(!ptrs.has(e.pointerId))return;
   const prev=[...ptrs.values()].map(p=>({...p}));ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});const cur=[...ptrs.values()];
+  if(cur.length===1&&gest&&gest.draw){
+    const q=worldOf(e.clientX,e.clientY),l=gest.draw[gest.draw.length-1];
+    if(Math.hypot(q.x-l.x,q.y-l.y)>6/view.z){gest.draw.push(q);if(live)live.setAttribute("d","M"+gest.draw.map(f).join("L"));}
+    return;
+  }
   if(cur.length===1){
     const p0=prev[0],c=cur[0];
     if(gest&&!gest.moved&&Math.hypot(c.x-gest.sx,c.y-gest.sy)>6)gest.moved=true;
@@ -1281,6 +1478,11 @@ svg.addEventListener("pointermove",e=>{
 });
 function endPtr(e){
   if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
+  if(ptrs.size===0&&gest&&gest.draw){
+    const pts=gest.draw;gest=null;if(live){live.remove();live=null;}
+    if(e.type==="pointerup"&&pts.length>5){IMG=null;OV={img:OV.img,path:null};if(runFit(pts,"draw"))setDraw(false);}
+    return;
+  }
   if(ptrs.size===0&&gest){
     if(!gest.moved&&e.type==="pointerup"){const g=gest.target.closest&&gest.target.closest("[data-i]");const i=g?+g.dataset.i:null;sel=(i==null||i===sel)?null:i;render();}
     gest=null;
@@ -1292,7 +1494,7 @@ document.addEventListener("keydown",e=>{
   if(e.target.closest("input,textarea,select"))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();(e.shiftKey?$("#redo"):$("#undo")).click();}
   else if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();$("#del").click();}
-  else if(e.key==="Escape"){sel=null;render();}
+  else if(e.key==="Escape"){if(drawMode)setDraw(false);sel=null;render();}
 });
 new ResizeObserver(()=>setViewBox()).observe(svg);
 
