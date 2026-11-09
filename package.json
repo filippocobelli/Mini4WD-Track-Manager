@@ -1,7 +1,7 @@
 {
   "name": "mini4wd-track-manager",
   "productName": "Mini4WD Track Planner",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Progettazione di piste Mini4WD a 2 corsie con pezzi stampati in 3D: pianta 2D, vista 3D, distinta pezzi, magazzino e generatore di tracciati.",
   "author": "Filippo Cobelli",
   "license": "MIT",

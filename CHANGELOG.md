@@ -5,6 +5,11 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.2.1] - 2026-11-09
+
+- Web version: the GitHub Pages workflow now builds and deploys in two separate jobs, as GitHub recommends
+  (the single job kept failing with "No artifacts named github-pages").
+
 ## [2.2.0] - 2026-11-09
 
 **Draw a track or start from a picture, and close every loop exactly.**
