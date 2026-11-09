@@ -66,6 +66,19 @@ Red and blue in the plan follow the path of the two cars on the first lap.
 
 ![Closing suggestions](docs/screenshots/12-closing.png)
 
+### Swap a piece
+
+![Swap a piece](docs/screenshots/13-swap.png)
+
+Select a piece in the plan (also on a track you have just drawn) and press **⇆ Swap piece**:
+
+- a **straight** becomes a jump, a saddle, a hill, a wall, the lane change or another straight;
+- a **curve** becomes a **raised curve**: rainbow ramps before and after the whole turn (and back to the ground).
+
+If the length changes, the planner closes the track again by itself: it adds or removes straights along one or two
+directions and never touches the piece you chose. It prefers keeping the same footprint; the other solutions are
+one tap away in *Summary*.
+
 ### From a drawing or an image
 
 ![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)

@@ -234,6 +234,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
       <input type="file" id="imgfile" accept="image/*" hidden>
       <button class="ab" id="undo" data-en="↶ Undo">↶ Annulla</button>
       <button class="ab" id="redo" data-en="↷ Redo">↷ Ripeti</button>
+      <button class="ab" id="swap" data-en="⇆ Swap piece">⇆ Sostituisci</button>
       <button class="ab" id="flip" data-en="⇄ Flip curve">⇄ Inverti curva</button>
       <button class="ab" id="flipv" data-en="⇅ Up/down">⇅ Salita/discesa</button>
       <button class="ab" id="rot" data-en="⟳ Rotate 45°">⟳ Ruota 45°</button>
@@ -267,7 +268,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.2.1";
+const APP_VERSION="2.3.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -464,7 +465,7 @@ function itemsLabel(items){
   const T=typeMap(),parts=[];
   for(const it of items){
     let s;
-    if(it.gen){const g=it.gen;s=g.type==="curve"?`★${nf(g.ang,1)}°${it.d==="L"?L(" SX"," L"):L(" DX"," R")}`:g.type==="ramp"?`★${L("rampa","ramp")} ${nf(g.h)} ${it.v>0?"↑":"↓"}`:`★${nf(g.L,1)}`;}
+    if(it.gen){const g=it.gen;s=g.type==="curve"?`★${nf(g.ang,1)}°${it.d==="L"?L(" SX"," L"):L(" DX"," R")}`:g.type==="ramp"?`★${L("rampa","ramp")} ${nf(g.h)} ${it.v>0?"↑":"↓"}`:`★${nf(g.L,1).replace(/[.,]0$/,"")}`;}
     else{const t=T[it.t];if(!t)continue;s=tl(t)+(t.kind==="curve"?(it.d==="L"?L(" SX"," L"):L(" DX"," R")):"")+(t.dz?(it.v<0?" ↓":" ↑"):"");}
     const l=parts[parts.length-1];if(l&&l.s===s)l.n++;else parts.push({s,n:1});
   }
@@ -516,6 +517,115 @@ function editLabel(o){
   if(o.edit==="swap")return L(`Pezzo ${o.k+1}: ${nm(cur)} → ${nm(o.item)}`,`Piece ${o.k+1}: ${nm(cur)} → ${nm(o.item)}`);
   if(o.edit==="ins")return L(`Inserisci ${nm(o.item)} ${o.k?`dopo il pezzo ${o.k}`:"all'inizio"}`,`Insert ${nm(o.item)} ${o.k?`after piece ${o.k}`:"at the start"}`);
   return L(`Togli il pezzo ${o.k+1} (${nm(cur)})`,`Remove piece ${o.k+1} (${nm(cur)})`);
+}
+/* ---------- swap a piece and close the track again ---------- */
+const plainStraight=t=>!!t&&t.kind==="straight"&&!t.prof&&!t.dz;
+function stockCombos(maxN){
+  const ext=st.settings.extras,list=st.types.filter(t=>plainStraight(t)&&!t.gen&&(!t.x||ext)).sort((a,b)=>b.len-a.len),m=new Map();
+  (function rec(i,len,ids){const k=Math.round(len*10),e=m.get(k);if(!e||e.ids.length>ids.length)m.set(k,{len,ids:ids.slice()});if(ids.length>=maxN)return;
+    for(let j=i;j<list.length;j++){ids.push(list[j].id);rec(j,len+list[j].len,ids);ids.pop();}})(0,0,[]);
+  return [...m.values()];
+}
+// Straights are added or removed along one or two directions of the track until it closes again.
+// Pieces in `locked` (the one just swapped) are never touched. Returns the possible repairs, best first.
+function repairLayout(lay,locked){
+  const g=geom(lay),a=analyse(g),n=g.els.length;
+  if(a.exact&&Math.abs(a.dzEnd)<1)return[{lay,n:0,removed:[],added:[]}];
+  if(Math.abs(a.dh)>0.2||Math.abs(a.dzEnd)>=1||!n)return[];
+  const ex=g.start.x-g.end.x,ey=g.start.y-g.end.y,combos=stockCombos(4);
+  const key=h=>(Math.round(((h/DEG)%360+360)%360*10)/10)%360,cls=new Map();
+  const C=h=>{const k=key(h);if(!cls.has(k))cls.set(k,{h,ux:Math.cos(h),uy:Math.sin(h),st:[],b:[]});return cls.get(k);};
+  g.els.forEach((e,i)=>{const c=C(e.p0.h);if(plainStraight(e.t)&&!locked.has(i))c.st.push({i,len:e.t.len});if(!locked.has(i)&&!locked.has(i-1))c.b.push(i);});
+  if(!locked.has(n-1))C(g.end.h).b.push(n);
+  const near=d=>combos.reduce((b,c)=>Math.abs(c.len-d)<Math.abs(b.len-d)?c:b,combos[0]);
+  function realize(c,d){
+    if(Math.abs(d)<=1)return{del:[],ins:null,n:0};
+    if(d>0){if(!c.b.length)return null;const f=near(d),at0=c.b.find(i=>c.st.some(s=>s.i===i||s.i===i-1)),at=at0??c.b[0],split=at0==null?4:0;
+      if(Math.abs(f.len-d)<=1)return{del:[],ins:{at,items:f.ids.map(id=>({t:id}))},n:f.ids.length+split,add:true};
+      // no exact kit combination: kit straights plus one made-to-measure straight
+      let b=null;for(const k of combos){const rest=d-k.len;if(rest>=20&&rest<=250&&(!b||k.ids.length<b.k.ids.length))b={k,rest};}
+      return b?{del:[],ins:{at,items:b.k.ids.map(id=>({t:id})).concat([{gen:{type:"straight",L:Math.round(b.rest*10)/10}}])},n:b.k.ids.length+6+split,add:true,custom:true}:null;}
+    const need=-d,S=c.st.slice(0,12);let best=null;
+    (function rec(j,pick,sum){
+      if(pick.length){const rest=sum-need;if(rest>=-1){let o=null;
+        if(Math.abs(rest)<=1)o={del:pick.map(p=>p.i),ins:null,n:pick.length};
+        else{const f=near(rest);if(Math.abs(f.len-rest)<=1&&f.ids.length<=2)o={del:pick.map(p=>p.i),ins:{at:pick[0].i,items:f.ids.map(id=>({t:id}))},n:pick.length+f.ids.length};}
+        if(o&&(!best||o.n<best.n))best=o;}}
+      if(pick.length>=4)return;
+      for(let k=j;k<S.length;k++){pick.push(S[k]);rec(k+1,pick,sum+S[k].len);pick.pop();}
+    })(0,[],0);
+    if(!best){(function rec(j,pick,sum){
+      const rest=sum-need;if(pick.length&&rest>=20&&rest<=250){const o={del:pick.map(p=>p.i),ins:{at:pick[0].i,items:[{gen:{type:"straight",L:Math.round(rest*10)/10}}]},n:pick.length+6,custom:true};if(!best||o.n<best.n)best=o;}
+      if(pick.length>=3)return;for(let k=j;k<S.length;k++){pick.push(S[k]);rec(k+1,pick,sum+S[k].len);pick.pop();}})(0,[],0);}
+    return best;
+  }
+  const list=[...cls.values()],cands=[];
+  for(const c of list){const along=ex*c.ux+ey*c.uy,cross=Math.abs(ex*c.uy-ey*c.ux);if(cross<=1){const r=realize(c,along);if(r)cands.push({ops:[r],n:r.n+(r.add?0.5:0)});}}
+  for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){
+    const c1=list[i],c2=list[j],det=c1.ux*c2.uy-c1.uy*c2.ux;if(Math.abs(det)<0.2)continue;
+    const d1=(ex*c2.uy-ey*c2.ux)/det,d2=(c1.ux*ey-c1.uy*ex)/det,r1=realize(c1,d1),r2=realize(c2,d2);
+    if(r1&&r2)cands.push({ops:[r1,r2],n:r1.n+r2.n+1+(r1.add?0.5:0)+(r2.add?0.5:0)});
+  }
+  const out=[],seen=new Set();
+  for(const c of cands.sort((a,b)=>a.n-b.n)){
+    const del=new Set(),ins=new Map();
+    for(const o of c.ops){o.del.forEach(i=>del.add(i));if(o.ins)ins.set(o.ins.at,(ins.get(o.ins.at)||[]).concat(o.ins.items));}
+    const l2=[];for(let i=0;i<=lay.length;i++){if(ins.has(i))l2.push(...ins.get(i).map(x=>({...x})));if(i<lay.length&&!del.has(i))l2.push({...lay[i]});}
+    const k=JSON.stringify(l2);if(seen.has(k))continue;seen.add(k);
+    if(!c.ops.some(o=>o.custom)){const a2=analyse(geom(l2));if(!a2.exact||Math.abs(a2.dzEnd)>=1||a2.below)continue;}
+    out.push({lay:l2,n:c.n,removed:[...del].sort((x,y)=>x-y).map(i=>lay[i]),added:[...ins.values()].flat()});
+    if(out.length>=3)break;
+  }
+  return out;
+}
+function repairText(r){
+  const parts=[];
+  if(r.removed.length)parts.push(L("tolti ","removed ")+itemsLabel(r.removed));
+  if(r.added.length)parts.push(L("aggiunti ","added ")+itemsLabel(r.added));
+  return parts.join(L(" e "," and "));
+}
+const isCurveIt=it=>{const t=typeMap()[it&&it.t];return!!t&&t.kind==="curve"&&t.ang<270;};
+function curveRun(i){let a=i,b=i;while(a>0&&isCurveIt(st.layout[a-1]))a--;while(b<st.layout.length-1&&isCurveIt(st.layout[b+1]))b++;
+  const pre=st.layout[a-1],post=st.layout[b+1],T=typeMap(),rp=it=>it&&T[it.t]&&T[it.t].dz&&T[it.t].kind==="straight";
+  return{a,b,raised:rp(pre)&&rp(post)&&(pre.v||1)>0&&(post.v||1)<0};}
+function swapOptions(i){
+  const it=st.layout[i],T=typeMap(),t=it&&T[it.t];if(!t)return[];
+  const out=[];
+  if((t.kind==="straight"&&!t.dz)||t.kind==="lane"){
+    for(const id of["J200","SAD","HILL","WALL","LC","S200","S215","S100","M240"])if(T[id]&&id!==it.t)out.push({kind:"type",id,label:tn(T[id])});
+  }else if(t.kind==="curve"&&t.ang<270){
+    const r=curveRun(i),ramp=st.types.find(x=>x.kind==="straight"&&x.dz&&x.prof==="ramp"&&!x.gen);
+    if(r.raised)out.push({kind:"unraise",label:L("Curva a terra (togli le rampe)","Curve on the ground (remove the ramps)")});
+    else if(ramp)out.push({kind:"raise",ramp:ramp.id,label:L(`Curva sopraelevata (${r.b-r.a+1} curve su rampe rainbow)`,`Raised curve (${r.b-r.a+1} curves on rainbow ramps)`)});
+  }
+  return out;
+}
+let LASTREP=null;
+function doSwap(o){
+  if(sel==null)return;
+  const lay=st.layout.map(x=>({...x})),locked=new Set();
+  if(o.kind==="type"){lay[sel]={t:o.id,_s:1};locked.add(sel);}
+  else if(o.kind==="raise"){const r=curveRun(sel);lay[sel]._s=1;lay.splice(r.b+1,0,{t:o.ramp,v:-1});lay.splice(r.a,0,{t:o.ramp,v:1});for(let k=r.a;k<=r.b+2;k++)locked.add(k);}
+  else if(o.kind==="unraise"){const r=curveRun(sel);lay[sel]._s=1;lay.splice(r.b+1,1);lay.splice(r.a-1,1);for(let k=r.a-1;k<=r.b-1;k++)locked.add(k);}
+  const reps=st.layout.length&&AN.exact?repairLayout(lay,locked):[];
+  const strip=l=>{let s=null;l.forEach((x,k)=>{if(x._s){s=k;delete x._s;}});return s;};
+  const chosen=reps[0]?reps[0].lay:lay;
+  commit(()=>{st.layout=toLayout(chosen);sel=strip(st.layout);});
+  reps.forEach(r=>strip(r.lay));strip(lay);
+  LASTREP=reps.length?{key:JSON.stringify(st.layout),text:repairText(reps[0]),alts:reps.slice(1).filter(r=>r.n<=reps[0].n+6&&(!r.added.some(x=>x.gen)||reps[0].added.some(x=>x.gen))).map(r=>({lay:r.lay,text:repairText(r)}))}:null;
+  toast(!reps.length?L("Sostituito: ora la pista è aperta, vedi i suggerimenti per chiuderla.","Swapped: the track is now open, see the suggestions to close it."):reps[0].n?L(`Sostituito e richiuso: ${repairText(reps[0])}.`,`Swapped and closed again: ${repairText(reps[0])}.`):L("Sostituito: la pista resta chiusa.","Swapped: the track stays closed."));
+}
+function paneSwap(){
+  let h="";
+  if(LASTREP&&LASTREP.key===JSON.stringify(st.layout)&&LASTREP.text){
+    h+=`<div class="status ok"><div><b>${L("Pista richiusa","Track closed again")}</b><p>${L("Per chiuderla ho ","To close it I ")}${esc(LASTREP.text)}.</p>${LASTREP.alts.length?`<p style="margin-top:6px">${L("In alternativa:","Alternatively:")}</p><div class="sugg" style="flex-direction:column;align-items:flex-start">${LASTREP.alts.map((a,k)=>`<button data-alt="${k}">${esc(a.text)}</button>`).join("")}</div>`:""}</div></div>`;
+  }
+  if(sel==null||!st.layout[sel])return h;
+  const it=st.layout[sel],t=typeMap()[it.t],opts=swapOptions(sel);window._swap=opts;
+  if(!t)return h;
+  h+=`<div class="status"><div><b>${L(`Pezzo ${sel+1}: ${tn(t)}`,`Piece ${sel+1}: ${tn(t)}`)}</b><p>${opts.length?L("Sostituiscilo con:","Swap it for:"):L("Per questo pezzo non ci sono sostituzioni.","There are no swaps for this piece.")}</p>`;
+  if(opts.length)h+=`<div class="sugg">${opts.map((o,k)=>`<button data-swap="${k}">${esc(o.label)}</button>`).join("")}</div><p class="note" style="margin-top:6px">${L("Se cambia la lunghezza, il planner richiude la pista spostando i rettilinei; il pezzo che hai scelto non viene toccato.","If the length changes, the planner closes the track again by moving straights; the piece you picked is not touched.")}</p>`;
+  return h+`</div></div>`;
 }
 function applyClose(o){
   commit(()=>{sel=null;
@@ -737,10 +847,10 @@ function renderTools(){
   $("#pieces").innerHTML=h;
   const se=sel!=null?st.layout[sel]:null, ty=se&&typeMap()[se.t];
   $("#undo").disabled=!hist.length;$("#redo").disabled=!fut.length;
-  $("#flip").disabled=!(ty&&ty.kind==="curve");$("#flipv").disabled=!(ty&&ty.dz);
+  $("#flip").disabled=!(ty&&ty.kind==="curve");$("#swap").disabled=sel==null||!swapOptions(sel).length;$("#flipv").disabled=!(ty&&ty.dz);
   $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;
   $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
-  $("#hint").textContent=drawMode?L("Disegna il giro in scala reale con un solo tratto (ogni quadretto è 10 cm), poi alza il dito: il planner lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap at real scale in one stroke (each grid square is 10 cm), then lift your finger: the planner rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
+  $("#hint").textContent=drawMode?L("Disegna il giro in scala reale con un solo tratto (ogni quadretto è 10 cm), poi alza il dito: il planner lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap at real scale in one stroke (each grid square is 10 cm), then lift your finger: the planner rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: «Sostituisci» lo cambia (salto, sella, cambio corsia, curva sopraelevata…) e richiude la pista; i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: «Swap piece» changes it (jump, saddle, lane change, raised curve…) and closes the track again; new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
     :L("Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.","The yellow triangle shows where the next piece will snap on. Tap a piece of the track to select it; drag to move the view.");
 }
 
@@ -761,7 +871,7 @@ function paneSum(){
   else if(an.exact){cls="ok";title=L("Circuito chiuso","Closed track");txt=L(`I pezzi combaciano: errore ${nf(an.dist,1)} mm.`,`The pieces line up: error ${nf(an.dist,1)} mm.`);}
   else if(an.closed){cls="warn";title=L("Chiuso, ma sfasato","Closed, but offset");txt=L(`Si chiude entro la tolleranza di ${st.settings.tol} mm, ma l'ultimo giunto non combacia: ${off}. Le clip possono assorbirlo; per un giunto preciso:`,`It closes within the ${st.settings.tol} mm tolerance, but the last joint doesn't line up: ${off}. The clips can take it up; for a precise joint:`);}
   else if(an.near){cls="warn";title=L("Quasi chiuso","Almost closed");txt=L(`Mancano ${off}: forse si chiude con il gioco delle clip.`,`Missing ${off}: the play in the clips may close it.`)+zmsg;}
-  let h=`<div class="status ${cls}"><div><b>${title}</b><p>${txt}</p>`;
+  let h=paneSwap()+`<div class="status ${cls}"><div><b>${title}</b><p>${txt}</p>`;
   const opts=g.els.length&&!an.exact?closeOptions(g):[];
   window._sugg=opts;
   if(opts.length){h+=`<p style="margin-top:8px">${L("Per chiuderlo:","To close it:")}</p><div class="sugg" style="flex-direction:column;align-items:flex-start">`+opts.map((o,k)=>`<button data-sugg="${k}">${o.edit?editLabel(o):o.replace!=null?L(`Sostituisci il pezzo ${o.replace+1} con `,`Replace piece ${o.replace+1} with `):(o.remove?L(`Togli ${o.remove===1?"l'ultimo pezzo":`gli ultimi ${o.remove} pezzi`}`,`Remove the last ${o.remove===1?"piece":`${o.remove} pieces`}`)+(o.items.length?", ":""):"")+(o.items.length?(o.replace!=null?"":"+ ")+esc(itemsLabel(o.items)):"")}</button>`).join("")+`</div>`;
@@ -1372,6 +1482,7 @@ $("#flipv").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel]
 $("#rot").onclick=()=>commit(()=>{st.settings.startH=((st.settings.startH||0)+45)%360;});
 $("#desel").onclick=()=>{sel=null;render();};
 $("#draw").onclick=()=>setDraw(!drawMode);
+$("#swap").onclick=()=>{if(sel==null)return;tab="sum";wsActivate(false);renderPane();$("#pane").scrollTop=0;};
 $("#imgbtn").onclick=()=>$("#imgfile").click();
 $("#imgfile").onchange=e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>importImage(r.result,fl.name);r.readAsDataURL(fl);e.target.value="";};
 $("#del").onclick=()=>{if(!st.layout.length)return;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});};
@@ -1396,6 +1507,8 @@ pane.addEventListener("change",e=>{
 });
 pane.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.swap!=null){const o=window._swap[+b.dataset.swap];if(o)doSwap(o);return;}
+  if(b.dataset.alt!=null){const a=LASTREP&&LASTREP.alts[+b.dataset.alt];if(a){const cur=LASTREP.text;commit(()=>{st.layout=toLayout(a.lay);sel=null;});LASTREP={key:JSON.stringify(st.layout),text:a.text,alts:[]};renderPane();}return;}
   if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)applyClose(o);return;}
   if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=pv(p.name);sel=null;});fit();if(is3d)build3D(true);toast(L(`Caricato «${pv(p.name)}»`,`Loaded «${pv(p.name)}»`));return;}
   if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x")||k.startsWith("g"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}

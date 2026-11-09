@@ -112,6 +112,19 @@ const cl = await page.evaluate(() => {
   return out;
 });
 for (const [k, v] of Object.entries(cl)) ok(v, k);
+const sw = await page.evaluate(() => {
+  const out = {}, pick = id => { render(); const k = window._swap.findIndex(o => o.id === id || o.kind === id); doSwap(window._swap[k]); };
+  st.layout = PRESETS.ovale.items(); sel = 0; tab = "sum"; render(); pick("LC");
+  out["swap a straight for the lane change: track closed again, piece kept"] = AN.exact && st.layout[0].t === "LC" && st.layout.filter(x => x.t === "LC").length === 2;
+  st.layout = PRESETS.ovale.items(); sel = 0; render(); pick("J200");
+  out["swap a straight for a jump: same length, nothing else changes"] = AN.exact && st.layout.length === 13 && st.layout[0].t === "J200";
+  st.layout = PRESETS.ovale.items(); sel = 5; render(); pick("raise");
+  out["raised curve: rainbow ramps around the 180° turn, still closed, 75 mm high"] = AN.exact && AN.maxZ === 75 && st.layout.filter(x => x.t === "RUP").length === 2;
+  st.layout = PRESETS.rett.items(); sel = 0; render(); pick("HILL");
+  out["swap for a 600 mm hill on a rectangle: closed again"] = AN.exact && st.layout[0].t === "HILL";
+  return out;
+});
+for (const [k, v] of Object.entries(sw)) ok(v, k);
 await page.click('[data-tab="gen"]');
 await page.click("#draw");
 const box = await page.locator("#cv").boundingBox(), z = await page.evaluate(() => view.z);

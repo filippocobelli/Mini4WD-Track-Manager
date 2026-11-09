@@ -64,6 +64,19 @@ Rosso e blu in pianta seguono il percorso delle due auto nel primo giro.
 
 ![Suggerimenti di chiusura](docs/screenshots/it/12-closing.png)
 
+### Sostituire un pezzo
+
+![Sostituire un pezzo](docs/screenshots/it/13-swap.png)
+
+Seleziona un pezzo nella pianta (anche su una pista appena disegnata) e premi **⇆ Sostituisci**:
+
+- un **rettilineo** diventa salto, sella, dosso, wall, cambio corsia o un altro rettilineo;
+- una **curva** diventa **sopraelevata**: rampe rainbow prima e dopo tutta la curva (e si può riportare a terra).
+
+Se cambia la lunghezza, il planner richiude la pista da solo: aggiunge o toglie rettilinei lungo una o due direzioni
+e non tocca il pezzo che hai scelto. Preferisce mantenere lo stesso ingombro; le altre soluzioni sono a un tocco
+nel *Riepilogo*.
+
 ### Da disegno o immagine
 
 ![Tracciato ricostruito da un'immagine](docs/screenshots/it/11-from-image.png)

@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.3.0] - 2026-11-09
+
+**Swap a piece and the track closes again by itself.**
+
+- Select a piece in the plan and press **⇆ Swap piece** (or look at the top of *Summary*):
+  - a straight becomes a jump, a saddle, a hill, a wall, the lane change or another straight;
+  - a curve becomes a **raised curve**: the planner puts the rainbow ramps before and after the whole turn
+    (and can bring it back to the ground).
+- If the new piece has a different length, the planner **closes the track again** by adding or removing straights
+  along one or two directions, never touching the piece you chose. It prefers removing pieces on the same side
+  (same footprint); the other solutions stay one tap away ("Alternatively: added …").
+  When kit straights can't make the exact length, it uses one made-to-measure piece (★) from the Workshop.
+
 ## [2.2.1] - 2026-11-09
 
 - Web version: the GitHub Pages workflow now builds and deploys in two separate jobs, as GitHub recommends

@@ -10,7 +10,7 @@
 <link rel="alternate" hreflang="en" href="https://lab.cobelli.uk/Mini4WD-Track-Manager/">
 <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
-/* Mini4WD Track Planner site v2.2.1 — same style as lab.cobelli.uk */
+/* Mini4WD Track Planner site v2.3.0 — same style as lab.cobelli.uk */
 @font-face{font-family:"Barlow";src:url(/fonts/Barlow-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Barlow";src:url(/fonts/Barlow-SemiBold.woff2) format("woff2");font-weight:600;font-display:swap}
 @font-face{font-family:"Barlow Condensed";src:url(/fonts/BarlowCondensed-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
@@ -96,7 +96,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
   <section class="hero">
     <p class="prompt mono"><b>~/lab/mini4wd-track-planner</b> $ ./open</p>
     <h1>Mini4WD Track Planner</h1>
-    <span class="status mono" data-repo="filippocobelli/Mini4WD-Track-Manager">v2.2.1 · live</span>
+    <span class="status mono" data-repo="filippocobelli/Mini4WD-Track-Manager">v2.3.0 · live</span>
     <p class="lead">Plan two-lane Mini4WD tracks built from 3D-printed pieces. See how many pieces you need, which ones you already have and how many printer hours are left, then make your own pieces as STL.</p>
     <div class="cta">
       <a class="btn primary" href="app/">Open in the browser</a>
@@ -111,11 +111,12 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:10px 22px}
     <p class="label mono">plan, count, print</p>
     <div class="two">
       <div class="card">
-        <img src="img/plan-en.webp" alt="The track plan with the summary: closed track, lap length, footprint and the two lanes" width="1200" height="750" loading="lazy">
+        <img src="img/plan-en.webp" alt="A piece swapped for the lane change: the planner closed the track again and offers an alternative" width="1200" height="750" loading="lazy">
         <h3>Plan and parts list</h3>
         <p>Build the track piece by piece and the planner checks everything as you go.</p>
         <ul>
           <li>Closing check in position, heading and height, with one-tap fixes: swap, insert or remove a piece</li>
+          <li>Select a piece and swap it for a jump, saddle, lane change or raised curve: the track closes again by itself</li>
           <li>Equal lane lengths over 2 laps with the lane change</li>
           <li>Footprint, lap length, heights and supports for raised sections</li>
           <li>Pieces needed, in stock and to print, with print hours and clips</li>
