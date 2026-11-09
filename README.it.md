@@ -81,6 +81,7 @@ nel *Riepilogo*.
 
 ![Tracciato ricostruito da un'immagine](docs/screenshots/it/11-from-image.png)
 
+- **🗑 Svuota** libera la pianta (anche l'ovale del kit di partenza); **↶ Annulla** la riporta indietro.
 - **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, in scala reale (ogni quadretto è 10 cm).
   Quando alzi il dito il planner lo ricostruisce con i pezzi del kit: rettilinei e curve da 45° che seguono la tua linea,
   il cambio corsia su un tratto dritto e il giro chiuso con precisione.

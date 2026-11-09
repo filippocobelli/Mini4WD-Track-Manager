@@ -125,6 +125,11 @@ const sw = await page.evaluate(() => {
   return out;
 });
 for (const [k, v] of Object.entries(sw)) ok(v, k);
+await page.evaluate(() => { st.layout = PRESETS.ovale.items(); render(); });
+await page.click("#clearall");
+const cleared = await page.evaluate(() => st.layout.length);
+await page.click("#undo");
+ok(cleared === 0 && await page.evaluate(() => st.layout.length === 13), "Clear empties the plan and Undo brings the track back");
 await page.click('[data-tab="gen"]');
 await page.click("#draw");
 const box = await page.locator("#cv").boundingBox(), z = await page.evaluate(() => view.z);

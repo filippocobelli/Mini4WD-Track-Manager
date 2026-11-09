@@ -184,6 +184,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 .sketch{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.9}
 .sketch.fit{stroke-dasharray:6 6;opacity:.75}
 .stage.isdraw #cv{cursor:crosshair}
+.stage.isdraw #cv g[data-i]{opacity:.25}
 .stage.isdraw{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 .ab.on{background:var(--accent);border-color:var(--accent);color:#15202c}
 .ab.sm{height:28px;padding:0 9px;font-size:12px;display:inline-flex;align-items:center;text-decoration:none}
@@ -240,6 +241,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
       <button class="ab" id="rot" data-en="⟳ Rotate 45°">⟳ Ruota 45°</button>
       <button class="ab" id="desel" data-en="Track end">Fine pista</button>
       <button class="ab danger" id="del">✕ Elimina</button>
+      <button class="ab danger" id="clearall" data-en="🗑 Clear">🗑 Svuota</button>
     </div>
     <p class="hint" id="hint"></p>
   </div>
@@ -268,7 +270,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.3.0";
+const APP_VERSION="2.3.1";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -848,7 +850,7 @@ function renderTools(){
   const se=sel!=null?st.layout[sel]:null, ty=se&&typeMap()[se.t];
   $("#undo").disabled=!hist.length;$("#redo").disabled=!fut.length;
   $("#flip").disabled=!(ty&&ty.kind==="curve");$("#swap").disabled=sel==null||!swapOptions(sel).length;$("#flipv").disabled=!(ty&&ty.dz);
-  $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;
+  $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;$("#clearall").disabled=!st.layout.length&&!OV.img&&!OV.path;
   $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
   $("#hint").textContent=drawMode?L("Disegna il giro in scala reale con un solo tratto (ogni quadretto è 10 cm), poi alza il dito: il planner lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap at real scale in one stroke (each grid square is 10 cm), then lift your finger: the planner rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: «Sostituisci» lo cambia (salto, sella, cambio corsia, curva sopraelevata…) e richiude la pista; i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: «Swap piece» changes it (jump, saddle, lane change, raised curve…) and closes the track again; new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
     :L("Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.","The yellow triangle shows where the next piece will snap on. Tap a piece of the track to select it; drag to move the view.");
@@ -1482,6 +1484,8 @@ $("#flipv").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel]
 $("#rot").onclick=()=>commit(()=>{st.settings.startH=((st.settings.startH||0)+45)%360;});
 $("#desel").onclick=()=>{sel=null;render();};
 $("#draw").onclick=()=>setDraw(!drawMode);
+$("#clearall").onclick=()=>{if(!st.layout.length&&!OV.img&&!OV.path)return;commit(()=>{st.layout=[];sel=null;});OV={img:null,path:null};IMG=null;FIT=null;LASTREP=null;render();
+  toast(L("Pista svuotata: «Annulla» la riporta indietro.","Track cleared: «Undo» brings it back."));};
 $("#swap").onclick=()=>{if(sel==null)return;tab="sum";wsActivate(false);renderPane();$("#pane").scrollTop=0;};
 $("#imgbtn").onclick=()=>$("#imgfile").click();
 $("#imgfile").onchange=e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>importImage(r.result,fl.name);r.readAsDataURL(fl);e.target.value="";};

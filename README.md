@@ -83,6 +83,7 @@ one tap away in *Summary*.
 
 ![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)
 
+- **🗑 Clear** empties the plan first (the starting kit oval too); **↶ Undo** brings it back.
 - **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at real scale (each grid square is 10 cm).
   When you lift your finger the planner rebuilds it with kit pieces: straights and 45° curves that follow your line,
   the lane change on a straight stretch, and the loop closed exactly.

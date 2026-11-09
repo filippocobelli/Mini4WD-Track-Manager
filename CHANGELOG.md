@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.3.1] - 2026-11-09
+
+- New **🗑 Clear** button in the toolbar: removes the whole track (the starting kit oval too), the drawing and the imported
+  picture in one tap; **↶ Undo** brings everything back.
+- While drawing, the track already in the plan is shown faded, so the new line stays visible.
+
 ## [2.3.0] - 2026-11-09
 
 **Swap a piece and the track closes again by itself.**
