@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.4.0] - 2026-11-10
+
+**Re-close the track following its shape.**
+
+- New **🔁 Close it following the drawing / keeping the shape** in *Summary* whenever the track is open or offset:
+  the whole track is rebuilt along the original drawing (or along its current shape if it wasn't drawn), with kit pieces,
+  and closed exactly. The **special pieces you added** — lane change, jumps, saddles, hills, walls, ramps, spirals —
+  are kept, in the same order and roughly at the same point of the lap.
+  It fixes cases the local suggestions can't, e.g. a lane change inserted by hand in a drawn track.
+- **Swap piece** uses it on its own when moving straights is not enough to close the track again.
+- The drawing is now saved with the track (it survives a reload, Undo restores it); loading a ready-made track,
+  a generated layout or **🗑 Clear** removes it.
+
 ## [2.3.1] - 2026-11-09
 
 - New **🗑 Clear** button in the toolbar: removes the whole track (the starting kit oval too), the drawing and the imported

@@ -125,6 +125,14 @@ const sw = await page.evaluate(() => {
   return out;
 });
 for (const [k, v] of Object.entries(sw)) ok(v, k);
+const rf = await page.evaluate(() => {
+  const pts = []; for (let i = 0; i < 240; i++) { const t = i / 240 * 2 * Math.PI, rr = 1 + 0.28 * Math.sin(2 * t) + 0.18 * Math.cos(3 * t); pts.push({ x: 1150 * rr * Math.cos(t), y: 1350 * rr * Math.sin(t) }); }
+  st.settings.fitLC = false; runFit(pts, "draw"); const before = AN.exact;
+  commit(() => { st.layout.splice(Math.floor(st.layout.length * 0.55), 0, { t: "LC" }); const k = st.layout.findIndex((x, i) => i > 3 && x.t === "S200"); st.layout[k] = { t: "SAD" }; });
+  const opened = !AN.exact; doRefit();
+  return { before, opened, exact: AN.exact, lc: st.layout.filter(x => x.t === "LC").length, sad: st.layout.filter(x => x.t === "SAD").length, sketch: !!st.sketch };
+});
+ok(rf.before && rf.opened && rf.exact && rf.lc === 1 && rf.sad === 1 && rf.sketch, "drawn track + lane change and saddle added by hand: re-closed following the drawing, both kept", JSON.stringify(rf));
 await page.evaluate(() => { st.layout = PRESETS.ovale.items(); render(); });
 await page.click("#clearall");
 const cleared = await page.evaluate(() => st.layout.length);

@@ -209,7 +209,8 @@
     // start on the straightest stretch whose direction is closest to a multiple of 45°
     const w = Math.min(30, Math.floor(N0 / 8));
     let bi = 0, bs = Infinity;
-    for (let i = 0; i < N0; i++) {
+    // opt.start: keep the given start pose (re-closing an existing track), the sketch begins there
+    for (let i = 0; i < N0 && !o.start; i++) {
       const a = P[(i - w + N0) % N0], b = P[(i + w) % N0];
       const straight = Math.hypot(b.x - a.x, b.y - a.y) / (2 * w * o.step);
       const ang = Math.atan2(b.y - a.y, b.x - a.x) / DEG, off = Math.abs(norm(ang - Math.round(ang / 45) * 45));
@@ -222,7 +223,15 @@
     let h0 = Math.atan2(b0.y - a0.y, b0.x - a0.x) / DEG;
     const snap = Math.round(h0 / 45) * 45;
     h0 = (Math.abs(norm(h0 - snap)) < 4 ? snap : Math.round(h0 * 2) / 2) * DEG;
-    const start = { x: P[0].x, y: P[0].y, h: h0, z: 0 };
+    const start = o.start ? { x: o.start.x, y: o.start.y, h: o.start.h, z: 0 } : { x: P[0].x, y: P[0].y, h: h0, z: 0 };
+    // opt.require: pieces that must stay in the track, in order, near a fraction f of the lap
+    // ({it, pc, f}); they are placed when the search gets there (±slack along the sketch)
+    const endZone = Math.round(250 / o.step), candZone = Math.round(2200 / o.step), slack = Math.round(600 / o.step);
+    const req = (o.require || []).map(r => {
+      const L = lengthOf(r.pc) / o.step;
+      return { ...r, at: Math.max(0, Math.min(N - endZone - Math.ceil(L) - 1, Math.round(r.f * N - L / 2))) };
+    });
+    if (req.some(r => r.pc.kind === "straight" && o.lc && r.it.t === o.lc.id)) o.lc = null;
 
     const opts = [];
     for (const s of cat.straights) opts.push({ it: { t: s.id }, pc: { kind: "straight", len: s.len } });
@@ -233,34 +242,36 @@
       for (let i = Math.max(0, s0); i <= Math.min(N - 1, s1); i++) { const d = (P[i].x - q.x) ** 2 + (P[i].y - q.y) ** 2; if (d < bd) { bd = d; bi2 = i; } }
       return { d: Math.sqrt(bd), i: bi2 };
     };
-    const endZone = Math.round(250 / o.step), candZone = Math.round(2200 / o.step);
     // cost of a piece: how far it strays from the sketch (window of the sketch around the progress)
     const pieceCost = (p, pc, s0, s1) => {
       const L = lengthOf(pc); let c = 0, sEnd = s0;
       for (const u of [0.25, 0.5, 0.75, 1]) { const r = near(at(p, pc, u), s0, s1); c += r.d * r.d; if (u === 1) sEnd = r.i; }
       return { c: c / 4 / 100 * (L / 200) + 2, sEnd };
     };
-    let beam = [{ p: start, s: 0, items: [], cost: 0 }], cands = [];
+    let beam = [{ p: start, s: 0, items: [], cost: 0, rq: 0 }], cands = [];
     const seenG = new Map();
     for (let it = 0; it < 400 && beam.length; it++) {
       const next = [];
       for (const b of beam) {
-        for (const op of opts) {
+        const Rq = req[b.rq];
+        if (Rq && b.s > Rq.at + slack) continue;
+        const ops = Rq && b.s >= Rq.at - slack ? opts.concat([{ it: Rq.it, pc: Rq.pc, req: true }]) : opts;
+        for (const op of ops) {
           const L = lengthOf(op.pc), r = pieceCost(b.p, op.pc, b.s, b.s + Math.ceil(L / o.step * 1.8) + 20);
           if (op.lc && b.lc) continue;
-          let c = r.c + (op.lc ? -6 : 0);
-          if (r.sEnd < b.s + L / o.step * 0.4) c += 50;
-          next.push({ p: step(b.p, op.pc), s: r.sEnd, items: b.items.concat([op.it]), cost: b.cost + c, lc: b.lc || !!op.lc });
+          let c = r.c + (op.lc ? -6 : 0) + (op.req ? -8 : 0);
+          if (r.sEnd < b.s + L / o.step * 0.4 && !(op.req && L < 8)) c += 50;
+          next.push({ p: step(b.p, op.pc), s: op.req ? Math.max(r.sEnd, b.s) : r.sEnd, items: b.items.concat([op.it]), cost: b.cost + c, lc: b.lc || !!op.lc, rq: b.rq + (op.req ? 1 : 0) });
         }
       }
       next.sort((a, b) => a.cost - b.cost);
       const keep = [], keys = new Set();
       let nc = 0;
       for (const n of next) {
-        const k = Math.round(n.p.x / 25) + "," + Math.round(n.p.y / 25) + "," + Math.round(norm(n.p.h / DEG)) + (n.lc ? "L" : "");
+        const k = Math.round(n.p.x / 25) + "," + Math.round(n.p.y / 25) + "," + Math.round(norm(n.p.h / DEG)) + (n.lc ? "L" : "") + "/" + n.rq;
         if (keys.has(k)) continue; keys.add(k);
         const g0 = seenG.get(k); if (g0 != null && g0 <= n.cost) continue; seenG.set(k, n.cost);
-        if (n.s >= N - candZone && nc < 10) { cands.push(n); nc++; }
+        if (n.s >= N - candZone && nc < 10 && n.rq === req.length) { cands.push(n); nc++; }
         if (n.s < N - endZone) keep.push(n);
         if (keep.length >= o.beam) break;
       }
@@ -281,7 +292,7 @@
     if (!best) { const d = done.sort((a, b) => b.s - a.s || a.cost - b.cost)[0] || beam[0]; if (!d) return { err: "nofit" }; best = { items: d.items, cost: d.cost, open: true, custom: 0 }; }
     // lane change: replaces consecutive straights that add up to its length
     if (o.lc && best.items.some(it => it.t === o.lc.id)) best.lc = true;
-    else if (o.lc) {
+    else if (o.lc && !req.length) {
       const its = best.items, lenOf = it => { const pc = it.t && !it.gen ? pieceOf(it, cat) : null; return pc && pc.kind === "straight" && !pc.dz ? pc.len : null; };
       let done2 = false;
       for (let i = 0; i < its.length && !done2; i++) {

@@ -79,6 +79,10 @@ If the length changes, the planner closes the track again by itself: it adds or 
 directions and never touches the piece you chose. It prefers keeping the same footprint; the other solutions are
 one tap away in *Summary*.
 
+If the track ends up open after your changes (for example a lane change inserted by hand in a drawn track),
+**🔁 Close it following the drawing** rebuilds the whole track along the original drawing, or along its current shape,
+keeping the special pieces (lane change, jumps, saddles, ramps…) roughly where you put them, and closes it.
+
 ### From a drawing or an image
 
 ![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)
