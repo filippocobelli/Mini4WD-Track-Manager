@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.7.0] - 2026-11-10
+
+**Drawings: the fewest pieces that still look like your drawing.**
+
+- The scale of a drawing (by hand, or a line drawing in a picture) is no longer taken from its tightest bend, which made
+  small wobbles blow the track up to hundreds of pieces. The planner now tries the drawing at increasing sizes, from a
+  kit-oval-sized track upwards, and keeps the **first size that is faithful**: closed, within 3% of the drawing (relative
+  to its size) and with the same crossings. It then refines between that size and the previous one.
+  Drawings made too big are shrunk too. Tests: figure-eight 54 → 27 pieces, blob 34 → 17, 12 m oval → 18 pieces.
+- When no size is faithful (bends or details too small for the kit pieces) it picks the best balance between few pieces
+  and closeness, and says so.
+- A fit that can't follow the drawing is stopped instead of adding pieces up to 400.
+
 ## [2.6.1] - 2026-11-10
 
 - Made-to-measure pieces longer than the printer bed (set in the Workshop, 256×256 by default) are counted in *Parts*

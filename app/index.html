@@ -270,7 +270,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.6.1";
+const APP_VERSION="2.7.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -1470,15 +1470,10 @@ const scaleAbout=(pts,o,k)=>pts.map(p=>({x:o.x+(p.x-o.x)*k,y:o.y+(p.y-o.y)*k}));
 function runFit(pts,src,opt){
   opt=opt||{};
   const lc=st.types.find(t=>t.kind==="lane"),cat=solverCat(true),Rk=(cat.curve&&cat.curve.r)||480;
-  const k0=opt.autoScale?M4Trace.sketchScale(pts,Rk):1,ks=opt.autoScale&&k0>1.02?[k0,k0*1.15,k0*1.3]:[1];
+  const fo={lc:st.settings.fitLC&&lc?{id:lc.id,len:lc.len}:null,allowCustom:st.settings.fitCustom,tol:1};
   let best=null,err="nofit";
-  for(const k of ks){
-    const P=k===1?pts:scaleAbout(pts,pts[0],k);
-    const r=M4Trace.fitPath(P,cat,{lc:st.settings.fitLC&&lc?{id:lc.id,len:lc.len}:null,allowCustom:st.settings.fitCustom,tol:1});
-    if(r.err){err=r.err;continue;}
-    const score=(r.open?1e6:0)+r.dev/Math.sqrt(k);
-    if(!best||score<best.score)best={res:r,k,score};
-  }
+  if(opt.autoScale){const b=M4Trace.fitBestScale(pts,cat,fo);if(b)best={res:b.res,k:b.k,faithful:b.faithful};}
+  else{const r=M4Trace.fitPath(pts,cat,fo);if(r.err)err=r.err;else best={res:r,k:1,faithful:true};}
   if(!best){toast(err==="short"?L("Disegno troppo piccolo: la pista va disegnata in scala reale (ogni quadretto è 10 cm).","Drawing too small: draw the track at real scale (each grid square is 10 cm)."):L("Non riesco a ricostruire il tracciato con i pezzi.","I can't rebuild this layout with the pieces."));return false;}
   const res=best.res,K=best.k,o0=pts[0];
   if(OV.img&&K!==1){const I=OV.img;OV.img={...I,x:o0.x+(I.x-o0.x)*K,y:o0.y+(I.y-o0.y)*K,w:I.w*K,h:I.h*K};if(IMG&&IMG.size)IMG.size={w:IMG.size.w*K,h:IMG.size.h*K};}
@@ -1487,7 +1482,7 @@ function runFit(pts,src,opt){
   if(OV.img){OV.img.x+=dx;OV.img.y+=dy;}
   if(IMG){IMG.ox=(IMG.ox||0)+dx;IMG.oy=(IMG.oy||0)+dy;}
   commit(()=>{st.layout=toLayout(res.items);st.sketch=sk;st.settings.startH=Math.round(res.start.h/DEG*100)/100;st.name=src==="image"?(IMG&&IMG.name)||L("Da immagine","From image"):L("Dal disegno","From drawing");sel=null;});
-  FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src,cross:crossings(geom()),scale:K};
+  FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src,cross:crossings(geom()),scale:K,auto:!!opt.autoScale,faithful:best.faithful};
   if(FIT.cross&&st.settings.autoBridge){FIT.bridges=autoBridge();FIT.cross=FIT.bridges.left;FIT.n=st.layout.length;}
   tab="gen";render();fit();
   toast(res.open?L("Tracciato ricostruito, ma non si chiude: vedi «Riepilogo».","Layout rebuilt, but it doesn't close: see «Summary»."):L(`Tracciato ricostruito con ${res.items.length} pezzi`,`Layout rebuilt with ${res.items.length} pieces`));
@@ -1600,7 +1595,7 @@ function paneFit(){
   <div class="btns"><button class="btn primary" data-act="draw">✏️ ${L("Disegna nella pianta","Draw in the plan")}</button><button class="btn" data-act="img">🖼 ${L("Carica immagine","Upload image")}</button>${OV.img||st.sketch?`<button class="btn" data-act="ovl-clear">${L("Nascondi disegno","Hide drawing")}</button>`:""}</div>
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
     <label class="check" for="f-lc"><input type="checkbox" id="f-lc" data-set="fitLC" ${st.settings.fitLC?"checked":""} ${lc?"":"disabled"}> ${L("Metti il cambio corsia su un tratto dritto","Put the lane change on a straight stretch")}</label>
-    <label class="check" for="f-fs"><input type="checkbox" id="f-fs" data-set="fitScale" ${st.settings.fitScale?"checked":""}> ${L("Adatta la scala del disegno alle curve del kit","Fit the drawing's scale to the kit curves")}</label>
+    <label class="check" for="f-fs"><input type="checkbox" id="f-fs" data-set="fitScale" ${st.settings.fitScale?"checked":""}> ${L("Scegli la scala con meno pezzi (forma più simile al disegno)","Pick the scale with the fewest pieces (shape closest to the drawing)")}</label>
     <label class="check" for="f-br"><input type="checkbox" id="f-br" data-set="autoBridge" ${st.settings.autoBridge?"checked":""}> ${L("Dove il tracciato si incrocia crea un ponte (rampe e supporti)","Where the layout crosses itself build a bridge (ramps and supports)")}</label>
     <label class="check" for="f-cu"><input type="checkbox" id="f-cu" data-set="fitCustom" ${st.settings.fitCustom?"checked":""}> ${L("Per chiudere il giro usa anche pezzi su misura (Officina)","Use made-to-measure pieces (Workshop) to close the loop")}</label>
   </div>`;
@@ -1614,13 +1609,13 @@ function paneFit(){
     const need=bom(),miss=Object.entries(need).reduce((a,[k,n])=>a+Math.max(0,n-(+st.owned[k]||0)),0);
     h+=`<div class="status ${FIT.open?"warn":"ok"}" style="margin-top:10px"><div><b>${FIT.open?L("Ricostruito, ma aperto","Rebuilt, but open"):L(`Ricostruito con ${FIT.n} pezzi`,`Rebuilt with ${FIT.n} pieces`)}</b><p>${L(`Scarto medio dal ${FIT.src==="image"?"tracciato dell'immagine":"disegno"}: ${nf(FIT.dev/10,1)} cm.`,`Average distance from the ${FIT.src==="image"?"image layout":"drawing"}: ${nf(FIT.dev/10,1)} cm.`)}
       ${FIT.custom?L(` ${FIT.custom} pezz${FIT.custom>1?"i":"o"} su misura (★) per chiudere il giro.`,` ${FIT.custom} made-to-measure piece${FIT.custom>1?"s":""} (★) to close the loop.`):""}
-      ${FIT.scale>1.05?L(` Disegno ingrandito ×${nf(FIT.scale,1)} perché ci stessero le curve del kit (raggio ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`,` Drawing enlarged ×${nf(FIT.scale,1)} so the kit curves fit (radius ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`):""}
+      ${FIT.auto?L(` Scala scelta per usare meno pezzi possibile restando fedele al disegno${Math.abs(FIT.scale-1)>0.05?` (×${nf(FIT.scale,FIT.scale<1?2:1)})`:""}.${FIT.faithful?"":" Il disegno ha curve troppo strette o dettagli troppo piccoli per i pezzi del kit: il risultato è il più simile che ho trovato."}`,` Scale chosen to use as few pieces as possible while staying faithful to the drawing${Math.abs(FIT.scale-1)>0.05?` (×${nf(FIT.scale,FIT.scale<1?2:1)})`:""}.${FIT.faithful?"":" The drawing has bends or details too small for the kit pieces: this is the closest result I found."}`):""}
       ${FIT.bridges?bridgeText(FIT.bridges):FIT.cross?L(` Il tracciato passa sopra se stesso in ${FIT.cross} punt${FIT.cross>1?"i":"o"}: premi «Crea i ponti» in «Riepilogo».`,` The layout runs over itself at ${FIT.cross} point${FIT.cross>1?"s":""}: press «Build bridges» in «Summary».`):""}
       ${st.settings.fitLC&&lc&&!FIT.lc?L(" Nessun tratto dritto lungo come il cambio corsia: aggiungilo a mano."," No straight stretch as long as the lane change: add it by hand."):""}
       ${miss?L(` Da stampare: <b style="display:inline">${miss}</b> pezzi oltre a quelli in magazzino.`,` To print: <b style="display:inline">${miss}</b> pieces beyond those in stock.`):L(" Hai già tutti i pezzi."," You already have every piece.")}</p>
       <div class="btns" style="margin-top:8px"><button class="btn" data-act="go-bom">${L("Pezzi da stampare","Pieces to print")}</button></div></div></div>`;
   }
-  return h+`<p class="note" style="margin-top:8px">${L("Puoi disegnare a qualsiasi dimensione: se le curve sono più strette di quelle del kit (raggio 48 cm, ogni quadretto è 10 cm) il disegno viene ingrandito quanto serve. Per le immagini vanno bene disegni, piante ed esportazioni degli editor di piste, con la pista ben distinta dallo sfondo.","You can draw at any size: if the bends are tighter than the kit curves (radius 48 cm, each grid square is 10 cm) the drawing is enlarged as needed. For images, drawings, plans and exports from track editors work, with the track clearly distinct from the background.")}</p></div>`;
+  return h+`<p class="note" style="margin-top:8px">${L("Puoi disegnare a qualsiasi dimensione: il planner prova il disegno a varie grandezze e tiene quella con meno pezzi che resta fedele alla forma (le curve del kit hanno raggio 48 cm). Per le immagini vanno bene disegni, piante ed esportazioni degli editor di piste, con la pista ben distinta dallo sfondo.","You can draw at any size: the planner tries the drawing at several sizes and keeps the one with the fewest pieces that stays faithful to the shape (kit curves have a 48 cm radius). For images, drawings, plans and exports from track editors work, with the track clearly distinct from the background.")}</p></div>`;
 }
 
 /* ---------- actions ---------- */

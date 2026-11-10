@@ -112,6 +112,9 @@ const cl = await page.evaluate(() => {
   return out;
 });
 for (const [k, v] of Object.entries(cl)) ok(v, k);
+const big = await page.evaluate(() => { const pts = []; for (let i = 0; i < 200; i++) { const t = i / 200 * 2 * Math.PI; pts.push({ x: 6000 * Math.cos(t), y: 2500 * Math.sin(t) }); }
+  const b = M4Trace.fitBestScale(pts, solverCat(true), { allowCustom: true, tol: 1 }); return { k: b.k, n: b.res.items.length, faithful: b.faithful }; });
+ok(big.k < 0.5 && big.n <= 24 && big.faithful, "oval drawn zoomed out (12 m): shrunk to the smallest faithful track", JSON.stringify(big));
 const sw = await page.evaluate(() => {
   const out = {}, pick = id => { render(); const k = window._swap.findIndex(o => o.id === id || o.kind === id); doSwap(window._swap[k]); };
   st.layout = PRESETS.ovale.items(); sel = 0; tab = "sum"; render(); pick("LC");
@@ -147,8 +150,8 @@ for (let i = 1; i <= 100; i++) { const t = i / 100 * 2 * Math.PI; await page.mou
 await page.mouse.up(); await page.waitForTimeout(500);
 const dr = await page.evaluate(() => ({ fit: FIT, exact: AN.exact, draw: drawMode }));
 const sm = await page.evaluate(() => { const pts = []; for (let i = 0; i < 160; i++) { const t = i / 160 * 2 * Math.PI; pts.push({ x: Math.sin(t) * 800, y: Math.sin(2 * t) * 350 + Math.cos(t) * 150 }); }
-  st.settings.fitScale = 1; runFit(pts, "draw", { autoScale: true }); return { scale: FIT.scale, open: FIT.open, exact: AN.exact, cross: FIT.cross, bridges: FIT.bridges && FIT.bridges.made.length, clear: FIT.bridges && FIT.bridges.made[0] && FIT.bridges.made[0].clear }; });
-ok(sm.scale > 2 && !sm.open && sm.exact && sm.cross === 0 && sm.bridges === 1 && sm.clear >= 60, "small figure-eight drawing: enlarged to suit the kit curves, bridge built at the crossing, still closed", JSON.stringify(sm));
+  st.settings.fitScale = 1; runFit(pts, "draw", { autoScale: true }); return { scale: FIT.scale, n: st.layout.length, faithful: FIT.faithful, open: FIT.open, exact: AN.exact, cross: FIT.cross, bridges: FIT.bridges && FIT.bridges.made.length, clear: FIT.bridges && FIT.bridges.made[0] && FIT.bridges.made[0].clear }; });
+ok(sm.faithful && sm.n <= 35 && !sm.open && sm.exact && sm.cross === 0 && sm.bridges === 1 && sm.clear >= 60, "small figure-eight drawing: scale with the fewest pieces (≤ 35), faithful, bridge at the crossing, closed", JSON.stringify(sm));
 ok(dr.fit && !dr.fit.open && dr.exact && !dr.draw, "drawing with the mouse becomes a closed track", JSON.stringify(dr));
 const png = await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 600; c.height = 380; const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 600, 380); x.strokeStyle = "#222"; x.lineWidth = 28; x.beginPath(); x.moveTo(150, 60); x.lineTo(450, 60); x.arc(450, 190, 130, -Math.PI / 2, Math.PI / 2); x.lineTo(150, 320); x.arc(150, 190, 130, Math.PI / 2, Math.PI * 1.5); x.stroke(); return c.toDataURL("image/png"); });
 const tmpPng = path.join(root, "dist", "test-oval.png"); fs.mkdirSync(path.dirname(tmpPng), { recursive: true }); fs.writeFileSync(tmpPng, Buffer.from(png.split(",")[1], "base64"));
@@ -161,8 +164,8 @@ await page.evaluate(() => { st.settings.fitLC = true; });
 await page.setInputFiles("#imgfile", path.join(root, "tests", "fixtures", "track-3lane.png"));
 await page.waitForFunction(() => FIT && FIT.src === "image" && IMG && IMG.name === "track-3lane", null, { timeout: 30000 });
 const p3 = await page.evaluate(() => ({ lanes: IMG.tr.lanes, w: Math.round(IMG.size.w), exact: AN.exact, dev: FIT.dev, cross: FIT.cross, lc: FIT.lc, br: FIT.bridges && FIT.bridges.made.length, maxZ: AN.maxZ, sup: AN.supports }));
-const parts = await page.evaluate(() => { const t = st.types.filter(t => t.gen && t.gen.spec.type === "ramp"); return t.map(x => Object.values(x.parts)[0]); });
-ok(parts.length >= 1 && parts.every(n => n === 2), "bridge ramps longer than a 256 mm bed count as 2 printed parts each", JSON.stringify(parts));
+const parts = await page.evaluate(() => st.types.filter(t => t.gen && t.gen.spec.type === "ramp").map(x => [x.gen.spec.L, Object.values(x.parts)[0]]));
+ok(parts.length >= 1 && parts.every(([L, n]) => n === Math.ceil(L / 252)) && parts.some(([L, n]) => n === 2), "bridge ramps: as many printed parts as a 256 mm bed needs (2 for those over 252 mm)", JSON.stringify(parts));
 ok(p3.lanes === 3 && Math.abs(p3.w - 4830) < 300 && p3.exact && p3.dev < 30 && p3.cross === 0 && p3.br === 1 && p3.maxZ >= 60 && p3.sup > 0 && p3.lc, "3-lane track editor picture (grid, colours, text, bridge): 3 lanes, real scale, closed, bridge with supports built", JSON.stringify(p3));
 await page.evaluate(() => { tab = "bom"; renderPane(); });
 ok(await page.evaluate(() => document.querySelectorAll("#pane a.ab.sm[href*='makerworld']").length > 0 && document.querySelectorAll("#pane [data-gen]").length > 0), "parts to print: MakerWorld links and Make STL buttons");

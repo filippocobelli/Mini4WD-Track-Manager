@@ -88,8 +88,9 @@ keeping the special pieces (lane change, jumps, saddles, ramps…) roughly where
 ![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)
 
 - **🗑 Clear** empties the plan first (the starting kit oval too); **↶ Undo** brings it back.
-- **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at any size: if its bends are tighter than the kit
-  curves (radius 48 cm) the drawing is enlarged as needed, and stays under the track scaled the same way.
+- **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at any size: the planner tries it at several sizes
+  and keeps the one with the **fewest pieces that still looks like your drawing**; the drawing stays under the track
+  at the same scale.
   When you lift your finger the planner rebuilds it with kit pieces: straights and 45° curves that follow your line,
   the lane change on a straight stretch, and the loop closed exactly.
 - **🖼 Image**: upload a drawing, a plan or an export from an online track editor. The planner finds the track's centre

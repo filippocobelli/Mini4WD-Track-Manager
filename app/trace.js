@@ -254,7 +254,9 @@
     };
     let beam = [{ p: start, s: 0, items: [], cost: 0, rq: 0 }], cands = [];
     const seenG = new Map();
-    for (let it = 0; it < 400 && beam.length; it++) {
+    // a fit that can't follow the drawing would go on adding pieces: stop at ~1.6× the pieces the length needs
+    const maxIt = Math.min(400, Math.ceil(N * o.step / 100 * 1.6) + 20);
+    for (let it = 0; it < maxIt && beam.length; it++) {
       const next = [];
       for (const b of beam) {
         const Rq = req[b.rq];
@@ -551,5 +553,54 @@
     return Math.max(1, Math.min(12, R * 1.05 / rs[Math.floor(rs.length * 0.2)]));
   }
 
-  root.M4Trace = { sketchScale, close, fitPath, traceImage, step, residual, run, pieceOf, resample };
+  /* Centre line of a list of items, sampled (for comparing a result with the drawing). */
+  function centerline(items, start, cat) {
+    const out = []; let p = { ...start };
+    for (const it of items) { const pc = pieceOf(it, cat); if (!pc) continue; const n = pc.kind === "curve" ? Math.max(2, Math.round(pc.ang / 10)) : 2; for (let k = 0; k < n; k++) out.push(at(p, pc, k / n)); p = step(p, pc); }
+    return out;
+  }
+  /* How many times a closed polyline crosses itself. */
+  function selfCross(pts) {
+    const P = resample(pts, Math.max(20, polyLen(pts) / 300)), n = P.length; let c = 0;
+    const X = (a, b, q, d) => { const d1 = (b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x), d2 = (b.x - a.x) * (d.y - a.y) - (b.y - a.y) * (d.x - a.x), d3 = (d.x - q.x) * (a.y - q.y) - (d.y - q.y) * (a.x - q.x), d4 = (d.x - q.x) * (b.y - q.y) - (d.y - q.y) * (b.x - q.x); return d1 * d2 < 0 && d3 * d4 < 0; };
+    for (let i = 0; i < n; i++) for (let j = i + 2; j < n; j++) { if (i === 0 && j === n - 1) continue; if (X(P[i], P[(i + 1) % n], P[j], P[(j + 1) % n])) c++; }
+    return c;
+  }
+  /*
+   * Fits a sketch at the size that needs the fewest pieces while still looking like it: sizes are tried
+   * from small (kit-oval sized) upwards; a result is faithful if it closes, crosses itself as often as the
+   * drawing and stays within `rel` (fraction of the drawing's diagonal) of it. Returns the fit and the scale.
+   */
+  function fitBestScale(pts, cat, opt) {
+    const o = Object.assign({ rel: 0.03, minScale: 0 }, opt || {});
+    const P0 = polyLen(pts);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of pts) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+    const D0 = Math.hypot(x1 - x0, y1 - y0), cross0 = selfCross(pts), o0 = pts[0];
+    const scaled = k => pts.map(p => ({ x: o0.x + (p.x - o0.x) * k, y: o0.y + (p.y - o0.y) * k }));
+    const tries = [];
+    const run1 = k => {
+      const r = fitPath(scaled(k), cat, o);
+      if (r.err) return null;
+      const rel = r.dev / (D0 * k), cross = r.open ? -1 : selfCross(centerline(r.items, r.start, cat));
+      const t = { k, r, rel, cross, good: !r.open && rel <= o.rel && cross === cross0, n: r.items.length };
+      tries.push(t); return t;
+    };
+    const targets = [4500, 5500, 6500, 8000, 10000, 12500, 15500, 19000, 24000, 30000];
+    let prev = null, first = null;
+    for (const T of targets) {
+      const k = T / P0; if (k < o.minScale) continue;
+      const t = run1(k); if (!t) continue;
+      if (t.good) { first = t; break; }
+      prev = t;
+    }
+    if (first && prev) { const t = run1(Math.sqrt(first.k * prev.k)); if (t && t.good && t.n < first.n) first = t; }
+    let best = first;
+    // nothing faithful: the best balance between few pieces and closeness to the drawing
+    const score = t => t.n * (1 + (t.rel / o.rel) ** 2) + (t.cross === cross0 ? 0 : t.n);
+    if (!best) best = tries.filter(t => !t.r.open).sort((a, b) => score(a) - score(b))[0] || tries[0];
+    return best ? { res: best.r, k: best.k, rel: best.rel, faithful: !!best.good, tried: tries.map(t => ({ k: t.k, n: t.n, rel: t.rel, good: t.good })) } : null;
+  }
+
+  root.M4Trace = { fitBestScale, selfCross, centerline, sketchScale, close, fitPath, traceImage, step, residual, run, pieceOf, resample };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -86,8 +86,8 @@ tenendo i pezzi speciali (cambio corsia, salti, selle, rampe…) più o meno dov
 ![Tracciato ricostruito da un'immagine](docs/screenshots/it/11-from-image.png)
 
 - **🗑 Svuota** libera la pianta (anche l'ovale del kit di partenza); **↶ Annulla** la riporta indietro.
-- **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, di qualsiasi dimensione: se le curve sono più
-  strette di quelle del kit (raggio 48 cm) il disegno viene ingrandito quanto serve e resta sotto la pista alla stessa scala.
+- **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, di qualsiasi dimensione: il planner lo prova a
+  varie grandezze e tiene quella con **meno pezzi che resta fedele al disegno**; il disegno resta sotto la pista alla stessa scala.
   Quando alzi il dito il planner lo ricostruisce con i pezzi del kit: rettilinei e curve da 45° che seguono la tua linea,
   il cambio corsia su un tratto dritto e il giro chiuso con precisione.
 - **🖼 Immagine**: carica un disegno, una pianta o l'esportazione di un editor di piste online. Il planner trova la linea
