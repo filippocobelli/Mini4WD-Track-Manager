@@ -270,7 +270,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.6.0";
+const APP_VERSION="2.6.1";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -452,6 +452,10 @@ function solverCat(forFit){
   const ramps=st.types.filter(t=>t.kind==="straight"&&t.dz&&(!t.x||ext)).map(t=>({id:t.id,len:t.len,dz:t.dz}));
   return{straights,curve:c?{id:c.id,ang:c.ang,r:c.r}:null,ramps,lookup:id=>T[id]};
 }
+// How many prints a straight-type piece needs on the printer bed chosen in the Workshop
+// (the engine splits longer pieces into equal parts, each with its connector tabs).
+function bedParts(L){const b=String((st.settings.ws&&st.settings.ws.bed)||"256x256").split("x").map(Number),mx=Math.max(b[0]||256,b[1]||256);return Math.max(1,Math.ceil(L/(mx-4)));}
+const bedName=()=>String((st.settings.ws&&st.settings.ws.bed)||"256x256").replace("x","×");
 // Made-to-measure piece from the Workshop, added to the catalogue once (call inside commit).
 function ensureGenType(spec){
   const key=JSON.stringify(spec),ex=st.types.find(t=>t.gen&&JSON.stringify(t.gen.spec)===key);if(ex)return ex.id;
@@ -460,6 +464,8 @@ function ensureGenType(spec){
   if(spec.type==="curve"){Object.assign(t,{kind:"curve",ang:spec.ang,r:spec.R,label:`${N(spec.ang)}°`,name:`${TN} ${N(spec.ang)}° R${N(spec.R)} (${WS})`});h=0.44*spec.ang/45*spec.R/480;pl=`${TN.toLowerCase()} ${N(spec.ang)}° R${N(spec.R)}`;}
   else if(spec.type==="ramp"){Object.assign(t,{kind:"straight",len:spec.L,dz:spec.h,prof:"ramp",label:TN,name:`${TN} ${N(spec.L)}×${N(spec.h)} (${WS})`});h=spec.L/250*3;pl=`${TN.toLowerCase()} ${N(spec.L)}x${N(spec.h)}mm`;}
   else{Object.assign(t,{kind:"straight",len:spec.L,label:N(spec.L),name:`${TN} ${N(spec.L)} (${WS})`});h=spec.L/200*2.3;pl=`${TN.toLowerCase()} ${N(spec.L)}mm`;}
+  const np=spec.type==="curve"?1:bedParts(spec.L);
+  if(np>1){t.parts={[pid]:np};pl+=L(` (in ${np} parti)`,` (in ${np} parts)`);h/=np;}
   st.parts.push({id:pid,name:pl,kit:0,h:Math.round(h*100)/100,est:true});st.types.push(t);return t.id;
 }
 const toLayout=items=>items.map(it=>{if(!it.gen)return{...it};const o={t:ensureGenType(it.gen)};if(it.d)o.d=it.d;if(it.v)o.v=it.v;return o;});
@@ -1581,8 +1587,8 @@ function bridgeText(b){
   if(!b||(!b.made.length&&!b.failed))return "";
   let t="";
   if(b.made.length){const sl=Math.max(...b.made.map(m=>m.slope)),h=Math.min(...b.made.map(m=>m.clear)),Lm=Math.min(...b.made.map(m=>Math.min(m.Lu,m.Ld)));
-    t+=L(` ${b.made.length===1?"Creato un ponte":`Creati ${b.made.length} ponti`} sull'incrocio: due rampe su misura (★) da ${nf(Lm)} mm prima e dopo, alte ${nf(b.made[0].h/10,1)} cm, con i supporti sotto. Verifica: passaggio libero ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · pendenza ${nf(sl*100)}% ${sl<=0.32?"✓":"(ripida: allunga i rettilinei vicini)"} · pista ${b.exact?"chiusa ✓":"aperta ✗"}.`,
-      ` ${b.made.length===1?"Built a bridge":`Built ${b.made.length} bridges`} at the crossing: two made-to-measure ramps (★) of ${nf(Lm)} mm before and after, ${nf(b.made[0].h/10,1)} cm high, with supports underneath. Check: clearance ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · slope ${nf(sl*100)}% ${sl<=0.32?"✓":"(steep: lengthen the straights around it)"} · track ${b.exact?"closed ✓":"open ✗"}.`);}
+    t+=L(` ${b.made.length===1?"Creato un ponte":`Creati ${b.made.length} ponti`} sull'incrocio: due rampe su misura (★) da ${nf(Lm)} mm prima e dopo, alte ${nf(b.made[0].h/10,1)} cm, con i supporti sotto${bedParts(Lm)>1?`; ogni rampa si stampa in ${bedParts(Math.max(...b.made.map(m=>Math.max(m.Lu,m.Ld))))} parti per un piatto ${bedName()} mm, ognuna con le sue alette`:""}. Verifica: passaggio libero ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · pendenza ${nf(sl*100)}% ${sl<=0.32?"✓":"(ripida: allunga i rettilinei vicini)"} · pista ${b.exact?"chiusa ✓":"aperta ✗"}.`,
+      ` ${b.made.length===1?"Built a bridge":`Built ${b.made.length} bridges`} at the crossing: two made-to-measure ramps (★) of ${nf(Lm)} mm before and after, ${nf(b.made[0].h/10,1)} cm high, with supports underneath${bedParts(Lm)>1?`; each ramp prints in ${bedParts(Math.max(...b.made.map(m=>Math.max(m.Lu,m.Ld))))} parts for a ${bedName()} mm bed, each with its tabs`:""}. Check: clearance ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · slope ${nf(sl*100)}% ${sl<=0.32?"✓":"(steep: lengthen the straights around it)"} · track ${b.exact?"closed ✓":"open ✗"}.`);}
   if(b.left)t+=L(` ${b.left} incroc${b.left>1?"i":"io"} senza ponte: lì non ci sono rettilinei vicini per le rampe, aggiungili o sposta l'incrocio.`,` ${b.left} crossing${b.left>1?"s":""} without a bridge: there are no straights nearby for the ramps, add some or move the crossing.`);
   return t;
 }

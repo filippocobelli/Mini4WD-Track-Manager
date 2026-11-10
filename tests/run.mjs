@@ -161,6 +161,8 @@ await page.evaluate(() => { st.settings.fitLC = true; });
 await page.setInputFiles("#imgfile", path.join(root, "tests", "fixtures", "track-3lane.png"));
 await page.waitForFunction(() => FIT && FIT.src === "image" && IMG && IMG.name === "track-3lane", null, { timeout: 30000 });
 const p3 = await page.evaluate(() => ({ lanes: IMG.tr.lanes, w: Math.round(IMG.size.w), exact: AN.exact, dev: FIT.dev, cross: FIT.cross, lc: FIT.lc, br: FIT.bridges && FIT.bridges.made.length, maxZ: AN.maxZ, sup: AN.supports }));
+const parts = await page.evaluate(() => { const t = st.types.filter(t => t.gen && t.gen.spec.type === "ramp"); return t.map(x => Object.values(x.parts)[0]); });
+ok(parts.length >= 1 && parts.every(n => n === 2), "bridge ramps longer than a 256 mm bed count as 2 printed parts each", JSON.stringify(parts));
 ok(p3.lanes === 3 && Math.abs(p3.w - 4830) < 300 && p3.exact && p3.dev < 30 && p3.cross === 0 && p3.br === 1 && p3.maxZ >= 60 && p3.sup > 0 && p3.lc, "3-lane track editor picture (grid, colours, text, bridge): 3 lanes, real scale, closed, bridge with supports built", JSON.stringify(p3));
 await page.evaluate(() => { tab = "bom"; renderPane(); });
 ok(await page.evaluate(() => document.querySelectorAll("#pane a.ab.sm[href*='makerworld']").length > 0 && document.querySelectorAll("#pane [data-gen]").length > 0), "parts to print: MakerWorld links and Make STL buttons");

@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.6.1] - 2026-11-10
+
+- Made-to-measure pieces longer than the printer bed (set in the Workshop, 256×256 by default) are counted in *Parts*
+  as the number of prints they need (e.g. a 415 mm ramp = 2 parts of ~208 mm, each with its tabs), and the bridge
+  report says so.
+
 ## [2.6.0] - 2026-11-10
 
 **Bridges where the track crosses itself.**
