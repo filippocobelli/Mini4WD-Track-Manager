@@ -146,12 +146,22 @@ await page.mouse.move(cx + 1250 * z, cy); await page.mouse.down();
 for (let i = 1; i <= 100; i++) { const t = i / 100 * 2 * Math.PI; await page.mouse.move(cx + 1250 * z * Math.cos(t), cy + 560 * z * Math.sin(t)); }
 await page.mouse.up(); await page.waitForTimeout(500);
 const dr = await page.evaluate(() => ({ fit: FIT, exact: AN.exact, draw: drawMode }));
+const sm = await page.evaluate(() => { const pts = []; for (let i = 0; i < 160; i++) { const t = i / 160 * 2 * Math.PI; pts.push({ x: Math.sin(t) * 800, y: Math.sin(2 * t) * 350 + Math.cos(t) * 150 }); }
+  st.settings.fitScale = 1; runFit(pts, "draw", { autoScale: true }); return { scale: FIT.scale, open: FIT.open, exact: AN.exact, cross: FIT.cross }; });
+ok(sm.scale > 2 && !sm.open && sm.exact && sm.cross === 1, "small drawing with tight loops: enlarged to suit the kit curves, closed, crossing flagged", JSON.stringify(sm));
 ok(dr.fit && !dr.fit.open && dr.exact && !dr.draw, "drawing with the mouse becomes a closed track", JSON.stringify(dr));
 const png = await page.evaluate(() => { const c = document.createElement("canvas"); c.width = 600; c.height = 380; const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 600, 380); x.strokeStyle = "#222"; x.lineWidth = 28; x.beginPath(); x.moveTo(150, 60); x.lineTo(450, 60); x.arc(450, 190, 130, -Math.PI / 2, Math.PI / 2); x.lineTo(150, 320); x.arc(150, 190, 130, Math.PI / 2, Math.PI * 1.5); x.stroke(); return c.toDataURL("image/png"); });
 const tmpPng = path.join(root, "dist", "test-oval.png"); fs.mkdirSync(path.dirname(tmpPng), { recursive: true }); fs.writeFileSync(tmpPng, Buffer.from(png.split(",")[1], "base64"));
 await page.setInputFiles("#imgfile", tmpPng); await page.waitForFunction(() => FIT && FIT.src === "image", null, { timeout: 20000 });
+const ig0 = await page.evaluate(() => ({ auto: st.settings.imgAuto, exact: AN.exact }));
+await page.evaluate(() => { st.settings.imgAuto = 0; st.settings.imgW = 300; fitImage(); });
 const ig = await page.evaluate(() => ({ fit: FIT, exact: AN.exact, w: bbox(G).w }));
-ok(!ig.fit.open && ig.exact && ig.fit.dev < 30 && Math.abs(ig.w - 3270) < 150, "image of a layout becomes a closed track at the given width", JSON.stringify(ig));
+ok(ig0.auto === 1 && ig0.exact && !ig.fit.open && ig.exact && ig.fit.dev < 30 && Math.abs(ig.w - 3270) < 150, "image of a layout: automatic scale, then a given width, closed both times", JSON.stringify({ ig0, ig }));
+await page.evaluate(() => { st.settings.fitLC = true; });
+await page.setInputFiles("#imgfile", path.join(root, "tests", "fixtures", "track-3lane.png"));
+await page.waitForFunction(() => FIT && FIT.src === "image" && IMG && IMG.name === "track-3lane", null, { timeout: 30000 });
+const p3 = await page.evaluate(() => ({ lanes: IMG.tr.lanes, w: Math.round(IMG.size.w), exact: AN.exact, dev: FIT.dev, cross: FIT.cross, lc: FIT.lc }));
+ok(p3.lanes === 3 && Math.abs(p3.w - 4830) < 300 && p3.exact && p3.dev < 30 && p3.cross === 1 && p3.lc, "3-lane track editor picture (grid, colours, text, bridge): 3 lanes, real scale, closed, crossing flagged", JSON.stringify(p3));
 await page.evaluate(() => { tab = "bom"; renderPane(); });
 ok(await page.evaluate(() => document.querySelectorAll("#pane a.ab.sm[href*='makerworld']").length > 0 && document.querySelectorAll("#pane [data-gen]").length > 0), "parts to print: MakerWorld links and Make STL buttons");
 await page.click("#pane [data-gen]"); await page.waitForFunction(() => !wsBusy && wsRes && tab === "ws", null, { timeout: 60000 });

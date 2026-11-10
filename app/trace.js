@@ -214,7 +214,11 @@
       const a = P[(i - w + N0) % N0], b = P[(i + w) % N0];
       const straight = Math.hypot(b.x - a.x, b.y - a.y) / (2 * w * o.step);
       const ang = Math.atan2(b.y - a.y, b.x - a.x) / DEG, off = Math.abs(norm(ang - Math.round(ang / 45) * 45));
-      const sc = (1 - straight) * 40 + off / 90;
+      let sc = (1 - straight) * 40 + off / 90;
+      if (sc >= bs) continue;
+      // never start on a crossing (bridge): another part of the loop must not pass within 40 cm
+      const gap = Math.round(800 / o.step);
+      for (let j = 0; j < N0; j += 2) { const dd = Math.min(Math.abs(j - i), N0 - Math.abs(j - i)); if (dd > gap && Math.hypot(P[j].x - P[i].x, P[j].y - P[i].y) < 400) { sc += 100; break; } }
       if (sc < bs) { bs = sc; bi = i; }
     }
     P = P.slice(bi).concat(P.slice(0, bi));
@@ -284,6 +288,7 @@
       for (const s of sols.slice(0, 4)) {
         let p = d.p, dev = 0, s0 = d.s;
         for (const it of s.items) { const pc = pieceOf(it, cat); const r = pieceCost(p, pc, Math.max(0, s0 - 5), N - 1); dev += r.c; s0 = Math.max(s0, r.sEnd); p = step(p, pc); }
+        if (dev / Math.max(1, s.items.length) > 400) continue; // closing far away from the drawing: rejected
         const cost = d.cost + dev + s.custom * 40;
         if (!best || cost < best.cost) best = { items: d.items.concat(s.items), cost, custom: s.custom };
       }
@@ -356,80 +361,195 @@
     }
     return { lab, comps };
   }
-  function morph(mask, w, h, grow) {
-    const out = new Uint8Array(w * h);
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      let v = grow ? 0 : 1;
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const X = x + dx, Y = y + dy, m = X >= 0 && Y >= 0 && X < w && Y < h ? mask[Y * w + X] : 0;
-        if (grow && m) v = 1; if (!grow && !m) v = 0;
-      }
-      out[y * w + x] = v;
-    }
-    return out;
-  }
   function smoothLoop(pts, k) {
     const n = pts.length, out = [];
     for (let i = 0; i < n; i++) { let x = 0, y = 0; for (let j = -k; j <= k; j++) { const p = pts[(i + j + n) % n]; x += p.x; y += p.y; } out.push({ x: x / (2 * k + 1), y: y / (2 * k + 1) }); }
     return out;
   }
-  /*
-   * rgba: Uint8ClampedArray (w×h×4). The track is the largest connected shape that stands
-   * out from the background (dark on light or light on dark). If it is a closed band, the
-   * centre line runs halfway between its outer edge and the edge of its inner hole.
-   */
-  function traceImage(rgba, w, h) {
-    const g = new Uint8Array(w * h), hist = new Array(256).fill(0);
-    for (let i = 0; i < w * h; i++) {
-      const a = rgba[4 * i + 3] / 255;
-      const v = Math.round((0.299 * rgba[4 * i] + 0.587 * rgba[4 * i + 1] + 0.114 * rgba[4 * i + 2]) * a + 255 * (1 - a));
-      g[i] = v; hist[v]++;
+  /* Binary dilation with a (2r+1)² square, separable, O(w·h). */
+  function dilate(m, w, h, r) {
+    const t = new Uint8Array(w * h), o = new Uint8Array(w * h), P = new Int32Array(Math.max(w, h) + 1);
+    for (let y = 0; y < h; y++) {
+      P[0] = 0; for (let x = 0; x < w; x++) P[x + 1] = P[x] + m[y * w + x];
+      for (let x = 0; x < w; x++) t[y * w + x] = P[Math.min(w, x + r + 1)] - P[Math.max(0, x - r)] > 0 ? 1 : 0;
     }
-    // Otsu threshold
-    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
-    let sB = 0, wB = 0, best = 0, th = 128;
-    for (let t = 0; t < 256; t++) {
-      wB += hist[t]; if (!wB) continue; const wF = w * h - wB; if (!wF) break;
-      sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2;
-      if (v > best) { best = v; th = t; }
+    for (let x = 0; x < w; x++) {
+      P[0] = 0; for (let y = 0; y < h; y++) P[y + 1] = P[y] + t[y * w + x];
+      for (let y = 0; y < h; y++) o[y * w + x] = P[Math.min(h, y + r + 1)] - P[Math.max(0, y - r)] > 0 ? 1 : 0;
     }
-    let fg = new Uint8Array(w * h), cnt = 0;
-    for (let i = 0; i < w * h; i++) if (g[i] <= th) { fg[i] = 1; cnt++; }
-    if (cnt > w * h / 2) for (let i = 0; i < w * h; i++) fg[i] = 1 - fg[i];
-    fg = morph(morph(fg, w, h, true), w, h, false);
-    const C = components(fg, w, h, 1);
-    if (!C.comps.length) return { err: "empty" };
-    const big = C.comps.reduce((a, b) => b.area > a.area ? b : a);
-    if (big.area < w * h * 0.002) return { err: "empty" };
-    const shape = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) if (C.lab[i] === big.id) shape[i] = 1;
-    // holes of the shape: background areas that don't touch the border
-    const H = components(shape, w, h, 0);
-    const holes = H.comps.filter(c => !c.border).sort((a, b) => b.area - a.area);
-    const filled = shape.slice();
-    for (let i = 0; i < w * h; i++) if (shape[i] === 0 && !H.comps[H.lab[i]].border) filled[i] = 1;
-    const outer = contour(filled, w, h);
-    if (outer.length < 20) return { err: "empty" };
-    let line = outer, band = false;
-    if (holes.length && holes[0].area > big.area * 0.05) {
-      const hm = new Uint8Array(w * h);
-      for (let i = 0; i < w * h; i++) if (H.lab[i] === holes[0].id) hm[i] = 1;
-      const inner = contour(hm, w, h);
-      if (inner.length > 10) {
-        const step2 = Math.max(1, Math.floor(outer.length / 400)), mids = [];
-        for (let i = 0; i < outer.length; i += step2) {
-          const a = outer[i]; let bd = Infinity, b = inner[0];
-          for (const q of inner) { const d = (q.x - a.x) ** 2 + (q.y - a.y) ** 2; if (d < bd) { bd = d; b = q; } }
-          mids.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    return o;
+  }
+  const inv = m => { const o = new Uint8Array(m.length); for (let i = 0; i < m.length; i++) o[i] = 1 - m[i]; return o; };
+  const erode = (m, w, h, r) => inv(dilate(inv(m), w, h, r));
+  /* Chamfer (3-4) distance to the background, in pixels. */
+  function distance(m, w, h) {
+    const d = new Float32Array(w * h), BIG = 1e9;
+    for (let i = 0; i < w * h; i++) d[i] = m[i] ? BIG : 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!d[i]) continue; let v = d[i];
+      if (x > 0) v = Math.min(v, d[i - 1] + 3); if (y > 0) { v = Math.min(v, d[i - w] + 3); if (x > 0) v = Math.min(v, d[i - w - 1] + 4); if (x < w - 1) v = Math.min(v, d[i - w + 1] + 4); }
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) v = Math.min(v, 3); d[i] = v; }
+    for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) { const i = y * w + x; if (!d[i]) continue; let v = d[i];
+      if (x < w - 1) v = Math.min(v, d[i + 1] + 3); if (y < h - 1) { v = Math.min(v, d[i + w] + 3); if (x < w - 1) v = Math.min(v, d[i + w + 1] + 4); if (x > 0) v = Math.min(v, d[i + w - 1] + 4); } d[i] = v; }
+    for (let i = 0; i < w * h; i++) d[i] /= 3;
+    return d;
+  }
+  /* Zhang–Suen thinning: the mask becomes 1 pixel wide lines. */
+  function thin(m, w, h) {
+    const s = m.slice(), del = [];
+    const P = (x, y) => (x >= 0 && y >= 0 && x < w && y < h ? s[y * w + x] : 0);
+    for (let changed = true, pass = 0; changed && pass < 200; pass++) {
+      changed = false;
+      for (const step2 of [0, 1]) {
+        del.length = 0;
+        for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+          if (!s[y * w + x]) continue;
+          const p2 = P(x, y - 1), p3 = P(x + 1, y - 1), p4 = P(x + 1, y), p5 = P(x + 1, y + 1), p6 = P(x, y + 1), p7 = P(x - 1, y + 1), p8 = P(x - 1, y), p9 = P(x - 1, y - 1);
+          const B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9; if (B < 2 || B > 6) continue;
+          const seq = [p2, p3, p4, p5, p6, p7, p8, p9, p2]; let A = 0; for (let k = 0; k < 8; k++) if (!seq[k] && seq[k + 1]) A++;
+          if (A !== 1) continue;
+          if (step2 === 0 ? (p2 * p4 * p6 || p4 * p6 * p8) : (p2 * p4 * p8 || p2 * p6 * p8)) continue;
+          del.push(y * w + x);
         }
-        line = mids; band = true;
+        if (del.length) { changed = true; for (const i of del) s[i] = 0; }
       }
     }
-    line = smoothLoop(resample(line, Math.max(1, Math.min(w, h) / 200)), 4);
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const p of line) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
-    return { pts: line, band, bbox: { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 } };
+    return s;
+  }
+  const N8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  /* Removes skeleton branches shorter than `k` pixels (they are never part of a loop). */
+  function prune(s, w, h, k) {
+    const deg = i => { const x = i % w, y = (i / w) | 0; let n = 0; for (const [dx, dy] of N8) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && s[Y * w + X]) n++; } return n; };
+    for (let it = 0; it < k; it++) {
+      const ends = []; for (let i = 0; i < w * h; i++) if (s[i] && deg(i) <= 1) ends.push(i);
+      if (!ends.length) break; for (const i of ends) s[i] = 0;
+    }
+    return s;
+  }
+  /* Follows the skeleton as one closed curve, going straight on through crossings (bridges, figure-eights). */
+  function walk(s, w, h) {
+    const on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && s[y * w + x];
+    let start = -1, total = 0;
+    for (let i = 0; i < w * h; i++) if (s[i]) { total++; if (start < 0) { const x = i % w, y = (i / w) | 0; let n = 0; for (const [dx, dy] of N8) if (on(x + dx, y + dy)) n++; if (n === 2) start = i; } }
+    if (start < 0) return null;
+    const path = [{ x: start % w, y: (start / w) | 0 }], recent = new Map([[start, 0]]);
+    let dir = null;
+    for (let st = 1; st < total * 3; st++) {
+      const c = path[path.length - 1], back = path[Math.max(0, path.length - 8)];
+      if (path.length > 3) { const dx = c.x - back.x, dy = c.y - back.y, l = Math.hypot(dx, dy) || 1; dir = [dx / l, dy / l]; }
+      let best = null, bs = -Infinity;
+      for (const [dx, dy] of N8) {
+        const X = c.x + dx, Y = c.y + dy; if (!on(X, Y)) continue;
+        const k = Y * w + X, r = recent.get(k);
+        if (k === start && path.length > 40) return path;
+        if (r != null && path.length - r < 25) continue;
+        const sc = dir ? (dx * dir[0] + dy * dir[1]) / Math.hypot(dx, dy) : 0;
+        if (sc > bs) { bs = sc; best = { x: X, y: Y, k }; }
+      }
+      if (!best) {
+        // gap of one or two pixels at a crossing: jump ahead along the direction
+        let j = null;
+        if (dir) for (let d = 2; d <= 4 && !j; d++) { const X = Math.round(c.x + dir[0] * d), Y = Math.round(c.y + dir[1] * d); if (on(X, Y)) { const r = recent.get(Y * w + X); if (r == null || path.length - r >= 25) j = { x: X, y: Y, k: Y * w + X }; } }
+        if (!j) break; best = j;
+      }
+      if (Math.hypot(best.x - path[0].x, best.y - path[0].y) <= 2 && path.length > 40) return path;
+      recent.set(best.k, path.length); path.push({ x: best.x, y: best.y });
+    }
+    return path.length > 40 && Math.hypot(path[path.length - 1].x - path[0].x, path[path.length - 1].y - path[0].y) <= 6 ? path : null;
+  }
+  /* Lines across the track band (walls and lane dividers) → number of lanes. */
+  function laneCount(gray, mask, w, h, path, bw) {
+    const counts = [];
+    for (let k = 0; k < path.length; k += Math.max(1, Math.floor(path.length / 60))) {
+      const a = path[(k - 4 + path.length) % path.length], b = path[(k + 4) % path.length], c = path[k];
+      const l = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / l, ny = (b.x - a.x) / l;
+      const prof = [];
+      for (let t = -bw * 0.75; t <= bw * 0.75; t += 0.5) { const X = Math.round(c.x + nx * t), Y = Math.round(c.y + ny * t); if (X < 0 || Y < 0 || X >= w || Y >= h) continue; prof.push(gray[Y * w + X]); }
+      if (prof.length < 8) continue;
+      const sorted = prof.slice().sort((p, q) => p - q), hi = sorted[Math.floor(sorted.length * 0.7)], lo = sorted[0];
+      if (hi - lo < 25) continue;
+      const th = (hi + lo) / 2; let runs = 0, inRun = false;
+      for (const v of prof) { if (v < th && !inRun) { runs++; inRun = true; } else if (v >= th) inRun = false; }
+      counts.push(runs);
+    }
+    // only profiles that look like walls + dividers (3 lines = 2 lanes, 4 = 3 lanes); most frequent wins
+    const ok = counts.filter(c => c === 3 || c === 4);
+    if (ok.length < 5) return null;
+    const n4 = ok.filter(c => c === 4).length;
+    return n4 >= ok.length - n4 ? 3 : 2;
+  }
+  /*
+   * rgba: Uint8ClampedArray (w×h×4). The background is the most common colour on the border.
+   * The track is the largest shape that differs from it once the gaps between lanes are filled
+   * and thin things (grid, text) are removed. Its centre line is the skeleton of that band,
+   * followed as one loop; the band width (px) and the number of lanes give the scale.
+   */
+  function traceImage(rgba, w, h) {
+    const g = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) { const a = rgba[4 * i + 3] / 255; g[i] = Math.round((0.299 * rgba[4 * i] + 0.587 * rgba[4 * i + 1] + 0.114 * rgba[4 * i + 2]) * a + 255 * (1 - a)); }
+    // background colour: most common (quantised) colour along the border
+    const hist = new Map();
+    const addB = i => { const a = rgba[4 * i + 3]; const k = a < 128 ? -1 : ((rgba[4 * i] >> 3) << 10) | ((rgba[4 * i + 1] >> 3) << 5) | (rgba[4 * i + 2] >> 3); hist.set(k, (hist.get(k) || 0) + 1); };
+    for (let x = 0; x < w; x++) { addB(x); addB((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { addB(y * w); addB(y * w + w - 1); }
+    let bk = 0, bn = -1; for (const [k, n] of hist) if (n > bn) { bn = n; bk = k; }
+    const bg = bk < 0 ? [255, 255, 255] : [((bk >> 10) & 31) * 8 + 4, ((bk >> 5) & 31) * 8 + 4, (bk & 31) * 8 + 4];
+    const TH = 18; // colour distance from the background (0–441)
+    let fg = new Uint8Array(w * h), cnt = 0;
+    for (let i = 0; i < w * h; i++) {
+      const a = rgba[4 * i + 3] / 255, r = rgba[4 * i] * a + 255 * (1 - a), gg = rgba[4 * i + 1] * a + 255 * (1 - a), b = rgba[4 * i + 2] * a + 255 * (1 - a);
+      if (Math.hypot(r - bg[0], gg - bg[1], b - bg[2]) > TH) { fg[i] = 1; cnt++; }
+    }
+    if (cnt < w * h * 0.002) return { err: "empty" };
+    const rc = Math.max(2, Math.round(Math.min(w, h) / 90));
+    const closed = erode(dilate(fg, w, h, rc), w, h, rc);
+    // remove thin things (grid, text) if the track survives it
+    const bigOf = m => { const C = components(m, w, h, 1); if (!C.comps.length) return null; const b = C.comps.reduce((a, c) => c.area > a.area ? c : a); const o = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) if (C.lab[i] === b.id) o[i] = 1; return { m: o, area: b.area }; };
+    let shape = bigOf(closed);
+    if (!shape) return { err: "empty" };
+    const opened = bigOf(dilate(erode(closed, w, h, 2), w, h, 2));
+    if (opened && opened.area > shape.area * 0.6) shape = opened;
+    const S = shape.m;
+    // holes: does the shape enclose an area? (a loop of track does, a filled silhouette doesn't)
+    const H = components(S, w, h, 0), holes = H.comps.filter(c => !c.border).sort((a, b) => b.area - a.area);
+    const finish = (line, extra) => {
+      line = smoothLoop(resample(line, Math.max(1, Math.min(w, h) / 250)), 4);
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const p of line) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+      return Object.assign({ pts: line, bbox: { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 } }, extra);
+    };
+    if (holes.length && holes[0].area > shape.area * 0.05) {
+      const D = distance(S, w, h);
+      let sk = thin(S, w, h), maxD = 0;
+      for (let i = 0; i < w * h; i++) if (sk[i] && D[i] > maxD) maxD = D[i];
+      sk = prune(sk, w, h, Math.max(6, Math.round(maxD * 2.5)));
+      const path = walk(sk, w, h);
+      if (path) {
+        const ds = path.map(p => D[p.y * w + p.x]).sort((a, b) => a - b), bw = 2 * ds[Math.floor(ds.length / 2)];
+        return finish(path, { band: true, bw, lanes: bw >= 10 ? laneCount(g, S, w, h, path, bw) : null });
+      }
+    }
+    const outer = contour(S, w, h);
+    if (outer.length < 20) return { err: "empty" };
+    return finish(outer, { band: false, bw: 0, lanes: null });
   }
 
-  root.M4Trace = { close, fitPath, traceImage, step, residual, run, pieceOf, resample };
+  /*
+   * How much a sketch must be enlarged so that its tight bends can be built with curves of radius R:
+   * local bend radius along the line (turning angle over 10 cm), 20th percentile of the bends.
+   */
+  function sketchScale(pts, R) {
+    if (pts.length < 3) return 1;
+    const P = resample(pts, 20), n = P.length, k = 5, rs = [];
+    if (n < 4 * k) return 1;
+    for (let i = 0; i < n; i++) {
+      const a = P[(i - k + n) % n], b = P[i], c = P[(i + k) % n];
+      const t = Math.abs(norm((Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(b.y - a.y, b.x - a.x)) / DEG)) * DEG;
+      if (t > 0.12) rs.push(k * 20 / t);
+    }
+    if (rs.length < 5) return 1;
+    rs.sort((x, y) => x - y);
+    return Math.max(1, Math.min(12, R * 1.05 / rs[Math.floor(rs.length * 0.2)]));
+  }
+
+  root.M4Trace = { sketchScale, close, fitPath, traceImage, step, residual, run, pieceOf, resample };
 })(typeof window !== "undefined" ? window : globalThis);

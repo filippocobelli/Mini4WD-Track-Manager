@@ -88,12 +88,14 @@ keeping the special pieces (lane change, jumps, saddles, ramps…) roughly where
 ![Layout rebuilt from a picture](docs/screenshots/11-from-image.png)
 
 - **🗑 Clear** empties the plan first (the starting kit oval too); **↶ Undo** brings it back.
-- **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at real scale (each grid square is 10 cm).
+- **✏️ Draw**: draw the lap in the plan with the mouse or a finger, at any size: if its bends are tighter than the kit
+  curves (radius 48 cm) the drawing is enlarged as needed, and stays under the track scaled the same way.
   When you lift your finger the planner rebuilds it with kit pieces: straights and 45° curves that follow your line,
   the lane change on a straight stretch, and the loop closed exactly.
-- **🖼 Image**: upload a drawing or a plan of a layout (track dark on a light background, or the other way round).
-  The planner finds the track's centre line, scales it to the real width you enter and rebuilds it the same way;
-  the picture stays under the plan as a guide.
+- **🖼 Image**: upload a drawing, a plan or an export from an online track editor. The planner finds the track's centre
+  line (also through crossings and bridges), measures the track width and counts the lanes to get the **real scale**
+  (a 3-lane Tamiya layout is rebuilt at its real size as a 2-lane track), or uses the width you enter;
+  the picture stays under the plan as a guide. Crossings are flagged: they need a bridge.
 - The *Ideas* tab shows how far the result is from the drawing and how many pieces are left to print.
 
 ### 3D view

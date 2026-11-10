@@ -270,7 +270,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.4.0";
+const APP_VERSION="2.5.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -346,7 +346,7 @@ const PRESETS={
   rainbow:{name:["Ovale con rainbow","Rainbow oval"],desc:["Una curva a 180° sollevata con le rampe rainbow.","A 180° turn raised with the rainbow ramps."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
 function defaults(){return{name:L("Ovale del kit","Kit oval"),parts:defaultParts(),types:defaultTypes(),
-  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,imgW:0,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
+  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,fitScale:1,imgW:0,imgAuto:1,imgLanes:2,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
   for(const p of d.parts)if(!s.parts.find(x=>x.id===p.id))s.parts.push(p);
@@ -622,7 +622,7 @@ function refitShape(lay){
     cum+=len(e);
   }
   const target=st.sketch&&st.sketch.length>10?st.sketch:shapeLine(g);
-  const res=M4Trace.fitPath(target,solverCat(true),{require:req,start:{x:0,y:0,h:(st.settings.startH||0)*DEG},allowCustom:st.settings.fitCustom,tol:Math.min(st.settings.tol,1.5)});
+  const res=M4Trace.fitPath(target,solverCat(true),{require:req,start:{x:0,y:0,h:(st.settings.startH||0)*DEG},allowCustom:st.settings.fitCustom,tol:1});
   if(res.err||res.open)return null;
   return{items:res.items,dev:res.dev,custom:res.custom,kept:req.length};
 }
@@ -893,7 +893,7 @@ function renderTools(){
   $("#flip").disabled=!(ty&&ty.kind==="curve");$("#swap").disabled=sel==null||!swapOptions(sel).length;$("#flipv").disabled=!(ty&&ty.dz);
   $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;$("#clearall").disabled=!st.layout.length&&!OV.img&&!st.sketch;
   $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
-  $("#hint").textContent=drawMode?L("Disegna il giro in scala reale con un solo tratto (ogni quadretto è 10 cm), poi alza il dito: il planner lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap at real scale in one stroke (each grid square is 10 cm), then lift your finger: the planner rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: «Sostituisci» lo cambia (salto, sella, cambio corsia, curva sopraelevata…) e richiude la pista; i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: «Swap piece» changes it (jump, saddle, lane change, raised curve…) and closes the track again; new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
+  $("#hint").textContent=drawMode?L("Disegna il giro con un solo tratto, poi alza il dito: il planner lo porta in scala e lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap in one stroke, then lift your finger: the planner scales it and rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: «Sostituisci» lo cambia (salto, sella, cambio corsia, curva sopraelevata…) e richiude la pista; i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: «Swap piece» changes it (jump, saddle, lane change, raised curve…) and closes the track again; new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
     :L("Il triangolo giallo indica dove verrà agganciato il prossimo pezzo. Tocca un pezzo della pista per selezionarlo; trascina per spostare la vista.","The yellow triangle shows where the next piece will snap on. Tap a piece of the track to select it; drag to move the view.");
 }
 
@@ -1455,31 +1455,47 @@ function setDraw(on){
   renderTools();
 }
 // Runs the fit on a closed sketch (points in mm) and loads the result in the plan.
-function runFit(pts,src){
-  const lc=st.types.find(t=>t.kind==="lane");
-  const res=M4Trace.fitPath(pts,solverCat(true),{lc:st.settings.fitLC&&lc?{id:lc.id,len:lc.len}:null,allowCustom:st.settings.fitCustom,tol:Math.min(st.settings.tol,1.5)});
-  if(res.err){toast(res.err==="short"?L("Disegno troppo piccolo: la pista va disegnata in scala reale (ogni quadretto è 10 cm).","Drawing too small: draw the track at real scale (each grid square is 10 cm)."):L("Non riesco a ricostruire il tracciato con i pezzi.","I can't rebuild this layout with the pieces."));return false;}
+// opt.autoScale: the sketch is first enlarged so its bends suit the kit curves (a few scales are tried,
+// the one that follows the drawing best wins); the picture under it is scaled the same way.
+const scaleAbout=(pts,o,k)=>pts.map(p=>({x:o.x+(p.x-o.x)*k,y:o.y+(p.y-o.y)*k}));
+function runFit(pts,src,opt){
+  opt=opt||{};
+  const lc=st.types.find(t=>t.kind==="lane"),cat=solverCat(true),Rk=(cat.curve&&cat.curve.r)||480;
+  const k0=opt.autoScale?M4Trace.sketchScale(pts,Rk):1,ks=opt.autoScale&&k0>1.02?[k0,k0*1.15,k0*1.3]:[1];
+  let best=null,err="nofit";
+  for(const k of ks){
+    const P=k===1?pts:scaleAbout(pts,pts[0],k);
+    const r=M4Trace.fitPath(P,cat,{lc:st.settings.fitLC&&lc?{id:lc.id,len:lc.len}:null,allowCustom:st.settings.fitCustom,tol:1});
+    if(r.err){err=r.err;continue;}
+    const score=(r.open?1e6:0)+r.dev/Math.sqrt(k);
+    if(!best||score<best.score)best={res:r,k,score};
+  }
+  if(!best){toast(err==="short"?L("Disegno troppo piccolo: la pista va disegnata in scala reale (ogni quadretto è 10 cm).","Drawing too small: draw the track at real scale (each grid square is 10 cm)."):L("Non riesco a ricostruire il tracciato con i pezzi.","I can't rebuild this layout with the pieces."));return false;}
+  const res=best.res,K=best.k,o0=pts[0];
+  if(OV.img&&K!==1){const I=OV.img;OV.img={...I,x:o0.x+(I.x-o0.x)*K,y:o0.y+(I.y-o0.y)*K,w:I.w*K,h:I.h*K};if(IMG&&IMG.size)IMG.size={w:IMG.size.w*K,h:IMG.size.h*K};}
   const dx=-res.start.x,dy=-res.start.y;
   const sk=res.sketch.filter((_,i)=>i%3===0).map(p=>({x:Math.round(p.x+dx),y:Math.round(p.y+dy)}));
   if(OV.img){OV.img.x+=dx;OV.img.y+=dy;}
   if(IMG){IMG.ox=(IMG.ox||0)+dx;IMG.oy=(IMG.oy||0)+dy;}
   commit(()=>{st.layout=toLayout(res.items);st.sketch=sk;st.settings.startH=Math.round(res.start.h/DEG*100)/100;st.name=src==="image"?(IMG&&IMG.name)||L("Da immagine","From image"):L("Dal disegno","From drawing");sel=null;});
-  FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src};
+  FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src,cross:crossings(geom()),scale:K};
   tab="gen";render();fit();
   toast(res.open?L("Tracciato ricostruito, ma non si chiude: vedi «Riepilogo».","Layout rebuilt, but it doesn't close: see «Summary»."):L(`Tracciato ricostruito con ${res.items.length} pezzi`,`Layout rebuilt with ${res.items.length} pieces`));
   return true;
 }
-// Image: the centre line is found in a reduced copy (max 500 px), then scaled to the real width.
+// Image: the centre line is found in a reduced copy (max 900 px), then scaled from the track width
+// in the picture (2 or 3 lanes) or from the real width the user enters.
 function importImage(href,name){
   const im=new Image();
   im.onload=()=>{
-    const k=Math.min(1,500/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*k)),h=Math.max(1,Math.round(im.height*k));
+    const k=Math.min(1,900/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*k)),h=Math.max(1,Math.round(im.height*k));
     const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);
     let d;try{d=x.getImageData(0,0,w,h).data;}catch(e){toast(L("Non riesco a leggere l'immagine.","I can't read the image."));return;}
     const tr=M4Trace.traceImage(d,w,h);
     if(tr.err){toast(L("Non trovo un tracciato nell'immagine: serve un disegno con la pista ben visibile sullo sfondo.","I can't find a layout in the image: it needs a drawing with the track clearly visible on the background."));return;}
     IMG={href,name:(name||"").replace(/\.[^.]+$/,""),w,h,tr};
-    if(!st.settings.imgW)st.settings.imgW=Math.round(+st.settings.roomW||300);
+    const auto=tr.band&&tr.bw>=10;
+    commit(()=>{st.settings.imgAuto=1;if(tr.lanes)st.settings.imgLanes=tr.lanes;if(!st.settings.imgW)st.settings.imgW=Math.round(+st.settings.roomW||300);});
     fitImage();
   };
   im.onerror=()=>toast(L("Formato immagine non supportato.","Image format not supported."));
@@ -1487,9 +1503,20 @@ function importImage(href,name){
 }
 function fitImage(){
   if(!IMG)return;
-  const tr=IMG.tr,sc=st.settings.imgW*10/Math.max(1,tr.bbox.w),ox=-tr.bbox.x0*sc,oy=-tr.bbox.y0*sc;
+  const tr=IMG.tr,auto=st.settings.imgAuto&&tr.bw>=10;
+  // real width of the track band in the picture: 2 lanes = this track, 3 lanes = Tamiya 3-lane (3 × 115 mm + walls ≈ 360 mm)
+  const sc=auto?(st.settings.imgLanes===3?360:st.settings.width)/tr.bw:st.settings.imgW*10/Math.max(1,tr.bbox.w),ox=-tr.bbox.x0*sc,oy=-tr.bbox.y0*sc;
+  IMG.size={w:tr.bbox.w*sc,h:tr.bbox.h*sc};if(auto)st.settings.imgW=Math.round(tr.bbox.w*sc/10);
   OV.img={href:IMG.href,x:ox,y:oy,w:IMG.w*sc,h:IMG.h*sc};IMG.ox=0;IMG.oy=0;
-  runFit(tr.pts.map(p=>({x:p.x*sc+ox,y:p.y*sc+oy})),"image");
+  runFit(tr.pts.map(p=>({x:p.x*sc+ox,y:p.y*sc+oy})),"image",{autoScale:!auto&&!!st.settings.imgAuto&&!!st.settings.fitScale});
+}
+// Points where the track runs over itself (needs a bridge): non-adjacent segments of the centre line that cross.
+function crossings(g){
+  const P=shapeLine(g);P.push(P[0]);let n=0;const seg=[];
+  for(let i=0;i+1<P.length;i++)seg.push([P[i],P[i+1]]);
+  const X=(a,b,c,d)=>{const d1=(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x),d2=(b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x),d3=(d.x-c.x)*(a.y-c.y)-(d.y-c.y)*(a.x-c.x),d4=(d.x-c.x)*(b.y-c.y)-(d.y-c.y)*(b.x-c.x);return d1*d2<0&&d3*d4<0;};
+  for(let i=0;i<seg.length;i++)for(let j=i+3;j<seg.length;j++){if(i===0&&j>=seg.length-2)continue;if(X(seg[i][0],seg[i][1],seg[j][0],seg[j][1]))n++;}
+  return n;
 }
 function paneFit(){
   const lc=st.types.find(t=>t.kind==="lane");
@@ -1498,18 +1525,26 @@ function paneFit(){
   <div class="btns"><button class="btn primary" data-act="draw">✏️ ${L("Disegna nella pianta","Draw in the plan")}</button><button class="btn" data-act="img">🖼 ${L("Carica immagine","Upload image")}</button>${OV.img||st.sketch?`<button class="btn" data-act="ovl-clear">${L("Nascondi disegno","Hide drawing")}</button>`:""}</div>
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
     <label class="check" for="f-lc"><input type="checkbox" id="f-lc" data-set="fitLC" ${st.settings.fitLC?"checked":""} ${lc?"":"disabled"}> ${L("Metti il cambio corsia su un tratto dritto","Put the lane change on a straight stretch")}</label>
+    <label class="check" for="f-fs"><input type="checkbox" id="f-fs" data-set="fitScale" ${st.settings.fitScale?"checked":""}> ${L("Adatta la scala del disegno alle curve del kit","Fit the drawing's scale to the kit curves")}</label>
     <label class="check" for="f-cu"><input type="checkbox" id="f-cu" data-set="fitCustom" ${st.settings.fitCustom?"checked":""}> ${L("Per chiudere il giro usa anche pezzi su misura (Officina)","Use made-to-measure pieces (Workshop) to close the loop")}</label>
   </div>`;
-  if(IMG)h+=`<div class="form" style="margin-top:10px"><label for="f-iw">${L("Larghezza reale del tracciato nell'immagine (cm)","Real width of the layout in the image (cm)")}<input type="number" id="f-iw" data-set="imgW" min="50" value="${st.settings.imgW}"></label></div>`;
+  if(IMG){const canAuto=IMG.tr.bw>=10,auto=st.settings.imgAuto&&canAuto;
+    h+=`<div class="form" style="margin-top:10px">
+      <label for="f-sc">${L("Scala","Scale")}<select id="f-sc" data-set="imgAuto"><option value="1" ${st.settings.imgAuto?"selected":""}>${canAuto?L("Automatica: dalla larghezza della pista","Automatic: from the track width"):L("Automatica: adatta alle curve del kit","Automatic: fit to the kit curves")}</option><option value="0" ${auto?"":"selected"}>${L("Larghezza del tracciato in cm","Width of the layout in cm")}</option></select></label>
+      ${auto?`<label for="f-ln">${L("Corsie della pista nell'immagine","Lanes of the track in the image")}<select id="f-ln" data-set="imgLanes"><option value="2" ${st.settings.imgLanes!==3?"selected":""}>2</option><option value="3" ${st.settings.imgLanes===3?"selected":""}>3 (Tamiya)</option></select></label>`
+      :st.settings.imgAuto?"":`<label for="f-iw">${L("Larghezza reale del tracciato (cm)","Real width of the layout (cm)")}<input type="number" id="f-iw" data-set="imgW" min="50" value="${st.settings.imgW}"></label>`}</div>
+    <p class="note" style="margin-top:4px">${IMG.size?L(`Tracciato nell'immagine: circa ${nf(IMG.size.w/1000,1)} × ${nf(IMG.size.h/1000,1)} m`,`Layout in the image: about ${nf(IMG.size.w/1000,1)} × ${nf(IMG.size.h/1000,1)} m`):""}${auto&&IMG.tr.lanes?L(` · ${IMG.tr.lanes} corsie rilevate`,` · ${IMG.tr.lanes} lanes detected`):""}.</p>`;}
   if(FIT){
     const need=bom(),miss=Object.entries(need).reduce((a,[k,n])=>a+Math.max(0,n-(+st.owned[k]||0)),0);
     h+=`<div class="status ${FIT.open?"warn":"ok"}" style="margin-top:10px"><div><b>${FIT.open?L("Ricostruito, ma aperto","Rebuilt, but open"):L(`Ricostruito con ${FIT.n} pezzi`,`Rebuilt with ${FIT.n} pieces`)}</b><p>${L(`Scarto medio dal ${FIT.src==="image"?"tracciato dell'immagine":"disegno"}: ${nf(FIT.dev/10,1)} cm.`,`Average distance from the ${FIT.src==="image"?"image layout":"drawing"}: ${nf(FIT.dev/10,1)} cm.`)}
       ${FIT.custom?L(` ${FIT.custom} pezz${FIT.custom>1?"i":"o"} su misura (★) per chiudere il giro.`,` ${FIT.custom} made-to-measure piece${FIT.custom>1?"s":""} (★) to close the loop.`):""}
+      ${FIT.scale>1.05?L(` Disegno ingrandito ×${nf(FIT.scale,1)} perché ci stessero le curve del kit (raggio ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`,` Drawing enlarged ×${nf(FIT.scale,1)} so the kit curves fit (radius ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`):""}
+      ${FIT.cross?L(` Il tracciato passa sopra se stesso in ${FIT.cross} punt${FIT.cross>1?"i":"o"}: lì serve un ponte (rampe e supporti), da aggiungere con «Sostituisci» o a mano.`,` The layout runs over itself at ${FIT.cross} point${FIT.cross>1?"s":""}: a bridge is needed there (ramps and supports), add it with «Swap piece» or by hand.`):""}
       ${st.settings.fitLC&&lc&&!FIT.lc?L(" Nessun tratto dritto lungo come il cambio corsia: aggiungilo a mano."," No straight stretch as long as the lane change: add it by hand."):""}
       ${miss?L(` Da stampare: <b style="display:inline">${miss}</b> pezzi oltre a quelli in magazzino.`,` To print: <b style="display:inline">${miss}</b> pieces beyond those in stock.`):L(" Hai già tutti i pezzi."," You already have every piece.")}</p>
       <div class="btns" style="margin-top:8px"><button class="btn" data-act="go-bom">${L("Pezzi da stampare","Pieces to print")}</button></div></div></div>`;
   }
-  return h+`<p class="note" style="margin-top:8px">${L("Disegna in scala reale: ogni quadretto della griglia è 10 cm e le curve del kit hanno un raggio di circa 48 cm. Per le immagini funzionano meglio piante e disegni con la pista scura su fondo chiaro (o il contrario).","Draw at real scale: each grid square is 10 cm and the kit curves have a radius of about 48 cm. For images, plans and drawings with a dark track on a light background (or the other way round) work best.")}</p></div>`;
+  return h+`<p class="note" style="margin-top:8px">${L("Puoi disegnare a qualsiasi dimensione: se le curve sono più strette di quelle del kit (raggio 48 cm, ogni quadretto è 10 cm) il disegno viene ingrandito quanto serve. Per le immagini vanno bene disegni, piante ed esportazioni degli editor di piste, con la pista ben distinta dallo sfondo.","You can draw at any size: if the bends are tighter than the kit curves (radius 48 cm, each grid square is 10 cm) the drawing is enlarged as needed. For images, drawings, plans and exports from track editors work, with the track clearly distinct from the background.")}</p></div>`;
 }
 
 /* ---------- actions ---------- */
@@ -1546,7 +1581,7 @@ pane.addEventListener("change",e=>{
   if(el.dataset.rf){commit(()=>{st.settings.rnd.feat[el.dataset.rf]=el.checked;});}
   else if(el.dataset.rsrc){commit(()=>{st.settings.rnd.src=v;});}
   else if(el.type==="checkbox"&&el.dataset.set){commit(()=>{st.settings[el.dataset.set]=el.checked;genRes=null;});}
-  else if(el.dataset.set){commit(()=>{st.settings[el.dataset.set]=v===""?0:+v;if(/^room/.test(el.dataset.set))genRes=null;});if(el.dataset.set==="imgW"&&IMG&&+v>=50)fitImage();}
+  else if(el.dataset.set){commit(()=>{st.settings[el.dataset.set]=v===""?0:+v;if(/^room/.test(el.dataset.set))genRes=null;});if(IMG&&((el.dataset.set==="imgW"&&+v>=50)||el.dataset.set==="imgAuto"||el.dataset.set==="imgLanes"))fitImage();}
   else if(el.dataset.own){commit(()=>{setOwned(el.dataset.own,v,"Modifica manuale");});}
   else if(el.dataset.type){const t=st.types.find(x=>x.id===el.dataset.type);if(t&&+v>0)commit(()=>{t[el.dataset.k]=+v;});else render();}
   else if(el.dataset.part){const p=st.parts.find(x=>x.id===el.dataset.part);if(p)commit(()=>{p[el.dataset.k]=Math.max(0,+v||0);});}
@@ -1641,7 +1676,7 @@ function endPtr(e){
   if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
   if(ptrs.size===0&&gest&&gest.draw){
     const pts=gest.draw;gest=null;if(live){live.remove();live=null;}
-    if(e.type==="pointerup"&&pts.length>5){IMG=null;OV={img:null};if(runFit(pts,"draw"))setDraw(false);}
+    if(e.type==="pointerup"&&pts.length>5){IMG=null;OV={img:null};if(runFit(pts,"draw",{autoScale:!!st.settings.fitScale}))setDraw(false);}
     return;
   }
   if(ptrs.size===0&&gest){

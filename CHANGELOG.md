@@ -5,6 +5,24 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.5.0] - 2026-11-10
+
+**Pictures of layouts from track editors.**
+
+- New image tracer: it finds the whole track band even when it is light grey on a light background, with a grid,
+  coloured sections and text around it (e.g. exports from online Mini4WD track editors), and follows its centre line
+  as one loop, straight on through crossings and bridges.
+- **Automatic scale**: the planner measures the track width in the picture and counts the lanes (2, or 3 like the
+  Tamiya Japan Cup Jr. circuit, 115 mm lanes): a 3-lane layout is rebuilt at its real size as a 2-lane track.
+  The lanes and a manual width can still be set in *Ideas*.
+- **Drawings get a scale too**: if the bends of a hand drawing (or of a line drawing in a picture) are tighter than
+  the kit curves (radius 48 cm), the drawing is enlarged as needed; a few nearby scales are tried and the one that
+  follows the drawing best wins. The drawing under the track is scaled the same way, so they line up.
+  Option *Fit the drawing's scale to the kit curves* in *Ideas* (on by default).
+- Crossings are reported: where the layout runs over itself it needs a bridge (ramps and supports).
+- The rebuild never starts on a crossing and refuses closings that stray far from the picture.
+- Pictures are processed at up to 900 px (was 500) for more detail.
+
 ## [2.4.0] - 2026-11-10
 
 **Re-close the track following its shape.**

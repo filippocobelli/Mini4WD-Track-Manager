@@ -86,12 +86,14 @@ tenendo i pezzi speciali (cambio corsia, salti, selle, rampe…) più o meno dov
 ![Tracciato ricostruito da un'immagine](docs/screenshots/it/11-from-image.png)
 
 - **🗑 Svuota** libera la pianta (anche l'ovale del kit di partenza); **↶ Annulla** la riporta indietro.
-- **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, in scala reale (ogni quadretto è 10 cm).
+- **✏️ Disegna**: disegna il giro nella pianta con il mouse o con il dito, di qualsiasi dimensione: se le curve sono più
+  strette di quelle del kit (raggio 48 cm) il disegno viene ingrandito quanto serve e resta sotto la pista alla stessa scala.
   Quando alzi il dito il planner lo ricostruisce con i pezzi del kit: rettilinei e curve da 45° che seguono la tua linea,
   il cambio corsia su un tratto dritto e il giro chiuso con precisione.
-- **🖼 Immagine**: carica il disegno o la pianta di un tracciato (pista scura su fondo chiaro, o il contrario).
-  Il planner trova la linea centrale, la porta alla larghezza reale che indichi e la ricostruisce allo stesso modo;
-  l'immagine resta sotto la pianta come guida.
+- **🖼 Immagine**: carica un disegno, una pianta o l'esportazione di un editor di piste online. Il planner trova la linea
+  centrale (anche negli incroci e sui ponti), misura la larghezza della pista e conta le corsie per avere la **scala reale**
+  (un tracciato Tamiya a 3 corsie viene ricostruito alle sue misure reali come pista a 2 corsie), oppure usa la larghezza
+  che indichi; l'immagine resta sotto la pianta come guida. Gli incroci vengono segnalati: lì serve un ponte.
 - La scheda *Idee* mostra quanto il risultato si discosta dal disegno e quanti pezzi restano da stampare.
 
 ### Vista 3D
