@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.6.0] - 2026-11-10
+
+**Bridges where the track crosses itself.**
+
+- If a drawn or imported layout runs over itself, the planner now **builds the bridge**: one pass is lifted over the
+  other, the straights just before and after the crossing become a made-to-measure ramp up and ramp down (★) of the
+  same length, so the track stays closed, and the supports underneath are counted.
+  It picks the pass with the gentlest ramps and the shortest raised section, and avoids lifting the lane change.
+- Then it **checks** and tells you: clearance under the bridge, ramp slope, track still closed.
+- **🌉 Build bridges** in *Summary* for any crossing at the same level (also on tracks built by hand);
+  option *Where the layout crosses itself build a bridge* in *Ideas* (on by default).
+- The plan draws raised pieces over the ones below them.
+
 ## [2.5.0] - 2026-11-10
 
 **Pictures of layouts from track editors.**

@@ -270,7 +270,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.5.0";
+const APP_VERSION="2.6.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -346,7 +346,7 @@ const PRESETS={
   rainbow:{name:["Ovale con rainbow","Rainbow oval"],desc:["Una curva a 180° sollevata con le rampe rainbow.","A 180° turn raised with the rainbow ramps."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
 function defaults(){return{name:L("Ovale del kit","Kit oval"),parts:defaultParts(),types:defaultTypes(),
-  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,fitScale:1,imgW:0,imgAuto:1,imgLanes:2,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
+  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,fitScale:1,autoBridge:1,imgW:0,imgAuto:1,imgLanes:2,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
   for(const p of d.parts)if(!s.parts.find(x=>x.id===p.id))s.parts.push(p);
@@ -636,7 +636,8 @@ function doRefit(){
   const r=refitShape(st.layout);
   if(!r){toast(L("Non riesco a richiuderla seguendo la forma: prova a togliere qualche pezzo speciale.","I can't close it following the shape: try removing some special pieces."));return;}
   commit(()=>{st.layout=toLayout(r.items);sel=null;});
-  LASTREP=null;if(FIT)FIT={...FIT,n:r.items.length,open:false,dev:r.dev,custom:r.custom,lc:true};
+  LASTREP=null;let br=null;if(st.settings.autoBridge&&crossings(geom()))br=autoBridge();
+  if(FIT)FIT={...FIT,n:st.layout.length,open:false,dev:r.dev,custom:r.custom,lc:true,bridges:br,cross:br?br.left:crossings(geom())};
   toast(L(`Pista ricostruita e chiusa: ${r.items.length} pezzi, ${r.kept} pezzi speciali mantenuti.`,`Track rebuilt and closed: ${r.items.length} pieces, ${r.kept} special pieces kept.`));
 }
 
@@ -705,7 +706,7 @@ function renderSVG(){
   if(OV.img||st.sketch){s+=`<g class="ovl">`;if(OV.img){const I=OV.img;s+=`<image href="${I.href}" x="${I.x.toFixed(1)}" y="${I.y.toFixed(1)}" width="${I.w.toFixed(1)}" height="${I.h.toFixed(1)}" opacity=".4" preserveAspectRatio="none"/>`;}
     if(st.sketch)s+=`<path class="sketch fit" d="M${st.sketch.map(f).join("L")}Z"/>`;s+=`</g>`;}
   if(!G.els.length) s+=`<text class="empty" x="0" y="-${w+60}">${L("Tocca un pezzo qui sotto per iniziare","Tap a piece below to start")}</text>`;
-  for(const e of G.els){
+  for(const e of G.els.slice().sort((a,b)=>(a.z0+a.z1)-(b.z0+b.z1))){
     const isSel=e.i===sel, a=e.flip?"l2":"l1", b=e.flip?"l1":"l2", elev=Math.max(e.z0,e.z1)>0.5;
     s+=`<g data-i="${e.i}" class="${isSel?"sel ":""}${elev?"elev":""}" style="cursor:pointer"><path class="body" d="${band(e,-w,w)}"/>`;
     if(e.t.kind==="lane"){
@@ -915,6 +916,8 @@ function paneSum(){
   else if(an.closed){cls="warn";title=L("Chiuso, ma sfasato","Closed, but offset");txt=L(`Si chiude entro la tolleranza di ${st.settings.tol} mm, ma l'ultimo giunto non combacia: ${off}. Le clip possono assorbirlo; per un giunto preciso:`,`It closes within the ${st.settings.tol} mm tolerance, but the last joint doesn't line up: ${off}. The clips can take it up; for a precise joint:`);}
   else if(an.near){cls="warn";title=L("Quasi chiuso","Almost closed");txt=L(`Mancano ${off}: forse si chiude con il gioco delle clip.`,`Missing ${off}: the play in the clips may close it.`)+zmsg;}
   let h=paneSwap()+`<div class="status ${cls}"><div><b>${title}</b><p>${txt}</p>`;
+  const ncr=g.els.length>3?crossings(g):0;
+  if(ncr)h+=`<p style="margin-top:8px">${L(`Il tracciato si incrocia in ${ncr} punt${ncr>1?"i":"o"} allo stesso livello.`,`The layout crosses itself at the same level at ${ncr} point${ncr>1?"s":""}.`)}</p><div class="btns" style="margin-top:6px"><button class="btn primary" data-act="bridge">🌉 ${L("Crea i ponti","Build bridges")}</button></div>`;
   const opts=g.els.length&&!an.exact?closeOptions(g):[];
   window._sugg=opts;
   if(g.els.length>=3&&!an.exact){const sp=g.els.filter(e=>isSpecial(e.t)).length;
@@ -1479,6 +1482,7 @@ function runFit(pts,src,opt){
   if(IMG){IMG.ox=(IMG.ox||0)+dx;IMG.oy=(IMG.oy||0)+dy;}
   commit(()=>{st.layout=toLayout(res.items);st.sketch=sk;st.settings.startH=Math.round(res.start.h/DEG*100)/100;st.name=src==="image"?(IMG&&IMG.name)||L("Da immagine","From image"):L("Dal disegno","From drawing");sel=null;});
   FIT={n:res.items.length,open:res.open,dev:res.dev,custom:res.custom,lc:res.lc,src,cross:crossings(geom()),scale:K};
+  if(FIT.cross&&st.settings.autoBridge){FIT.bridges=autoBridge();FIT.cross=FIT.bridges.left;FIT.n=st.layout.length;}
   tab="gen";render();fit();
   toast(res.open?L("Tracciato ricostruito, ma non si chiude: vedi «Riepilogo».","Layout rebuilt, but it doesn't close: see «Summary»."):L(`Tracciato ricostruito con ${res.items.length} pezzi`,`Layout rebuilt with ${res.items.length} pieces`));
   return true;
@@ -1510,14 +1514,79 @@ function fitImage(){
   OV.img={href:IMG.href,x:ox,y:oy,w:IMG.w*sc,h:IMG.h*sc};IMG.ox=0;IMG.oy=0;
   runFit(tr.pts.map(p=>({x:p.x*sc+ox,y:p.y*sc+oy})),"image",{autoScale:!auto&&!!st.settings.imgAuto&&!!st.settings.fitScale});
 }
-// Points where the track runs over itself (needs a bridge): non-adjacent segments of the centre line that cross.
-function crossings(g){
-  const P=shapeLine(g);P.push(P[0]);let n=0;const seg=[];
-  for(let i=0;i+1<P.length;i++)seg.push([P[i],P[i+1]]);
-  const X=(a,b,c,d)=>{const d1=(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x),d2=(b.x-a.x)*(d.y-a.y)-(b.y-a.y)*(d.x-a.x),d3=(d.x-c.x)*(a.y-c.y)-(d.y-c.y)*(a.x-c.x),d4=(d.x-c.x)*(b.y-c.y)-(d.y-c.y)*(b.x-c.x);return d1*d2<0&&d3*d4<0;};
-  for(let i=0;i<seg.length;i++)for(let j=i+3;j<seg.length;j++){if(i===0&&j>=seg.length-2)continue;if(X(seg[i][0],seg[i][1],seg[j][0],seg[j][1]))n++;}
-  return n;
+/* ---------- bridges where the track crosses itself ---------- */
+const elLen=e=>e.t.kind==="curve"?e.R*e.a:e.L;
+// Where the centre line crosses itself: the two passes (element, position along it, height) and the angle.
+function crossList(g){
+  const segs=[];let cum=0;
+  for(const e of g.els){const L=elLen(e),n=e.t.kind==="curve"?Math.max(2,Math.round(e.t.ang/5)):4;let pu=0,pp=pointAt(e,0,0);
+    for(let k=1;k<=n;k++){const u=k/n,q=pointAt(e,u,0);segs.push({a:pp,b:q,e,u0:pu,u1:u,s0:cum+L*pu,s1:cum+L*u});pu=u;pp=q;}cum+=L;}
+  const tot=cum,out=[];
+  for(let i=0;i<segs.length;i++)for(let j=i+1;j<segs.length;j++){
+    const A=segs[i],B=segs[j],ds=Math.abs(A.s0-B.s0);if(ds<600||tot-ds<600)continue;
+    const rx=A.b.x-A.a.x,ry=A.b.y-A.a.y,qx=B.b.x-B.a.x,qy=B.b.y-B.a.y,den=rx*qy-ry*qx;if(Math.abs(den)<1e-9)continue;
+    const t=((B.a.x-A.a.x)*qy-(B.a.y-A.a.y)*qx)/den,u=((B.a.x-A.a.x)*ry-(B.a.y-A.a.y)*rx)/den;if(t<0||t>1||u<0||u>1)continue;
+    const ua=A.u0+(A.u1-A.u0)*t,ub=B.u0+(B.u1-B.u0)*u,sa=A.s0+(A.s1-A.s0)*t,sb=B.s0+(B.s1-B.s0)*u;
+    if(out.some(c=>Math.abs(c.sa-sa)<400&&Math.abs(c.sb-sb)<400))continue;
+    const ang=Math.abs(Math.atan2(rx*qy-ry*qx,rx*qx+ry*qy));
+    out.push({sa,sb,ea:A.e.i,eb:B.e.i,za:zAt(A.e,ua),zb:zAt(B.e,ub),ang,x:A.a.x+rx*t,y:A.a.y+ry*t});
+  }
+  return out;
 }
+const BRIDGE_CLEAR=60; // mm between the two passes for the cars to go under
+const isBridged=c=>Math.abs(c.za-c.zb)>=BRIDGE_CLEAR;
+function crossings(g){return crossList(g).filter(c=>!isBridged(c)).length;}
+// Lifts one pass over the other: the straights just before and just after the crossing become a made-to-measure
+// ramp up and a ramp down of the same length (the track stays closed), everything between them is raised.
+function bridgeAt(lay,c,upper){
+  const g=geom(lay),els=g.els,n=els.length,W=st.settings.width;
+  const sX=upper?c.sb:c.sa,sY=upper?c.sa:c.sb,zX=upper?c.zb:c.za,zY=upper?c.za:c.zb;
+  const ramp=st.types.find(t=>t.prof==="ramp"&&t.dz&&!t.gen),h=Math.max(BRIDGE_CLEAR+15,ramp?ramp.dz:75)+Math.max(0,zY-zX);
+  const sin=Math.max(0.35,Math.sin(c.ang)),hw=W/2/sin+W/2+40;
+  const cum=[];let t=0;for(const e of els){cum.push([t,t+elLen(e)]);t+=elLen(e);}
+  const plain=i=>i>=0&&i<n&&plainStraight(els[i].t);
+  let i=-1;for(let k=n-1;k>=0;k--)if(cum[k][1]<=sX-hw){i=k;break;}
+  while(i>=0&&!plain(i)&&cum[i][1]>sX-hw-2500)i--;
+  if(!plain(i))return null;
+  const up=[i];let Lu=elLen(els[i]);while(up.length<3&&Lu<300&&plain(up[0]-1)){up.unshift(up[0]-1);Lu+=elLen(els[up[0]]);}
+  let j=-1;for(let k=0;k<n;k++)if(cum[k][0]>=sX+hw){j=k;break;}
+  while(j>=0&&j<n&&!plain(j)&&cum[j][0]<sX+hw+2500)j++;
+  if(!plain(j))return null;
+  const dn=[j];let Ld=elLen(els[j]);while(dn.length<3&&Ld<300&&plain(dn[dn.length-1]+1)){dn.push(dn[dn.length-1]+1);Ld+=elLen(els[dn[dn.length-1]]);}
+  if(up[up.length-1]>=dn[0])return null;
+  if(sY>cum[up[0]][0]-50&&sY<cum[dn[dn.length-1]][1]+50)return null; // the other pass must stay down
+  let lc=false;for(let k=up[0];k<=dn[dn.length-1];k++)if(els[k].t.kind==="lane")lc=true;
+  const l2=lay.map(x=>({...x})),R1=Math.round(h*10)/10;
+  l2.splice(dn[0],dn.length,{gen:{type:"ramp",L:Math.round(Ld*10)/10,h:R1},v:-1});
+  l2.splice(up[0],up.length,{gen:{type:"ramp",L:Math.round(Lu*10)/10,h:R1},v:1});
+  const span=cum[dn[0]][0]-cum[up[up.length-1]][1];
+  return{lay:l2,Lu,Ld,h:R1,clear:zX+R1-zY,slope:R1/Math.min(Lu,Ld),span,cost:R1/Math.min(Lu,Ld)*100+span/400+(lc?30:0)};
+}
+// Builds a bridge at every crossing that hasn't got one (one Undo step). Returns what was done.
+function autoBridge(){
+  const made=[],failed=[];
+  commit(()=>{
+    for(let it=0;it<6;it++){
+      const g=geom(),todo=crossList(g).filter(c=>!isBridged(c)&&!failed.some(f=>Math.hypot(f.x-c.x,f.y-c.y)<300));
+      if(!todo.length)break;
+      const c=todo[0],opts=[bridgeAt(st.layout,c,false),bridgeAt(st.layout,c,true)].filter(Boolean).sort((a,b)=>a.cost-b.cost);
+      if(!opts.length){failed.push(c);continue;}
+      st.layout=toLayout(opts[0].lay);const{lay:_l,...info}=opts[0];made.push(info);
+    }
+  });
+  const an=analyse(geom());
+  return{made,failed:failed.length,exact:an.exact&&Math.abs(an.dzEnd)<1,left:crossings(geom())};
+}
+function bridgeText(b){
+  if(!b||(!b.made.length&&!b.failed))return "";
+  let t="";
+  if(b.made.length){const sl=Math.max(...b.made.map(m=>m.slope)),h=Math.min(...b.made.map(m=>m.clear)),Lm=Math.min(...b.made.map(m=>Math.min(m.Lu,m.Ld)));
+    t+=L(` ${b.made.length===1?"Creato un ponte":`Creati ${b.made.length} ponti`} sull'incrocio: due rampe su misura (★) da ${nf(Lm)} mm prima e dopo, alte ${nf(b.made[0].h/10,1)} cm, con i supporti sotto. Verifica: passaggio libero ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · pendenza ${nf(sl*100)}% ${sl<=0.32?"✓":"(ripida: allunga i rettilinei vicini)"} · pista ${b.exact?"chiusa ✓":"aperta ✗"}.`,
+      ` ${b.made.length===1?"Built a bridge":`Built ${b.made.length} bridges`} at the crossing: two made-to-measure ramps (★) of ${nf(Lm)} mm before and after, ${nf(b.made[0].h/10,1)} cm high, with supports underneath. Check: clearance ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · slope ${nf(sl*100)}% ${sl<=0.32?"✓":"(steep: lengthen the straights around it)"} · track ${b.exact?"closed ✓":"open ✗"}.`);}
+  if(b.left)t+=L(` ${b.left} incroc${b.left>1?"i":"io"} senza ponte: lì non ci sono rettilinei vicini per le rampe, aggiungili o sposta l'incrocio.`,` ${b.left} crossing${b.left>1?"s":""} without a bridge: there are no straights nearby for the ramps, add some or move the crossing.`);
+  return t;
+}
+
 function paneFit(){
   const lc=st.types.find(t=>t.kind==="lane");
   let h=`<div><h2>${L("Da disegno o immagine","From a drawing or an image")}</h2>
@@ -1526,6 +1595,7 @@ function paneFit(){
   <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
     <label class="check" for="f-lc"><input type="checkbox" id="f-lc" data-set="fitLC" ${st.settings.fitLC?"checked":""} ${lc?"":"disabled"}> ${L("Metti il cambio corsia su un tratto dritto","Put the lane change on a straight stretch")}</label>
     <label class="check" for="f-fs"><input type="checkbox" id="f-fs" data-set="fitScale" ${st.settings.fitScale?"checked":""}> ${L("Adatta la scala del disegno alle curve del kit","Fit the drawing's scale to the kit curves")}</label>
+    <label class="check" for="f-br"><input type="checkbox" id="f-br" data-set="autoBridge" ${st.settings.autoBridge?"checked":""}> ${L("Dove il tracciato si incrocia crea un ponte (rampe e supporti)","Where the layout crosses itself build a bridge (ramps and supports)")}</label>
     <label class="check" for="f-cu"><input type="checkbox" id="f-cu" data-set="fitCustom" ${st.settings.fitCustom?"checked":""}> ${L("Per chiudere il giro usa anche pezzi su misura (Officina)","Use made-to-measure pieces (Workshop) to close the loop")}</label>
   </div>`;
   if(IMG){const canAuto=IMG.tr.bw>=10,auto=st.settings.imgAuto&&canAuto;
@@ -1539,7 +1609,7 @@ function paneFit(){
     h+=`<div class="status ${FIT.open?"warn":"ok"}" style="margin-top:10px"><div><b>${FIT.open?L("Ricostruito, ma aperto","Rebuilt, but open"):L(`Ricostruito con ${FIT.n} pezzi`,`Rebuilt with ${FIT.n} pieces`)}</b><p>${L(`Scarto medio dal ${FIT.src==="image"?"tracciato dell'immagine":"disegno"}: ${nf(FIT.dev/10,1)} cm.`,`Average distance from the ${FIT.src==="image"?"image layout":"drawing"}: ${nf(FIT.dev/10,1)} cm.`)}
       ${FIT.custom?L(` ${FIT.custom} pezz${FIT.custom>1?"i":"o"} su misura (★) per chiudere il giro.`,` ${FIT.custom} made-to-measure piece${FIT.custom>1?"s":""} (★) to close the loop.`):""}
       ${FIT.scale>1.05?L(` Disegno ingrandito ×${nf(FIT.scale,1)} perché ci stessero le curve del kit (raggio ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`,` Drawing enlarged ×${nf(FIT.scale,1)} so the kit curves fit (radius ${nf(((st.types.find(t=>t.id==="C45")||{}).r||480)/10)} cm).`):""}
-      ${FIT.cross?L(` Il tracciato passa sopra se stesso in ${FIT.cross} punt${FIT.cross>1?"i":"o"}: lì serve un ponte (rampe e supporti), da aggiungere con «Sostituisci» o a mano.`,` The layout runs over itself at ${FIT.cross} point${FIT.cross>1?"s":""}: a bridge is needed there (ramps and supports), add it with «Swap piece» or by hand.`):""}
+      ${FIT.bridges?bridgeText(FIT.bridges):FIT.cross?L(` Il tracciato passa sopra se stesso in ${FIT.cross} punt${FIT.cross>1?"i":"o"}: premi «Crea i ponti» in «Riepilogo».`,` The layout runs over itself at ${FIT.cross} point${FIT.cross>1?"s":""}: press «Build bridges» in «Summary».`):""}
       ${st.settings.fitLC&&lc&&!FIT.lc?L(" Nessun tratto dritto lungo come il cambio corsia: aggiungilo a mano."," No straight stretch as long as the lane change: add it by hand."):""}
       ${miss?L(` Da stampare: <b style="display:inline">${miss}</b> pezzi oltre a quelli in magazzino.`,` To print: <b style="display:inline">${miss}</b> pieces beyond those in stock.`):L(" Hai già tutti i pezzi."," You already have every piece.")}</p>
       <div class="btns" style="margin-top:8px"><button class="btn" data-act="go-bom">${L("Pezzi da stampare","Pieces to print")}</button></div></div></div>`;
@@ -1601,6 +1671,7 @@ pane.addEventListener("click",e=>{
   if(a==="ws-cat"){wsAddToCatalog();return;}
   if(a==="draw"){setDraw(true);return;}
   if(a==="refit"){doRefit();return;}
+  if(a==="bridge"){const r=autoBridge();toast(r.made.length?bridgeText(r).trim():L("Non trovo rettilinei vicini all'incrocio per le rampe.","I can't find straights near the crossing for the ramps."));return;}
   if(a==="img"){$("#imgfile").click();return;}
   if(a==="ovl-clear"){OV={img:null};IMG=null;FIT=null;commit(()=>{st.sketch=null;});return;}
   if(a==="go-bom"){tab="bom";renderPane();return;}

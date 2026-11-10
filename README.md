@@ -95,7 +95,10 @@ keeping the special pieces (lane change, jumps, saddles, ramps…) roughly where
 - **🖼 Image**: upload a drawing, a plan or an export from an online track editor. The planner finds the track's centre
   line (also through crossings and bridges), measures the track width and counts the lanes to get the **real scale**
   (a 3-lane Tamiya layout is rebuilt at its real size as a 2-lane track), or uses the width you enter;
-  the picture stays under the plan as a guide. Crossings are flagged: they need a bridge.
+  the picture stays under the plan as a guide.
+- **Crossings become bridges**: where the layout runs over itself, the straights before and after the crossing become
+  a ramp up and a ramp down (★, same length, so the track stays closed) with supports; the planner then checks
+  clearance, slope and closing. **🌉 Build bridges** in *Summary* does the same on any track.
 - The *Ideas* tab shows how far the result is from the drawing and how many pieces are left to print.
 
 ### 3D view

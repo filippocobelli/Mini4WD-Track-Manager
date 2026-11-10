@@ -93,7 +93,10 @@ tenendo i pezzi speciali (cambio corsia, salti, selle, rampe…) più o meno dov
 - **🖼 Immagine**: carica un disegno, una pianta o l'esportazione di un editor di piste online. Il planner trova la linea
   centrale (anche negli incroci e sui ponti), misura la larghezza della pista e conta le corsie per avere la **scala reale**
   (un tracciato Tamiya a 3 corsie viene ricostruito alle sue misure reali come pista a 2 corsie), oppure usa la larghezza
-  che indichi; l'immagine resta sotto la pianta come guida. Gli incroci vengono segnalati: lì serve un ponte.
+  che indichi; l'immagine resta sotto la pianta come guida.
+- **Gli incroci diventano ponti**: dove il tracciato passa sopra se stesso, i rettilinei prima e dopo l'incrocio diventano
+  una rampa in salita e una in discesa (★, stessa lunghezza, così la pista resta chiusa) con i supporti; poi il planner
+  verifica passaggio libero, pendenza e chiusura. **🌉 Crea i ponti** nel *Riepilogo* fa lo stesso su qualsiasi pista.
 - La scheda *Idee* mostra quanto il risultato si discosta dal disegno e quanti pezzi restano da stampare.
 
 ### Vista 3D
