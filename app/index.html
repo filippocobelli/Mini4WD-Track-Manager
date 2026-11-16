@@ -271,7 +271,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.8.0";
+const APP_VERSION="2.8.1";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -909,7 +909,12 @@ function build3D(refit){
     const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial(Object.assign({color,side:THREE.DoubleSide,roughness:.75,metalness:0},opts)));m.castShadow=true;m.receiveShadow=true;grp.add(m);};
   mk(buf.f1,c1);mk(buf.f2,c2);mk(buf.w,new THREE.Color(cssColor("--wall")).lerp(new THREE.Color(cssColor("--track")),.3));mk(buf.feat,new THREE.Color(cssColor("--accent")),{polygonOffset:true,polygonOffsetFactor:-2});
   const pm=new THREE.MeshStandardMaterial({color:new THREE.Color(cssColor("--wall")),roughness:.8});
-  for(const pl of pillars){if(pl.z<=2)continue;const w=pl.narrow?2*hw:st.settings.width;const b=new THREE.Mesh(new THREE.BoxGeometry(18,pl.z,w),pm);b.position.set(pl.p.x,pl.z/2,pl.p.y);b.rotation.y=-pl.p.h;b.castShadow=true;grp.add(b);}
+  // supports drawn like the printed ones (Workshop): base and top plate across the track, three posts
+  // (both edges and the middle), 20 mm deep, standing on the floor under every raised joint
+  for(const pl of pillars){if(pl.z<=2)continue;const w=pl.narrow?2*hw:st.settings.width,sg=new THREE.Group();
+    const bx=(sy,sz,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(20,sy,sz),pm);b.position.set(0,y,z);b.castShadow=true;b.receiveShadow=true;sg.add(b);};
+    bx(3,w,1.5,0);bx(3,w,pl.z-1.5,0);for(const z of[-w/2+5,0,w/2-5])bx(pl.z,10,pl.z/2,z);
+    sg.position.set(pl.p.x,0,pl.p.y);sg.rotation.y=-pl.p.h;grp.add(sg);}
   if(g.els.length){const s0=g.start;const sl=new THREE.Mesh(new THREE.BoxGeometry(14,2,st.settings.width-10),new THREE.MeshStandardMaterial({color:new THREE.Color(cssColor("--ink"))}));sl.position.set(s0.x,s0.z+1.5,s0.y);sl.rotation.y=-s0.h;grp.add(sl);}
   if(sel!=null){const e=g.els.find(x=>x.i===sel);if(e){const p=pointAt(e,.5,0),z=zAt(e,.5);const mk2=new THREE.Mesh(new THREE.ConeGeometry(30,70,16),new THREE.MeshStandardMaterial({color:new THREE.Color(cssColor("--accent"))}));mk2.rotation.x=Math.PI;mk2.position.set(p.x,z+(e.t.kind==="lane"?200:130),p.y);grp.add(mk2);}}
   T3.group=grp;scene.add(grp);

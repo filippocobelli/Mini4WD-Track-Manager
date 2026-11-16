@@ -5,6 +5,11 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.8.1] - 2026-11-16
+
+- 3D view: supports under raised sections are drawn like the printed ones (base and top plate across the track, three
+  posts) instead of a thin dark slab that looked like a stub hanging from the track.
+
 ## [2.8.0] - 2026-11-16
 
 **Change pieces without redrawing: edits close the track again by themselves.**
