@@ -230,7 +230,7 @@
     const start = o.start ? { x: o.start.x, y: o.start.y, h: o.start.h, z: 0 } : { x: P[0].x, y: P[0].y, h: h0, z: 0 };
     // opt.require: pieces that must stay in the track, in order, near a fraction f of the lap
     // ({it, pc, f}); they are placed when the search gets there (±slack along the sketch)
-    const endZone = Math.round(250 / o.step), candZone = Math.round(2200 / o.step), slack = Math.round(600 / o.step);
+    const endZone = Math.round(250 / o.step), candZone = Math.round(2200 / o.step), slack = Math.round((o.slack || 600) / o.step);
     const req = (o.require || []).map(r => {
       const L = lengthOf(r.pc) / o.step;
       return { ...r, at: Math.max(0, Math.min(N - endZone - Math.ceil(L) - 1, Math.round(r.f * N - L / 2))) };

@@ -5,6 +5,18 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.8.0] - 2026-11-16
+
+**Change pieces without redrawing: edits close the track again by themselves.**
+
+- When an edit opens a closed track (inserting a lane change, swapping, deleting or flipping a piece) the planner closes
+  it again keeping the shape: first with straights only, otherwise by rebuilding it along the drawing (or the current
+  shape) with the special pieces kept where they were; bridges are rebuilt. One Undo goes back to before the edit.
+  Option in *Ideas* (on by default).
+- **🔁 Close** button in the toolbar, lit when the track is open.
+- Bridge ramps can be swapped: gentler (1.5× longer), shorter, or stock rainbow ramps.
+- A lane change near the end of the lap no longer blocks the rebuild.
+
 ## [2.7.0] - 2026-11-10
 
 **Drawings: the fewest pieces that still look like your drawing.**

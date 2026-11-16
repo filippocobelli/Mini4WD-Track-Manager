@@ -173,6 +173,31 @@ await page.click("#pane [data-gen]"); await page.waitForFunction(() => !wsBusy &
 ok(await page.evaluate(() => tab === "ws" && wsRes.ok), "Make STL opens the Workshop with that piece");
 ok(!ws.err && ws.label === "straight 200mm", "Workshop: the engine starts in the browser and builds the straight", JSON.stringify(ws));
 
+// auto re-close after an edit, keeping the drawn shape
+const ac = await page.evaluate(() => {
+  const pts = []; for (let i = 0; i < 200; i++) { const t = i / 200 * 2 * Math.PI; pts.push({ x: Math.sin(t) * 800, y: Math.sin(2 * t) * 350 + Math.cos(t) * 150 }); }
+  st.settings.fitLC = false; st.settings.autoClose = 1; runFit(pts, "draw", { autoScale: true });
+  const n0 = st.layout.length, ex0 = AN.exact;
+  const k = st.layout.findIndex((x, i) => i > st.layout.length / 2 && x.t === "S200"); sel = k; render(); addPiece("LC");
+  const ins = { exact: AN.exact, lc: st.layout.filter(x => x.t === "LC").length, cross: crossings(geom()) };
+  document.querySelector("#undo").click(); const un = { n: st.layout.length, lc: st.layout.filter(x => x.t === "LC").length };
+  document.querySelector("#redo").click();
+  const r = st.layout.findIndex(x => { const t = typeMap()[x.t]; return t && t.dz; }); sel = r; tab = "sum"; render();
+  const opts = window._swap.map(o => o.kind); doSwap(window._swap.find(o => o.kind === "gen"));
+  const sw = { exact: AN.exact, cross: crossings(geom()) };
+  sel = 3; render(); document.querySelector("#del").click();
+  const de = { exact: AN.exact, lc: st.layout.filter(x => x.t === "LC").length, cross: crossings(geom()) };
+  st.layout.splice(5, 1); save(); render(); const open = !AN.exact, btn = document.querySelector("#closebtn").classList.contains("on");
+  document.querySelector("#closebtn").click();
+  const closed = AN.exact; sel = null; tab = "ws"; render();
+  return { n0, ex0, ins, un, opts, sw, de, open, btn, closed };
+});
+ok(ac.ex0 && ac.ins.exact && ac.ins.lc === 1 && ac.ins.cross === 0, "drawn track + lane change inserted: closes again by itself, bridge kept", JSON.stringify(ac.ins));
+ok(ac.un.n === ac.n0 && ac.un.lc === 0, "one Undo goes back to before the edit", JSON.stringify(ac.un));
+ok(ac.opts.includes("gen") && ac.sw.exact && ac.sw.cross === 0, "bridge ramp swapped for a gentler one: still closed and bridged", JSON.stringify(ac.sw));
+ok(ac.de.exact && ac.de.lc === 1 && ac.de.cross === 0, "piece deleted from a drawn track: closed again, lane change kept", JSON.stringify(ac.de));
+ok(ac.open && ac.btn && ac.closed, "Close button: lit when the track is open, closes it", JSON.stringify({ open: ac.open, btn: ac.btn, closed: ac.closed }));
+
 const en = await page.evaluate(() => ({ lang: document.documentElement.lang, tab: document.querySelector('[data-tab="inv"]').textContent }));
 ok(en.lang === "en" && en.tab === "Inventory", "starts in English", JSON.stringify(en));
 await page.click("#lang");

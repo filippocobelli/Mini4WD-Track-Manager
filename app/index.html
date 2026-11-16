@@ -235,6 +235,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
       <input type="file" id="imgfile" accept="image/*" hidden>
       <button class="ab" id="undo" data-en="↶ Undo">↶ Annulla</button>
       <button class="ab" id="redo" data-en="↷ Redo">↷ Ripeti</button>
+      <button class="ab" id="closebtn" data-en="🔁 Close">🔁 Chiudi</button>
       <button class="ab" id="swap" data-en="⇆ Swap piece">⇆ Sostituisci</button>
       <button class="ab" id="flip" data-en="⇄ Flip curve">⇄ Inverti curva</button>
       <button class="ab" id="flipv" data-en="⇅ Up/down">⇅ Salita/discesa</button>
@@ -270,7 +271,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.7.0";
+const APP_VERSION="2.8.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -346,7 +347,7 @@ const PRESETS={
   rainbow:{name:["Ovale con rainbow","Rainbow oval"],desc:["Una curva a 180° sollevata con le rampe rainbow.","A 180° turn raised with the rainbow ramps."],items:()=>[S("S200"),S("S215"),S("S215"),S("S200"),{t:"RUP",v:1},...R(4),{t:"RUP",v:-1},S("LC"),...R(4)]}
 };
 function defaults(){return{name:L("Ovale del kit","Kit oval"),parts:defaultParts(),types:defaultTypes(),
-  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,fitScale:1,autoBridge:1,imgW:0,imgAuto:1,imgLanes:2,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
+  settings:{width:238,lane:59,clips:2,tol:3,roomW:0,roomH:0,startH:0,extras:true,genLC:true,genX:false,rnd:{src:"room",feat:{lc:true,jump:true}},fitLC:true,fitCustom:true,fitScale:1,autoBridge:1,autoClose:1,imgW:0,imgAuto:1,imgLanes:2,ws:{type:"straight",v:{},prm:{},bed:"256x256"}},layout:PRESETS.ovale.items(),owned:{},log:[]};}
 function migrate(s){
   const d=defaults();
   for(const p of d.parts)if(!s.parts.find(x=>x.id===p.id))s.parts.push(p);
@@ -601,6 +602,12 @@ function swapOptions(i){
   const out=[];
   if((t.kind==="straight"&&!t.dz)||t.kind==="lane"){
     for(const id of["J200","SAD","HILL","WALL","LC","S200","S215","S100","M240"])if(T[id]&&id!==it.t)out.push({kind:"type",id,label:tn(T[id])});
+  }else if(t.kind==="straight"&&t.dz){
+    const ext=st.settings.extras;
+    for(const x of st.types)if(x.kind==="straight"&&x.dz===t.dz&&x.id!==t.id&&!x.gen&&(!x.x||ext))out.push({kind:"type",id:x.id,keepV:true,label:tn(x)});
+    const L2=Math.round(t.len*1.5/10)*10;
+    out.push({kind:"gen",spec:{type:"ramp",L:L2,h:t.dz},keepV:true,label:L(`Rampa più dolce: ${L2} mm (${nf(t.dz/L2*100)}%)`,`Gentler ramp: ${L2} mm (${nf(t.dz/L2*100)}%)`)});
+    if(t.len>=250){const L3=Math.round(t.len*0.7/10)*10;out.push({kind:"gen",spec:{type:"ramp",L:L3,h:t.dz},keepV:true,label:L(`Rampa più corta: ${L3} mm (${nf(t.dz/L3*100)}%)`,`Shorter ramp: ${L3} mm (${nf(t.dz/L3*100)}%)`)});}
   }else if(t.kind==="curve"&&t.ang<270){
     const r=curveRun(i),ramp=st.types.find(x=>x.kind==="straight"&&x.dz&&x.prof==="ramp"&&!x.gen);
     if(r.raised)out.push({kind:"unraise",label:L("Curva a terra (togli le rampe)","Curve on the ground (remove the ramps)")});
@@ -619,46 +626,96 @@ function shapeLine(g){
 }
 // Rebuilds the whole track along the drawing (or the current shape) keeping the special pieces in order,
 // near the same point of the lap, and closes it. Returns false if no closed layout is found.
-function refitShape(lay){
+function refitShape(lay,keep){
   const g=geom(lay),n=g.els.length;if(n<3)return null;
   const len=e=>e.t.kind==="curve"?e.R*e.a:e.L,tot=g.els.reduce((a,e)=>a+len(e),0);
   const req=[];let cum=0;
   for(const e of g.els){
-    if(isSpecial(e.t))req.push({it:{...e.it},pc:e.t.kind==="curve"?{kind:"curve",ang:e.t.ang,r:e.t.r,s:e.it.d==="L"?-1:1}:{kind:"straight",len:e.t.len},f:(cum+len(e)/2)/tot});
+    if(isSpecial(e.t)||(keep&&keep.has(e.i)))req.push({it:{...e.it},pc:e.t.kind==="curve"?{kind:"curve",ang:e.t.ang,r:e.t.r,s:e.it.d==="L"?-1:1}:{kind:"straight",len:e.t.len},f:(cum+len(e)/2)/tot});
     cum+=len(e);
   }
   const target=st.sketch&&st.sketch.length>10?st.sketch:shapeLine(g);
-  const res=M4Trace.fitPath(target,solverCat(true),{require:req,start:{x:0,y:0,h:(st.settings.startH||0)*DEG},allowCustom:st.settings.fitCustom,tol:1});
+  // special pieces near their place on the lap; if there is no room, the search around them widens
+  let res=null;
+  for(const slack of req.length?[600,1500,3000]:[600]){
+    res=M4Trace.fitPath(target,solverCat(true),{require:req,slack,start:{x:0,y:0,h:(st.settings.startH||0)*DEG},allowCustom:st.settings.fitCustom,tol:1});
+    if(!res.err&&!res.open)break;
+  }
+  if(!res.err&&!res.open)return{items:res.items,dev:res.dev,custom:res.custom,kept:req.length};
+  // fallback: follow the shape without them, then put each special straight back in place of plain
+  // straights of the same total length nearest to its place on the lap (a lane change near the end of
+  // the lap leaves no room for the closing pieces otherwise)
+  if(!req.length||req.some(r=>r.pc.kind!=="straight"))return null;
+  res=M4Trace.fitPath(target,solverCat(true),{start:{x:0,y:0,h:(st.settings.startH||0)*DEG},allowCustom:st.settings.fitCustom,tol:1,lc:null});
   if(res.err||res.open)return null;
-  return{items:res.items,dev:res.dev,custom:res.custom,kept:req.length};
+  let nl=toLayout(res.items).map(x=>({...x}));
+  for(const r of req){
+    const g2=geom(nl),els=g2.els,T=els.reduce((a,e)=>a+len(e),0);let best=null,c0=0;
+    for(let i=0;i<els.length;i++){
+      let sum=0,c=c0;
+      for(let j=i;j<els.length&&plainStraight(els[j].t)&&!isSpecial(els[j].t);j++){
+        sum+=els[j].L;
+        if(Math.abs(sum-r.pc.len)<0.5){const d=Math.abs((c0+sum/2)/T-r.f);if(!best||d<best.d)best={i,j,d};break;}
+        if(sum>r.pc.len)break;
+      }
+      c0+=len(els[i]);
+    }
+    if(best)nl.splice(best.i,best.j-best.i+1,{...r.it});
+    else{ // no matching run: insert it and let the straights-only repair make room
+      let k=0,c=0;for(;k<els.length&&(c+len(els[k]))/T<r.f;k++)c+=len(els[k]);
+      nl.splice(k,0,{...r.it});
+      const gx=geom(nl),lk=new Set(gx.els.filter(e=>isSpecial(e.t)).map(e=>e.i)),rp=repairLayout(nl.map(x=>({...x})),lk);
+      if(!rp.length)return null;nl=rp[0].nl;
+    }
+  }
+  const a2=analyse(geom(nl));if(!a2.exact||Math.abs(a2.dzEnd)>=1)return null;
+  return{items:nl,dev:res.dev,custom:res.custom,kept:req.length};
+}
+// Closes the track again keeping its shape: first the smallest change (straights only, special pieces and
+// `keep` untouched), then a rebuild along the drawing (or the current shape) that keeps them, then bridges.
+// With record=false the result replaces the current state without a new Undo step (used right after an edit,
+// so one Undo goes back to before the edit).
+function closeAgain(keep,record){
+  const g=geom(),locked=new Set(g.els.filter(e=>isSpecial(e.t)).map(e=>e.i));
+  if(keep)for(const i of keep)locked.add(i);
+  const apply=fn=>{if(record)commit(fn);else{fn();save();render();}};
+  const reps=repairLayout(st.layout.map(x=>({...x})),locked);
+  if(reps.length&&reps[0].n&&(!st.sketch||reps[0].n<=4)){
+    apply(()=>{st.layout=toLayout(reps[0].lay);});
+    LASTREP={key:JSON.stringify(st.layout),text:repairText(reps[0]),alts:reps.slice(1).filter(r=>r.n<=reps[0].n+6&&(!r.added.some(x=>x.gen)||reps[0].added.some(x=>x.gen))).map(r=>({lay:r.lay,text:repairText(r)}))};
+    return L(`Pista richiusa: ${repairText(reps[0])}.`,`Track closed again: ${repairText(reps[0])}.`);
+  }
+  const r=refitShape(st.layout,keep);
+  if(!r)return null;
+  apply(()=>{st.layout=toLayout(r.items);});
+  LASTREP=null;let br=null;if(st.settings.autoBridge&&crossings(geom())){br=autoBridgeNow();save();render();}
+  if(FIT)FIT={...FIT,n:st.layout.length,open:false,dev:r.dev,custom:r.custom,lc:true,bridges:br,cross:br?br.left:crossings(geom())};
+  return L(`Pista richiusa seguendo ${st.sketch?"il disegno":"la forma"}: ${st.layout.length} pezzi, ${r.kept===1?"1 pezzo speciale mantenuto":r.kept+" pezzi speciali mantenuti"}${br&&br.made.length?", ponte rifatto":""}.`,`Track closed again following the ${st.sketch?"drawing":"shape"}: ${st.layout.length} pieces, ${r.kept===1?"1 special piece kept":r.kept+" special pieces kept"}${br&&br.made.length?", bridge rebuilt":""}.`);
 }
 function doRefit(){
-  // no drawing: first the smallest change (straights moved, special pieces untouched)
-  if(!st.sketch){const g=geom(),locked=new Set(g.els.filter(e=>isSpecial(e.t)).map(e=>e.i));
-    const reps=repairLayout(st.layout.map(x=>({...x})),locked);
-    if(reps.length&&reps[0].n){commit(()=>{st.layout=toLayout(reps[0].lay);sel=null;});
-      LASTREP={key:JSON.stringify(st.layout),text:repairText(reps[0]),alts:reps.slice(1).filter(r=>r.n<=reps[0].n+6&&(!r.added.some(x=>x.gen)||reps[0].added.some(x=>x.gen))).map(r=>({lay:r.lay,text:repairText(r)}))};
-      toast(L(`Pista richiusa: ${repairText(reps[0])}.`,`Track closed: ${repairText(reps[0])}.`));return;}}
-  const r=refitShape(st.layout);
-  if(!r){toast(L("Non riesco a richiuderla seguendo la forma: prova a togliere qualche pezzo speciale.","I can't close it following the shape: try removing some special pieces."));return;}
-  commit(()=>{st.layout=toLayout(r.items);sel=null;});
-  LASTREP=null;let br=null;if(st.settings.autoBridge&&crossings(geom()))br=autoBridge();
-  if(FIT)FIT={...FIT,n:st.layout.length,open:false,dev:r.dev,custom:r.custom,lc:true,bridges:br,cross:br?br.left:crossings(geom())};
-  toast(L(`Pista ricostruita e chiusa: ${r.items.length} pezzi, ${r.kept} pezzi speciali mantenuti.`,`Track rebuilt and closed: ${r.items.length} pieces, ${r.kept} special pieces kept.`));
+  sel=null;const m=closeAgain(null,true);
+  toast(m||L("Non riesco a richiuderla seguendo la forma: prova a togliere qualche pezzo speciale.","I can't close it following the shape: try removing some special pieces."));
+}
+// Right after an edit: if the track was closed and now isn't, close it again on its own.
+function afterEdit(wasExact,keepIdx){
+  if(!wasExact||!st.settings.autoClose||st.layout.length<4)return;
+  const a=analyse(geom());if(a.exact&&Math.abs(a.dzEnd)<1)return;
+  const m=closeAgain(keepIdx!=null&&keepIdx>=0?[keepIdx]:null,false);
+  toast(m?m+L(" «Annulla» torna a prima della modifica."," «Undo» goes back to before the change."):L("La modifica ha aperto la pista e non trovo come richiuderla: vedi «Riepilogo».","The change opened the track and I can't find how to close it: see «Summary»."));
 }
 
 let LASTREP=null;
 function doSwap(o){
   if(sel==null)return;
   const lay=st.layout.map(x=>({...x})),locked=new Set();
-  if(o.kind==="type"){lay[sel]={t:o.id,_s:1};locked.add(sel);}
+  if(o.kind==="type"||o.kind==="gen"){const id=o.kind==="gen"?ensureGenType(o.spec):o.id;lay[sel]={t:id,_s:1};if(o.keepV&&st.layout[sel].v)lay[sel].v=st.layout[sel].v;locked.add(sel);}
   else if(o.kind==="raise"){const r=curveRun(sel);lay[sel]._s=1;lay.splice(r.b+1,0,{t:o.ramp,v:-1});lay.splice(r.a,0,{t:o.ramp,v:1});for(let k=r.a;k<=r.b+2;k++)locked.add(k);}
   else if(o.kind==="unraise"){const r=curveRun(sel);lay[sel]._s=1;lay.splice(r.b+1,1);lay.splice(r.a-1,1);for(let k=r.a-1;k<=r.b-1;k++)locked.add(k);}
   let reps=st.layout.length&&AN.exact?repairLayout(lay,locked):[];
   const strip=l=>{let s=null;l.forEach((x,k)=>{if(x._s){s=k;delete x._s;}});return s;};
-  if(!reps.length&&AN.exact){const lay2=lay.map(x=>({...x}));strip(lay2);const r=refitShape(lay2);
-    if(r){commit(()=>{st.layout=toLayout(r.items);sel=null;});LASTREP=null;
-      toast(L("Sostituito: per richiuderla ho ricostruito la pista seguendo la forma, tenendo i pezzi speciali.","Swapped: to close it I rebuilt the track following its shape, keeping the special pieces."));return;}}
+  if(!reps.length&&AN.exact){const k=lay.findIndex(x=>x._s);strip(lay);commit(()=>{st.layout=toLayout(lay);sel=null;});
+    const m=closeAgain(k>=0?[k]:null,false);
+    toast(m?L("Sostituito. ","Swapped. ")+m:L("Sostituito: ora la pista è aperta, vedi i suggerimenti per chiuderla.","Swapped: the track is now open, see the suggestions to close it."));return;}
   const chosen=reps[0]?reps[0].lay:lay;
   commit(()=>{st.layout=toLayout(chosen);sel=strip(st.layout);});
   reps.forEach(r=>strip(r.lay));strip(lay);
@@ -897,7 +954,7 @@ function renderTools(){
   $("#pieces").innerHTML=h;
   const se=sel!=null?st.layout[sel]:null, ty=se&&typeMap()[se.t];
   $("#undo").disabled=!hist.length;$("#redo").disabled=!fut.length;
-  $("#flip").disabled=!(ty&&ty.kind==="curve");$("#swap").disabled=sel==null||!swapOptions(sel).length;$("#flipv").disabled=!(ty&&ty.dz);
+  $("#flip").disabled=!(ty&&ty.kind==="curve");$("#swap").disabled=sel==null||!swapOptions(sel).length;$("#closebtn").disabled=st.layout.length<3||(AN.exact&&Math.abs(AN.dzEnd)<1);$("#closebtn").classList.toggle("on",st.layout.length>=3&&!AN.exact);$("#flipv").disabled=!(ty&&ty.dz);
   $("#desel").disabled=sel==null;$("#del").disabled=!st.layout.length;$("#clearall").disabled=!st.layout.length&&!OV.img&&!st.sketch;
   $("#del").textContent=sel!=null?L("✕ Elimina pezzo","✕ Delete piece"):L("✕ Elimina ultimo","✕ Delete last");
   $("#hint").textContent=drawMode?L("Disegna il giro con un solo tratto, poi alza il dito: il planner lo porta in scala e lo ricostruisce con i pezzi. Due dita per spostare la vista, Esc per uscire.","Draw the lap in one stroke, then lift your finger: the planner scales it and rebuilds it with pieces. Two fingers to move the view, Esc to stop."):sel!=null?L(`Pezzo ${sel+1} selezionato: «Sostituisci» lo cambia (salto, sella, cambio corsia, curva sopraelevata…) e richiude la pista; i nuovi pezzi vanno inseriti subito dopo. Tocca di nuovo il pezzo o «Fine pista» per tornare in coda.`,`Piece ${sel+1} selected: «Swap piece» changes it (jump, saddle, lane change, raised curve…) and closes the track again; new pieces are inserted right after it. Tap it again or «Track end» to go back to the end.`)
@@ -1564,9 +1621,11 @@ function bridgeAt(lay,c,upper){
   return{lay:l2,Lu,Ld,h:R1,clear:zX+R1-zY,slope:R1/Math.min(Lu,Ld),span,cost:R1/Math.min(Lu,Ld)*100+span/400+(lc?30:0)};
 }
 // Builds a bridge at every crossing that hasn't got one (one Undo step). Returns what was done.
-function autoBridge(){
+function autoBridge(){let r;commit(()=>{r=bridgeLoop();});return r;}
+function autoBridgeNow(){return bridgeLoop();}
+function bridgeLoop(){
   const made=[],failed=[];
-  commit(()=>{
+  {
     for(let it=0;it<6;it++){
       const g=geom(),todo=crossList(g).filter(c=>!isBridged(c)&&!failed.some(f=>Math.hypot(f.x-c.x,f.y-c.y)<300));
       if(!todo.length)break;
@@ -1574,7 +1633,7 @@ function autoBridge(){
       if(!opts.length){failed.push(c);continue;}
       st.layout=toLayout(opts[0].lay);const{lay:_l,...info}=opts[0];made.push(info);
     }
-  });
+  }
   const an=analyse(geom());
   return{made,failed:failed.length,exact:an.exact&&Math.abs(an.dzEnd)<1,left:crossings(geom())};
 }
@@ -1597,6 +1656,7 @@ function paneFit(){
     <label class="check" for="f-lc"><input type="checkbox" id="f-lc" data-set="fitLC" ${st.settings.fitLC?"checked":""} ${lc?"":"disabled"}> ${L("Metti il cambio corsia su un tratto dritto","Put the lane change on a straight stretch")}</label>
     <label class="check" for="f-fs"><input type="checkbox" id="f-fs" data-set="fitScale" ${st.settings.fitScale?"checked":""}> ${L("Scegli la scala con meno pezzi (forma più simile al disegno)","Pick the scale with the fewest pieces (shape closest to the drawing)")}</label>
     <label class="check" for="f-br"><input type="checkbox" id="f-br" data-set="autoBridge" ${st.settings.autoBridge?"checked":""}> ${L("Dove il tracciato si incrocia crea un ponte (rampe e supporti)","Where the layout crosses itself build a bridge (ramps and supports)")}</label>
+    <label class="check" for="f-ac"><input type="checkbox" id="f-ac" data-set="autoClose" ${st.settings.autoClose?"checked":""}> ${L("Se una modifica apre la pista, richiudila da sola mantenendo la forma","If a change opens the track, close it again on its own keeping the shape")}</label>
     <label class="check" for="f-cu"><input type="checkbox" id="f-cu" data-set="fitCustom" ${st.settings.fitCustom?"checked":""}> ${L("Per chiudere il giro usa anche pezzi su misura (Officina)","Use made-to-measure pieces (Workshop) to close the loop")}</label>
   </div>`;
   if(IMG){const canAuto=IMG.tr.bw>=10,auto=st.settings.imgAuto&&canAuto;
@@ -1620,16 +1680,18 @@ function paneFit(){
 
 /* ---------- actions ---------- */
 function addPiece(id,d,v){
+  const was=AN.exact&&st.layout.length>=4,ins=sel!=null;let at=-1;
   commit(()=>{
     const it={t:id};if(d)it.d=d;if(v)it.v=+v;
-    if(sel!=null){st.layout.splice(sel+1,0,it);sel=sel+1;}else st.layout.push(it);
+    if(sel!=null){st.layout.splice(sel+1,0,it);sel=sel+1;at=sel;}else{st.layout.push(it);at=st.layout.length-1;}
   });
+  if(ins||was)afterEdit(was,at);
 }
 $("#pieces").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(b)addPiece(b.dataset.add,b.dataset.d,b.dataset.v);});
 $("#undo").onclick=()=>{if(!hist.length)return;fut.push(JSON.stringify(st));st=JSON.parse(hist.pop());sel=null;save();render();};
 $("#redo").onclick=()=>{if(!fut.length)return;hist.push(JSON.stringify(st));st=JSON.parse(fut.pop());sel=null;save();render();};
-$("#flip").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel];it.d=it.d==="L"?"R":"L";});};
-$("#flipv").onclick=()=>{if(sel==null)return;commit(()=>{const it=st.layout[sel];it.v=(it.v||1)>0?-1:1;});};
+$("#flip").onclick=()=>{if(sel==null)return;const was=AN.exact,k=sel;commit(()=>{const it=st.layout[sel];it.d=it.d==="L"?"R":"L";});afterEdit(was,k);};
+$("#flipv").onclick=()=>{if(sel==null)return;const was=AN.exact,k=sel;commit(()=>{const it=st.layout[sel];it.v=(it.v||1)>0?-1:1;});afterEdit(was,k);};
 $("#rot").onclick=()=>commit(()=>{st.settings.startH=((st.settings.startH||0)+45)%360;});
 $("#desel").onclick=()=>{sel=null;render();};
 $("#draw").onclick=()=>setDraw(!drawMode);
@@ -1638,7 +1700,8 @@ $("#clearall").onclick=()=>{if(!st.layout.length&&!OV.img&&!st.sketch)return;com
 $("#swap").onclick=()=>{if(sel==null)return;tab="sum";wsActivate(false);renderPane();$("#pane").scrollTop=0;};
 $("#imgbtn").onclick=()=>$("#imgfile").click();
 $("#imgfile").onchange=e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>importImage(r.result,fl.name);r.readAsDataURL(fl);e.target.value="";};
-$("#del").onclick=()=>{if(!st.layout.length)return;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});};
+$("#del").onclick=()=>{if(!st.layout.length)return;const was=AN.exact;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});afterEdit(was,null);};
+$("#closebtn").onclick=()=>doRefit();
 $("#zin").onclick=()=>zoomAt(1.3);$("#zout").onclick=()=>zoomAt(1/1.3);$("#zfit").onclick=fit;
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=b.dataset.tab;renderPane();wsActivate(tab==="ws");}});
 

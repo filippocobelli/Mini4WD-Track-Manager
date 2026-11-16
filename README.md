@@ -79,9 +79,13 @@ If the length changes, the planner closes the track again by itself: it adds or 
 directions and never touches the piece you chose. It prefers keeping the same footprint; the other solutions are
 one tap away in *Summary*.
 
-If the track ends up open after your changes (for example a lane change inserted by hand in a drawn track),
-**🔁 Close it following the drawing** rebuilds the whole track along the original drawing, or along its current shape,
-keeping the special pieces (lane change, jumps, saddles, ramps…) roughly where you put them, and closes it.
+- a **bridge ramp** becomes a gentler (longer) or shorter ramp, or a stock rainbow ramp.
+
+**Edits close the track again by themselves.** When a closed track is opened by an edit (a piece inserted, swapped,
+deleted or flipped), the planner closes it again keeping the shape: first with the smallest change (straights only),
+otherwise by rebuilding the track along the original drawing, or its current shape, keeping the special pieces
+(lane change, jumps, saddles, ramps…) where you put them; bridges are rebuilt. One **↶ Undo** goes back to before the
+edit. You can switch this off in *Ideas*; **🔁 Close** in the toolbar (lit when the track is open) does it on demand.
 
 ### From a drawing or an image
 

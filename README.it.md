@@ -77,9 +77,13 @@ Se cambia la lunghezza, il planner richiude la pista da solo: aggiunge o toglie 
 e non tocca il pezzo che hai scelto. Preferisce mantenere lo stesso ingombro; le altre soluzioni sono a un tocco
 nel *Riepilogo*.
 
-Se dopo le tue modifiche la pista resta aperta (per esempio un cambio corsia inserito a mano in una pista disegnata),
-**🔁 Richiudi seguendo il disegno** ricostruisce tutta la pista lungo il disegno originale, o lungo la forma attuale,
-tenendo i pezzi speciali (cambio corsia, salti, selle, rampe…) più o meno dove li hai messi, e la chiude.
+- una **rampa del ponte** diventa più dolce (più lunga), più corta o una rampa rainbow di serie.
+
+**Le modifiche richiudono la pista da sole.** Se una modifica apre una pista chiusa (pezzo inserito, sostituito,
+eliminato o invertito), il planner la richiude mantenendo la forma: prima con la modifica più piccola (solo
+rettilinei), altrimenti ricostruendo la pista lungo il disegno originale, o la forma attuale, tenendo i pezzi speciali
+(cambio corsia, salti, selle, rampe…) dove li hai messi; i ponti vengono rifatti. Un solo **↶ Annulla** torna a prima
+della modifica. Si può disattivare in *Idee*; **🔁 Chiudi** nella barra (acceso quando la pista è aperta) lo fa a richiesta.
 
 ### Da disegno o immagine
 
