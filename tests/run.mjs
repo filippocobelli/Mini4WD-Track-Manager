@@ -198,6 +198,19 @@ ok(ac.opts.includes("gen") && ac.sw.exact && ac.sw.cross === 0, "bridge ramp swa
 ok(ac.de.exact && ac.de.lc === 1 && ac.de.cross === 0, "piece deleted from a drawn track: closed again, lane change kept", JSON.stringify(ac.de));
 ok(ac.open && ac.btn && ac.closed, "Close button: lit when the track is open, closes it", JSON.stringify({ open: ac.open, btn: ac.btn, closed: ac.closed }));
 
+// supports never stand on the track that passes under a bridge
+const sup = await page.evaluate(() => {
+  const pts = []; for (let i = 0; i < 200; i++) { const t = i / 200 * 2 * Math.PI; pts.push({ x: Math.sin(t) * 800, y: Math.sin(2 * t) * 350 + Math.cos(t) * 150 }); }
+  st.settings.fitLC = false; runFit(pts, "draw", { autoScale: true });
+  const g = geom(), W = st.settings.width, sl = supportList(g, true); let worst = Infinity;
+  for (const s of sl) for (const e of g.els) { const k = 40; for (let i = 0; i <= k; i++) { const u = i / k, z = zAt(e, u); if (z > s.z - 30) continue;
+    const p = pointAt(e, u, 0), c = Math.cos(s.p.h), sn = Math.sin(s.p.h);
+    for (let o = -W / 2; o <= W / 2; o += W / 8) { const q = { x: s.p.x - sn * o, y: s.p.y + c * o }; worst = Math.min(worst, Math.hypot(q.x - p.x, q.y - p.y)); } } }
+  const txt = document.querySelector("#pane").innerText; tab = "ws"; render();
+  return { n: sl.length, an: AN.supports, worst, txt: /Supporti: tutti a terra|Supports: all on the floor/.test(txt) };
+});
+ok(sup.n > 0 && sup.n === sup.an && sup.worst >= 238 / 2 && sup.txt, "bridge supports stand on the floor, never on the lower track", JSON.stringify(sup));
+
 const en = await page.evaluate(() => ({ lang: document.documentElement.lang, tab: document.querySelector('[data-tab="inv"]').textContent }));
 ok(en.lang === "en" && en.tab === "Inventory", "starts in English", JSON.stringify(en));
 await page.click("#lang");

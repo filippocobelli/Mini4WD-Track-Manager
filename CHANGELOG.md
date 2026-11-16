@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.8.2] - 2026-11-16
+
+- Bridges: a support never stands on the track that passes underneath. Supports that would fall on it are moved along
+  the raised track to the nearest free spot (or left out where the pieces span the lower track); the bridge check says
+  so. Count, 3D view and support STLs all use the same placement.
+
 ## [2.8.1] - 2026-11-16
 
 - 3D view: supports under raised sections are drawn like the printed ones (base and top plate across the track, three

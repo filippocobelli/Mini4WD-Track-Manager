@@ -271,7 +271,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.8.1";
+const APP_VERSION="2.8.2";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -435,12 +435,50 @@ function analyse(g){
   const lc=g.els.filter(e=>e.t.kind==="lane").length;
   const segs=g.els.reduce((s,e)=>s+(e.t.segs||1),0);
   const joints=closed?segs:Math.max(0,segs-1);
-  const supports=g.els.filter((e,k)=>e.z0>0.5&&(k>0||closed)).length;
+  const supl=supportList(g,closed),supports=supl.length;
   const maxZ=g.els.reduce((m,e)=>Math.max(m,e.z1,e.z0),0);
   const below=g.els.find(e=>e.z1<-0.5);
   const exact=closed&&dist<=1&&Math.abs(dh)<=0.2;
   const he=g.end.h,along=gx*Math.cos(he)+gy*Math.sin(he),lat=-gx*Math.sin(he)+gy*Math.cos(he);
-  return{dist,dh,dzEnd,planClosed,closed,exact,near,along,lat,center,lanes:{A:[a1.L,a2.L],B:[b1.L,b2.L]},lc,joints,clips:joints*st.settings.clips,supports,maxZ,below,gx,gy};
+  return{dist,dh,dzEnd,planClosed,closed,exact,near,along,lat,center,lanes:{A:[a1.L,a2.L],B:[b1.L,b2.L]},lc,joints,clips:joints*st.settings.clips,supports,supMoved:supl.moved,supDropped:supl.dropped,maxZ,below,gx,gy};
+}
+/* ---------- supports ----------
+   One support under every raised joint. A support must stand on the floor, never on the track that passes under a
+   bridge: if it would, it is moved along the raised track (up to 25 cm either way, also mid-piece) to the nearest free
+   spot; if there is none, that joint stays without (the pieces over the lower track span it). */
+let SUPC=null;
+function supportList(g,closed){
+  const key=g.els.map(e=>Math.round(e.p0.x)+","+Math.round(e.p0.y)+","+Math.round(e.z0)+","+Math.round(e.z1)).join(";")+"|"+closed+"|"+st.settings.width;
+  if(SUPC&&SUPC.g===g)return SUPC.out;if(SUPC&&SUPC.key===key){SUPC.g=g;return SUPC.out;}
+  const W=st.settings.width,els=g.els,n=els.length;
+  // centreline samples of every piece, with the height there
+  const smp=els.map(e=>{const k=e.t.kind==="curve"?Math.max(2,Math.round(e.a/(5*DEG))):Math.max(2,Math.ceil(e.L/50)),pts=[];
+    for(let i=0;i<=k;i++){const u=i/k,p=pointAt(e,u,0);pts.push({x:p.x,y:p.y,z:zAt(e,u)});}return pts;});
+  const segD=(q,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;let t=l?((q.x-a.x)*dx+(q.y-a.y)*dy)/l:0;t=Math.max(0,Math.min(1,t));
+    const x=a.x+dx*t-q.x,y=a.y+dy*t-q.y;return{d:Math.hypot(x,y),z:a.z+(b.z-a.z)*t};};
+  const blocked=(p,z)=>{const c=Math.cos(p.h),s=Math.sin(p.h);
+    for(let j=0;j<n;j++){const pts=smp[j];
+      for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];
+        if(Math.min(a.z,b.z)>z-30)continue; // same level (the raised track itself): not in the way
+        if(Math.hypot(a.x-p.x,a.y-p.y)>W*1.6&&Math.hypot(b.x-p.x,b.y-p.y)>W*1.6&&segD(p,a,b).d>W*1.6)continue;
+        for(let o=-W/2;o<=W/2+0.1;o+=W/8)for(const al of[-12,0,12]){
+          const q={x:p.x+c*al-s*o,y:p.y+s*al+c*o},r=segD(q,a,b);if(r.d<W/2+6&&r.z<z-30)return true;}
+      }}
+    return false;};
+  const at=(k,d)=>{ // point d mm along the track from the start of piece k (negative = before it)
+    let i=k,u;for(let it=0;it<n;it++){const e=els[i],L=elLen(e);
+      if(d<0){if(i===0&&!closed)return null;i=(i-1+n)%n;d+=elLen(els[i]);continue;}
+      if(d>L){if(i===n-1&&!closed)return null;d-=L;i=(i+1)%n;continue;}
+      u=d/L;const p=pointAt(els[i],u,0);return{p,z:zAt(els[i],u)};}
+    return null;};
+  const out=[];let moved=0,dropped=0;
+  for(let k=0;k<n;k++){const e=els[k];if(!(e.z0>0.5&&(k>0||closed)))continue;
+    if(!blocked(e.p0,e.z0)){out.push({p:e.p0,z:e.z0});continue;}
+    let ok=null;for(let d=30;d<=250&&!ok;d+=20)for(const sg of[1,-1]){const r=at(k,sg*d);if(r&&r.z>0.5&&!blocked(r.p,r.z)){ok=r;break;}}
+    if(ok){out.push({p:ok.p,z:ok.z,moved:true});moved++;}else dropped++;
+  }
+  out.moved=moved;out.dropped=dropped;
+  SUPC={key,g,out};return out;
 }
 /* ---------- closing the loop ---------- */
 // Catalogue for the solver (trace.js). For sketches only the kit and the user's own pieces are used.
@@ -902,7 +940,6 @@ function build3D(refit){
       for(const q of[-1,1]){const A=pointAt(e,u0,q*lane-40),B=pointAt(e,u1,q*lane-40),C=pointAt(e,u1,q*lane+40),D=pointAt(e,u0,q*lane+40),za=zAt(e,u0)+1,zb=zAt(e,u1)+1;
         buf.feat.push(...P(A.x,A.y,za),...P(B.x,B.y,zb),...P(C.x,C.y,zb),...P(A.x,A.y,za),...P(C.x,C.y,zb),...P(D.x,D.y,za));}
     }
-    if(e.z0>0.5)pillars.push({p:e.p0,z:e.z0-4});
     if(isLC)for(const u of[.38,.62]){const p=pointAt(e,u,-lane*(1-2*smooth((u-.35)/.3)));pillars.push({p:{...p,h:e.p0.h},z:e.z0+76,narrow:true});}
   });
   const mk=(arr,color,opts={})=>{if(!arr.length)return;const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(arr,3));geo.computeVertexNormals();
@@ -911,6 +948,7 @@ function build3D(refit){
   const pm=new THREE.MeshStandardMaterial({color:new THREE.Color(cssColor("--wall")),roughness:.8});
   // supports drawn like the printed ones (Workshop): base and top plate across the track, three posts
   // (both edges and the middle), 20 mm deep, standing on the floor under every raised joint
+  for(const sp of supportList(g,AN?AN.closed:true))pillars.push({p:sp.p,z:sp.z-4});
   for(const pl of pillars){if(pl.z<=2)continue;const w=pl.narrow?2*hw:st.settings.width,sg=new THREE.Group();
     const bx=(sy,sz,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(20,sy,sz),pm);b.position.set(0,y,z);b.castShadow=true;b.receiveShadow=true;sg.add(b);};
     bx(3,w,1.5,0);bx(3,w,pl.z-1.5,0);for(const z of[-w/2+5,0,w/2-5])bx(pl.z,10,pl.z/2,z);
@@ -1508,7 +1546,7 @@ async function wsZip(missing){
     for(const p of r.pieces){const q=p.qty*n;files.push({name:`${q}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${q} × ${p.label}  (${p.size.map(x=>nf(x)).join(" × ")} mm${p.fit.ok?"":L(", NON entra nel piatto",", does NOT fit the bed")})`);}
   }
   const hs={};let supLeft=missing?Math.max(0,AN.supports-(+st.owned.support||0)):Infinity;
-  for(const e of geom().els.slice().sort((a,b)=>b.z0-a.z0))if(e.z0>0.5&&supLeft>0){const h=Math.round(e.z0);hs[h]=(hs[h]||0)+1;supLeft--;}
+  for(const e of supportList(geom(),AN.closed).slice().sort((a,b)=>b.z-a.z))if(supLeft>0){const h=Math.round(e.z);hs[h]=(hs[h]||0)+1;supLeft--;}
   for(const[h,n]of Object.entries(hs)){const p=E.build({type:"support",hs:+h,d:20},wsPrm()).pieces[0];files.push({name:`${n}x_${fname(p.label)}.stl`,data:M4Engine.toSTL(p.mesh,p.label)});lines.push(`${n} × ${p.label}`);}
   const txt=[`${st.name||L("Circuito","Track")} — Mini4WD Track Planner v${APP_VERSION}`,`${L("Piatto","Bed")}: ${wsCfg().bed.replace("x","×")} mm`,"",L("DA STAMPARE","TO PRINT"),...lines,"",`${L("Clip Tamiya","Tamiya clips")}: ${AN.clips}`,...(skipped.length?["",L("DA MODELLI MAKERWORLD (non generati)","FROM MAKERWORLD MODELS (not generated)"),...skipped]:[]),"",L("Pezzi generati con licenza MIT. Il profilo è quello del rettilineo da 200 mm del set MINI4WD 2 LANE DIY TRACK (MakerWorld 542904).","Pieces generated under the MIT licence. The profile is the 200 mm straight of the MINI4WD 2 LANE DIY TRACK set (MakerWorld 542904).")].join("\r\n");
   files.push({name:L("LEGGIMI.txt","README.txt"),data:txt});
@@ -1648,6 +1686,9 @@ function bridgeText(b){
   if(b.made.length){const sl=Math.max(...b.made.map(m=>m.slope)),h=Math.min(...b.made.map(m=>m.clear)),Lm=Math.min(...b.made.map(m=>Math.min(m.Lu,m.Ld)));
     t+=L(` ${b.made.length===1?"Creato un ponte":`Creati ${b.made.length} ponti`} sull'incrocio: due rampe su misura (★) da ${nf(Lm)} mm prima e dopo, alte ${nf(b.made[0].h/10,1)} cm, con i supporti sotto${bedParts(Lm)>1?`; ogni rampa si stampa in ${bedParts(Math.max(...b.made.map(m=>Math.max(m.Lu,m.Ld))))} parti per un piatto ${bedName()} mm, ognuna con le sue alette`:""}. Verifica: passaggio libero ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · pendenza ${nf(sl*100)}% ${sl<=0.32?"✓":"(ripida: allunga i rettilinei vicini)"} · pista ${b.exact?"chiusa ✓":"aperta ✗"}.`,
       ` ${b.made.length===1?"Built a bridge":`Built ${b.made.length} bridges`} at the crossing: two made-to-measure ramps (★) of ${nf(Lm)} mm before and after, ${nf(b.made[0].h/10,1)} cm high, with supports underneath${bedParts(Lm)>1?`; each ramp prints in ${bedParts(Math.max(...b.made.map(m=>Math.max(m.Lu,m.Ld))))} parts for a ${bedName()} mm bed, each with its tabs`:""}. Check: clearance ${nf(h/10,1)} cm ${h>=BRIDGE_CLEAR?"✓":"✗"} · slope ${nf(sl*100)}% ${sl<=0.32?"✓":"(steep: lengthen the straights around it)"} · track ${b.exact?"closed ✓":"open ✗"}.`);}
+  if(b.made.length){const sl=supportList(geom(),true);
+    t+=L(` Supporti: tutti a terra, nessuno sulla pista sotto ✓${sl.moved?` (${sl.moved} spostat${sl.moved>1?"i":"o"} di lato rispetto al giunto)`:""}${sl.dropped?`; ${sl.dropped} giunt${sl.dropped>1?"i":"o"} sopra la pista resta${sl.dropped>1?"no":""} senza supporto`:""}.`,
+      ` Supports: all on the floor, none on the track below ✓${sl.moved?` (${sl.moved} moved off the joint)`:""}${sl.dropped?`; ${sl.dropped} joint${sl.dropped>1?"s":""} over the track ${sl.dropped>1?"have":"has"} no support`:""}.`);}
   if(b.left)t+=L(` ${b.left} incroc${b.left>1?"i":"io"} senza ponte: lì non ci sono rettilinei vicini per le rampe, aggiungili o sposta l'incrocio.`,` ${b.left} crossing${b.left>1?"s":""} without a bridge: there are no straights nearby for the ramps, add some or move the crossing.`);
   return t;
 }
