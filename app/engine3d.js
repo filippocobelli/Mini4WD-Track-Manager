@@ -41,6 +41,7 @@
     jump: typ("Salto", "Jump", { L: prm(200, 100, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), jl: prm(90, 30, 400, "Lunghezza rampa (mm)", "Ramp length (mm)"), jh: prm(18, 3, 45, "Altezza salto (mm)", "Jump height (mm)") }),
     saddle: typ("Sella", "Saddle", { L: prm(200, 60, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), sl: prm(80, 20, 300, "Lunghezza sella (mm)", "Saddle length (mm)"), sh: prm(12, 2, 40, "Altezza sella (mm)", "Saddle height (mm)") }),
     washboard: typ("Washboard", "Washboard", { L: prm(200, 60, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), n: prm(6, 1, 30, "Numero di dossi", "Number of bumps"), wh: prm(5, 1, 20, "Altezza dossi (mm)", "Bump height (mm)") }),
+    wave: typ("Onda", "Wave", { L: prm(240, 120, 600, "Lunghezza pezzo (mm)", "Piece length (mm)"), A: prm(12, 3, 40, "Ampiezza (mm)", "Amplitude (mm)"), n: prm(1, 1, 4, "Onde", "Waves") }),
     support: typ("Supporto rialzo", "Raised support", { hs: prm(75, 10, 250, "Altezza sotto il pavimento (mm)", "Height under the floor (mm)"), d: prm(20, 10, 60, "Profondità (mm)", "Depth (mm)") })
   };
 
@@ -144,6 +145,16 @@
       if (cut) m = m.subtract(cut);
       if (P.tabs) m = m.add(tabsStraight(P, L, flat ? 0 : zf(0), flat ? 0 : zf(L)));
       if (!flat && P.ribs) { const rb = ribs(P, L, zf); if (rb) m = m.add(rb); }
+      return m;
+    }
+
+    /* Wave (chicane): a straight whose whole section snakes sideways, A·sin(2πn·y/L)·sin²(π·y/L), so it starts
+       and ends straight and in line with the neighbours (tabs unchanged). */
+    function wave(P, L, A, nw) {
+      let m = Manifold.extrude(profile(P), L, Math.max(8, Math.ceil(L / 3))).rotate([90, 0, 0]).translate([0, L, 0]);
+      const a = y => A * Math.sin(2 * Math.PI * nw * y / L) * Math.sin(Math.PI * y / L) ** 2;
+      m = m.warp(v => { v[0] += a(v[1]); });
+      if (P.tabs) m = m.add(tabsStraight(P, L, 0, 0));
       return m;
     }
 
@@ -253,6 +264,7 @@
           if (n === 1) out[0].label = `${nm} ${fmt(L)}x${fmt(h)}mm`;
           return out;
         }
+        if (T === "wave") return [{ m: wave(P, L, g("A"), g("n")), qty: 1, label: `${tr("onda", "wave")} ${fmt(L)}mm` }];
         // elements with bumps in the lanes: not divisible
         let base = straight(P, L), pts;
         if (T === "jump") { const jl = Math.min(g("jl"), L - 20), y0 = (L - jl) / 2, y1 = y0 + jl; pts = [[y0, 0], [y1, g("jh")], [y1, 0]]; }

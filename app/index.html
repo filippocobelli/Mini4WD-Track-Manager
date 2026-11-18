@@ -271,7 +271,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.8.2";
+const APP_VERSION="2.9.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -288,6 +288,7 @@ const MODELS=[
   {id:"hill",name:"2 LANE MINI 4WD TRACK Ramp/Hill",by:"Jangyy",url:MWS("2 LANE MINI 4WD TRACK Ramp/Hill"),what:["Dosso: salita e discesa sullo stesso tratto.","Hill: up and down on the same section."],types:["HILL"]},
   {id:"rainbow",name:"Tamiya rainbow track 2 lane (no change lane)",by:"Sunza83",url:MW+"1336265-tamiya-rainbow-track-2-lane-no-change-lane",what:["2 rampe e supporti per sollevare una curva a 180° (rainbow) usando le curve normali.","2 ramps and supports to raise a 180° turn (rainbow) using the normal curves."],types:["RUP"]},
   {id:"saddle",name:"Mini 4WD Track Saddle",by:"user_2201040605",url:MW+"734281-mini-4wd-track-saddle",what:["Sella da appoggiare nel rettilineo: l'auto ci salta sopra. 4,6 h di stampa.","Saddle placed in a straight: the car jumps over it. 4.6 h of printing."],types:["SAD"],known:true},
+  {id:"slope",name:"2 lane Ramp 225 mm",by:"rucdoc",url:MW+"110185",what:["Salita a 2 corsie lunga 225 mm che alza la pista di 45 mm, compatibile con la 2 corsie Tamiya; sta su un piatto 256×256.","2-lane ramp 225 mm long raising the track by 45 mm, compatible with the Tamiya 2-lane track; fits a 256×256 bed."],types:["SLP"]},
   {id:"m240",name:"Modular Mini4wd 240mm track set 1",by:"rucdoc",url:MW+"248350-modular-mini4wd-240mm-track-set-1",what:["Rettilinei da 240 mm a moduli (corsia sinistra + destra), compatibili con la 2 corsie Tamiya. Utile se la stampante è piccola.","Modular 240 mm straights (left + right lane), compatible with the Tamiya 2-lane track. Handy for small printers."],types:["M240"],known:true},
   {id:"dualramp",name:"Dual Lane Mini4wd modular Ramp set",by:"rucdoc",url:MWS("Dual Lane Mini4wd modular Ramp set"),what:["Rampe modulari a 2 corsie per sopraelevate lunghe. Usa l'elemento «Rampa» con la quota corretta.","Modular 2-lane ramps for long raised sections. Use the «Ramp» element with the right height."],types:[]},
   {id:"curves",name:"Mini4wd Single Lane Curve track pack",by:"rucdoc",url:MW+"1132759-mini4wd-single-lane-curve-track-pack",what:["Curve a 1 corsia di vari raggi e angoli. Aggiungile da «Catalogo» come pezzo personalizzato.","1-lane curves in several radii and angles. Add them from «Catalogue» as a custom piece."],types:[]}
@@ -315,6 +316,8 @@ function defaultParts(){return [
   {id:"lcTopB",name:"Lane Change Top B",kit:1,h:4.2,est:true},
   {id:"jump",name:"Jump 200 mm",kit:0,h:7},
   {id:"saddle",name:"Sella (Track Saddle)",kit:0,h:4.6},
+  {id:"wave",name:"Onda 240 mm (Officina)",kit:0,h:3,est:true},
+  {id:"slope",name:"Salita 225 × 45 mm",kit:0,h:4,est:true},
   {id:"rbRamp",name:"Rampa rainbow",kit:0,h:3,est:true},
   {id:"hill",name:"Ramp/Hill",kit:0,h:6,est:true},
   {id:"spiral",name:"Spirale",kit:0,h:12,est:true},
@@ -334,6 +337,8 @@ function defaultTypes(){return [
   {id:"HILL",label:"Dosso",name:"Ramp/Hill",kind:"straight",len:600,prof:"hill",parts:{hill:1},segs:2,est:true,x:true,m:"hill"},
   {id:"RUP",label:"Rampa",name:"Rampa rainbow",kind:"straight",len:250,dz:75,prof:"ramp",parts:{rbRamp:1},segs:1,est:true,x:true,m:"rainbow"},
   {id:"SPI",label:"Spirale",name:"Spirale 360°",kind:"curve",ang:360,r:480,dz:120,parts:{spiral:1},segs:8,est:true,x:true,m:"spiral"},
+  {id:"WAVE",label:"Onda",name:"Onda (chicane)",kind:"straight",len:240,prof:"wave",wa:12,wn:1,parts:{wave:1},segs:1,est:true,x:true},
+  {id:"SLP",label:"Salita",name:"Salita 225 (rucdoc)",kind:"straight",len:225,dz:45,prof:"ramp",parts:{slope:1},segs:1,est:true,x:true,m:"slope"},
   {id:"WALL",label:"Wall",name:"Wall",kind:"straight",len:400,prof:"wall",parts:{wall:1},segs:2,est:true,x:true,m:"wall"},
   {id:"M240",label:"240",name:"Rettilineo modulare 240",kind:"straight",len:240,parts:{m240L:1,m240R:1},segs:1,x:true,m:"m240"}
 ];}
@@ -389,9 +394,11 @@ function geom(layout){
 function pointAt(e,u,o){
   let p;
   if(e.t.kind==="curve"){const h=e.p0.h+e.s*e.a*u;p={x:e.c.x+e.s*e.R*Math.sin(h),y:e.c.y-e.s*e.R*Math.cos(h),h};}
-  else p={x:e.p0.x+e.L*u*Math.cos(e.p0.h),y:e.p0.y+e.L*u*Math.sin(e.p0.h),h:e.p0.h};
+  else{p={x:e.p0.x+e.L*u*Math.cos(e.p0.h),y:e.p0.y+e.L*u*Math.sin(e.p0.h),h:e.p0.h};if(e.t.prof==="wave")o+=waveAt(e,u);}
   return off(p,o);
 }
+// sideways offset of a wave piece along it: starts and ends in line (same as the printed piece)
+function waveAt(e,u){const A=e.t.wa||12,n=e.t.wn||1;return A*Math.sin(2*Math.PI*n*u)*Math.sin(Math.PI*u)**2;}
 function zAt(e,u){
   const t=e.t;let z=e.z0+(e.z1-e.z0)*(t.kind==="curve"?u:smooth(u));
   if(t.prof==="jump")z+=28*(u<.8?u/.8:0);
@@ -402,15 +409,15 @@ function zAt(e,u){
 const f=p=>p.x.toFixed(1)+" "+p.y.toFixed(1);
 function curveSteps(e){return Math.max(2,Math.ceil(e.a/(5*DEG)));}
 function band(e,o1,o2){
-  if(e.t.kind!=="curve"){const A=off(e.p0,o1),B=off(e.p1,o1),C=off(e.p1,o2),D=off(e.p0,o2);return `M${f(A)}L${f(B)}L${f(C)}L${f(D)}Z`;}
-  const n=curveSteps(e),a=[],b=[];
+  if(e.t.kind!=="curve"&&e.t.prof!=="wave"){const A=off(e.p0,o1),B=off(e.p1,o1),C=off(e.p1,o2),D=off(e.p0,o2);return `M${f(A)}L${f(B)}L${f(C)}L${f(D)}Z`;}
+  const n=e.t.prof==="wave"?24:curveSteps(e),a=[],b=[];
   for(let k=0;k<=n;k++)a.push(f(pointAt(e,k/n,o1)));
   for(let k=n;k>=0;k--)b.push(f(pointAt(e,k/n,o2)));
   return "M"+a.join("L")+"L"+b.join("L")+"Z";
 }
 function midline(e,o){
-  if(e.t.kind!=="curve")return `M${f(off(e.p0,o))}L${f(off(e.p1,o))}`;
-  const n=curveSteps(e),a=[];for(let k=0;k<=n;k++)a.push(f(pointAt(e,k/n,o)));return "M"+a.join("L");
+  if(e.t.kind!=="curve"&&e.t.prof!=="wave")return `M${f(off(e.p0,o))}L${f(off(e.p1,o))}`;
+  const n=e.t.prof==="wave"?24:curveSteps(e),a=[];for(let k=0;k<=n;k++)a.push(f(pointAt(e,k/n,o)));return "M"+a.join("L");
 }
 function bbox(g){
   const w=st.settings.width/2; let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
@@ -639,7 +646,7 @@ function swapOptions(i){
   const it=st.layout[i],T=typeMap(),t=it&&T[it.t];if(!t)return[];
   const out=[];
   if((t.kind==="straight"&&!t.dz)||t.kind==="lane"){
-    for(const id of["J200","SAD","HILL","WALL","LC","S200","S215","S100","M240"])if(T[id]&&id!==it.t)out.push({kind:"type",id,label:tn(T[id])});
+    for(const id of["J200","SAD","HILL","WAVE","WALL","LC","S200","S215","S100","M240"])if(T[id]&&id!==it.t)out.push({kind:"type",id,label:tn(T[id])});
   }else if(t.kind==="straight"&&t.dz){
     const ext=st.settings.extras;
     for(const x of st.types)if(x.kind==="straight"&&x.dz===t.dz&&x.id!==t.id&&!x.gen&&(!x.x||ext))out.push({kind:"type",id:x.id,keepV:true,label:tn(x)});
@@ -980,6 +987,7 @@ function icon(t,d,v){
   if(t.prof==="jump")return `<svg viewBox="0 0 30 22"><path d="M2 18 H8 L20 9 V18 H28" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>`;
   if(t.prof==="hill")return `<svg viewBox="0 0 30 22"><path d="M2 18 C10 18 10 5 15 5 C20 5 20 18 28 18" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>`;
   if(t.prof==="saddle")return `<svg viewBox="0 0 30 22"><path d="M2 18 H10 L15 12 L20 18 H28" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>`;
+  if(t.prof==="wave")return `<svg viewBox="0 0 30 22"><path d="M2 8 C8 2 12 14 16 8 S24 2 28 8 M2 16 C8 10 12 22 16 16 S24 10 28 16" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>`;
   if(t.prof==="wall")return `<svg viewBox="0 0 30 22"><path d="M3 4 V18 H27 V4" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>`;
   const L=Math.max(8,Math.min(26,t.len/9));return `<svg viewBox="0 0 30 22"><rect x="${15-L/2}" y="6" width="${L}" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>`;
 }
@@ -1512,6 +1520,7 @@ function specOf(t){
   if(t.prof==="jump")return{type:"jump",L:t.len};
   if(t.prof==="saddle")return{type:"saddle",L:t.len};
   if(t.prof==="washboard")return{type:"washboard",L:t.len};
+  if(t.prof==="wave")return{type:"wave",L:t.len,A:t.wa||12,n:t.wn||1};
   return{type:"straight",L:t.len};
 }
 function wsAddToCatalog(){
@@ -1639,6 +1648,27 @@ const isBridged=c=>Math.abs(c.za-c.zb)>=BRIDGE_CLEAR;
 function crossings(g){return crossList(g).filter(c=>!isBridged(c)).length;}
 // Lifts one pass over the other: the straights just before and just after the crossing become a made-to-measure
 // ramp up and a ramp down of the same length (the track stays closed), everything between them is raised.
+// Same, on a closed track whose start sits next to the crossing: the lap is looked at from the opposite point,
+// so ramps can use the straights on both sides of the start; the start piece stays first.
+function bridgeAtWrap(lay,c,upper){
+  const best=[bridgeAt(lay,c,upper)];
+  const g=geom(lay),n=g.els.length;if(n<6||!analyse(g).closed)return best[0];
+  const cum=[];let T=0;for(const e of g.els){cum.push(T);T+=elLen(e);}
+  const sX=upper?c.sb:c.sa;let k=cum.findIndex(x=>x>=((sX+T/2)%T));if(k<=0)return best[0];
+  const tag=lay.map((x,i)=>({...x,_o:i})),rot=tag.slice(k).concat(tag.slice(0,k)),sh=v=>((v-cum[k])%T+T)%T;
+  const r=bridgeAt(rot,{...c,sa:sh(c.sa),sb:sh(c.sb)},upper);
+  if(r){let f=r.lay.findIndex(x=>x._o===0);
+    if(f<0){/* the start piece became part of a ramp: the ramp is the new first piece */const at=rot.findIndex(x=>x._o===0);f=r.lay.findIndex((x,i)=>x.gen&&i<=at&&(r.lay[i+1]==null||r.lay[i+1]._o==null||r.lay[i+1]._o>0));if(f<0)f=0;}
+    const nl=r.lay.slice(f).concat(r.lay.slice(0,f));
+    // if the start moved (start piece now inside a ramp) the whole track slides along the start straight:
+    // remember by how much, so the drawing / image underneath can follow
+    const ka=nl.findIndex(x=>x._o!=null);
+    if(ka>0&&nl.slice(0,ka).every(x=>x.gen&&x.gen.type==="ramp")){ // ramps (straight) in front of the first kept piece
+      const s0=g.els[0].p0,Ls=nl.slice(0,ka).reduce((a,x)=>a+x.gen.L,0),pn={x:s0.x+Ls*Math.cos(s0.h),y:s0.y+Ls*Math.sin(s0.h)},po=g.els[nl[ka]._o].p0;
+      r.shift={x:po.x-pn.x,y:po.y-pn.y};}
+    r.lay=nl.map(({_o,...x})=>x);best.push(r);}
+  return best.filter(Boolean).sort((a,b)=>a.cost-b.cost)[0]||null;
+}
 function bridgeAt(lay,c,upper){
   const g=geom(lay),els=g.els,n=els.length,W=st.settings.width;
   const sX=upper?c.sb:c.sa,sY=upper?c.sa:c.sb,zX=upper?c.zb:c.za,zY=upper?c.za:c.zb;
@@ -1649,11 +1679,11 @@ function bridgeAt(lay,c,upper){
   let i=-1;for(let k=n-1;k>=0;k--)if(cum[k][1]<=sX-hw){i=k;break;}
   while(i>=0&&!plain(i)&&cum[i][1]>sX-hw-2500)i--;
   if(!plain(i))return null;
-  const up=[i];let Lu=elLen(els[i]);while(up.length<3&&Lu<300&&plain(up[0]-1)){up.unshift(up[0]-1);Lu+=elLen(els[up[0]]);}
+  const Lt=Math.min(450,Math.max(300,h/0.25)),up=[i];let Lu=elLen(els[i]);while(up.length<3&&Lu<Lt&&plain(up[0]-1)){up.unshift(up[0]-1);Lu+=elLen(els[up[0]]);}
   let j=-1;for(let k=0;k<n;k++)if(cum[k][0]>=sX+hw){j=k;break;}
   while(j>=0&&j<n&&!plain(j)&&cum[j][0]<sX+hw+2500)j++;
   if(!plain(j))return null;
-  const dn=[j];let Ld=elLen(els[j]);while(dn.length<3&&Ld<300&&plain(dn[dn.length-1]+1)){dn.push(dn[dn.length-1]+1);Ld+=elLen(els[dn[dn.length-1]]);}
+  const dn=[j];let Ld=elLen(els[j]);while(dn.length<3&&Ld<Lt&&plain(dn[dn.length-1]+1)){dn.push(dn[dn.length-1]+1);Ld+=elLen(els[dn[dn.length-1]]);}
   if(up[up.length-1]>=dn[0])return null;
   if(sY>cum[up[0]][0]-50&&sY<cum[dn[dn.length-1]][1]+50)return null; // the other pass must stay down
   let lc=false;for(let k=up[0];k<=dn[dn.length-1];k++)if(els[k].t.kind==="lane")lc=true;
@@ -1661,7 +1691,7 @@ function bridgeAt(lay,c,upper){
   l2.splice(dn[0],dn.length,{gen:{type:"ramp",L:Math.round(Ld*10)/10,h:R1},v:-1});
   l2.splice(up[0],up.length,{gen:{type:"ramp",L:Math.round(Lu*10)/10,h:R1},v:1});
   const span=cum[dn[0]][0]-cum[up[up.length-1]][1];
-  return{lay:l2,Lu,Ld,h:R1,clear:zX+R1-zY,slope:R1/Math.min(Lu,Ld),span,cost:R1/Math.min(Lu,Ld)*100+span/400+(lc?30:0)};
+  return{lay:l2,Lu,Ld,h:R1,clear:zX+R1-zY,slope:R1/Math.min(Lu,Ld),span,cost:R1/Math.min(Lu,Ld)*100+Math.max(0,R1/Math.min(Lu,Ld)-0.25)*400+span/400+(lc?30:0)}; // ramps over 25% are a last resort
 }
 // Builds a bridge at every crossing that hasn't got one (one Undo step). Returns what was done.
 function autoBridge(){let r;commit(()=>{r=bridgeLoop();});return r;}
@@ -1672,9 +1702,10 @@ function bridgeLoop(){
     for(let it=0;it<6;it++){
       const g=geom(),todo=crossList(g).filter(c=>!isBridged(c)&&!failed.some(f=>Math.hypot(f.x-c.x,f.y-c.y)<300));
       if(!todo.length)break;
-      const c=todo[0],opts=[bridgeAt(st.layout,c,false),bridgeAt(st.layout,c,true)].filter(Boolean).sort((a,b)=>a.cost-b.cost);
+      const c=todo[0],opts=[bridgeAtWrap(st.layout,c,false),bridgeAtWrap(st.layout,c,true)].filter(Boolean).sort((a,b)=>a.cost-b.cost);
       if(!opts.length){failed.push(c);continue;}
-      st.layout=toLayout(opts[0].lay);const{lay:_l,...info}=opts[0];made.push(info);
+      st.layout=toLayout(opts[0].lay);const{lay:_l,shift,...info}=opts[0];made.push(info);
+      if(shift&&Math.hypot(shift.x,shift.y)>0.5){const mv=q=>({...q,x:q.x-shift.x,y:q.y-shift.y});if(st.sketch)st.sketch=st.sketch.map(mv);if(OV.img){OV.img.x-=shift.x;OV.img.y-=shift.y;}}
     }
   }
   const an=analyse(geom());

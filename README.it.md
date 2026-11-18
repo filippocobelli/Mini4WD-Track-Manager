@@ -185,6 +185,7 @@ Così non sei limitato ai modelli che trovi in rete: lunghezze, angoli, raggi e 
 | **Salto** | rampa di lancio dentro ogni corsia: lunghezza e altezza |
 | **Sella** | rilievo a triangolo dentro ogni corsia |
 | **Washboard** | serie di piccoli dossi |
+| **Onda** | chicane: tutta la sezione serpeggia di lato e finisce in linea (lunghezza, ampiezza, numero di onde) |
 | **Supporto rialzo** | appoggio per i tratti sollevati, alto quanto serve |
 
 Il profilo di partenza è misurato sul rettilineo da 200 mm del set (corsie da 115 mm, pareti e pavimento da 2,5 mm,
@@ -216,6 +217,7 @@ Oltre al kit base, il planner conosce questi elementi compatibili con la pista T
 | Dosso | 2 LANE MINI 4WD TRACK Ramp/Hill – Jangyy | misure da verificare |
 | Rampa rainbow | [Tamiya rainbow track 2 lane](https://makerworld.com/en/models/1336265-tamiya-rainbow-track-2-lane-no-change-lane) – Sunza83 | rampe e supporti |
 | Sella | [Mini 4WD Track Saddle](https://makerworld.com/en/models/734281-mini-4wd-track-saddle) | 4,6 h di stampa |
+| Salita 225 × 45 | [2 lane Ramp 225 mm](https://makerworld.com/en/models/110185) – rucdoc | sta su un piatto 256 |
 | Rettilineo modulare 240 | [Modular Mini4wd 240mm track set](https://makerworld.com/en/models/248350-modular-mini4wd-240mm-track-set-1) – rucdoc | per stampanti piccole |
 | Curve di altri raggi | [Single Lane Curve pack](https://makerworld.com/en/models/1132759-mini4wd-single-lane-curve-track-pack) – rucdoc | da aggiungere come pezzo personalizzato |
 

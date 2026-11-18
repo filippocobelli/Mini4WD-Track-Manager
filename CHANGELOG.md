@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.9.0] - 2026-11-18
+
+- Images from track editors where plain pieces are drawn only as lane lines on white (Tamiya-style layouts) are now
+  traced: the space between lines spaced like lanes is filled, tracks side by side are kept apart, pin-holes inside
+  a piece are ignored, and at a crossing the trace goes straight on (it looks a few pixels ahead along each branch).
+- Bridges: ramps can use the straights on both sides of the lap start, are made up to ~45 cm long to stay under 25%,
+  and ramps steeper than 25% are only a last resort. If the start moves, the drawing / picture underneath follows.
+- New pieces: **Wave** (chicane, made in the Workshop, also offered by Swap for straights) and **Slope 225 × 45**
+  (rucdoc's 2-lane ramp on MakerWorld).
+
 ## [2.8.2] - 2026-11-16
 
 - Bridges: a support never stands on the track that passes underneath. Supports that would fall on it are moved along

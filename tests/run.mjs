@@ -32,6 +32,8 @@ for (const type of Object.keys(globalThis.M4Engine.TYPES)) {
 {
   const r = E.build({ type: "curve", ang: 45, R: 480 });
   ok(r.split === 2 && r.pieces[0].qty === 2, "curve 45° R480 split in 2 for a 256 bed");
+  const wv = E.build({ type: "wave", L: 240, A: 12, n: 1 }).pieces[0];
+  ok(wv.status === "NoError" && near(wv.size[1], 240, 0.01) && wv.size[0] > 251 && wv.size[0] < 262, "wave 240: the section snakes sideways, ends in line", wv.size.join(" × "));
   const small = E.build({ type: "straight", L: 200 }, { bedX: 180, bedY: 180 });
   ok(!small.ok, "250 mm wide straight flagged as off a 180×180 bed");
   ok(E.pending() === 0, "WebAssembly memory freed after each piece");
@@ -167,6 +169,14 @@ const p3 = await page.evaluate(() => ({ lanes: IMG.tr.lanes, w: Math.round(IMG.s
 const parts = await page.evaluate(() => st.types.filter(t => t.gen && t.gen.spec.type === "ramp").map(x => [x.gen.spec.L, Object.values(x.parts)[0]]));
 ok(parts.length >= 1 && parts.every(([L, n]) => n === Math.ceil(L / 252)) && parts.some(([L, n]) => n === 2), "bridge ramps: as many printed parts as a 256 mm bed needs (2 for those over 252 mm)", JSON.stringify(parts));
 ok(p3.lanes === 3 && Math.abs(p3.w - 4830) < 300 && p3.exact && p3.dev < 30 && p3.cross === 0 && p3.br === 1 && p3.maxZ >= 60 && p3.sup > 0 && p3.lc, "3-lane track editor picture (grid, colours, text, bridge): 3 lanes, real scale, closed, bridge with supports built", JSON.stringify(p3));
+// editor picture where plain pieces are only lane lines on white (crossing on the start straight)
+await page.setInputFiles("#imgfile", path.join(root, "tests", "fixtures", "track-lines-only.png"));
+await page.waitForFunction(() => FIT && FIT.src === "image" && IMG && IMG.name === "track-lines-only", null, { timeout: 30000 });
+const lo = await page.evaluate(() => { const b = bbox(G), br = FIT.bridges && FIT.bridges.made[0]; return { lanes: IMG.tr.lanes, band: IMG.tr.band, cross: M4Trace.selfCross(IMG.tr.pts), exact: AN.exact, w: Math.round(b.w), h: Math.round(b.h), br: FIT.bridges && FIT.bridges.made.length, slope: br && br.slope, left: crossings(geom()) }; });
+ok(lo.band && lo.lanes === 3 && lo.cross === 1 && lo.exact && lo.br === 1 && lo.left === 0 && lo.slope <= 0.25 && Math.abs(lo.h / lo.w - 490 / 250) < 0.25, "picture with plain pieces drawn as lines only: traced with its crossing, closed, bridge with gentle ramps (across the lap start)", JSON.stringify(lo));
+const wv2 = await page.evaluate(() => { const k = st.layout.findIndex(x => x.t === "S200"); sel = k; tab = "sum"; render(); const o = window._swap.find(o => o.id === "WAVE"); return { has: !!o, icon: !!document.querySelector('[data-add="WAVE"]'), spec: JSON.stringify(specOf(typeMap().WAVE)) }; });
+ok(wv2.has && wv2.icon && wv2.spec === '{"type":"wave","L":240,"A":12,"n":1}', "wave piece: in the palette, offered by Swap, made in the Workshop", JSON.stringify(wv2));
+await page.evaluate(() => { sel = null; });
 await page.evaluate(() => { tab = "bom"; renderPane(); });
 ok(await page.evaluate(() => document.querySelectorAll("#pane a.ab.sm[href*='makerworld']").length > 0 && document.querySelectorAll("#pane [data-gen]").length > 0), "parts to print: MakerWorld links and Make STL buttons");
 await page.click("#pane [data-gen]"); await page.waitForFunction(() => !wsBusy && wsRes && tab === "ws", null, { timeout: 60000 });

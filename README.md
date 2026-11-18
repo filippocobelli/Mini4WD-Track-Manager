@@ -188,6 +188,7 @@ So you're not limited to the models you find online: you choose lengths, angles,
 | **Jump** | kicker ramp inside each lane: length and height |
 | **Saddle** | triangular bump inside each lane |
 | **Washboard** | a series of small bumps |
+| **Wave** | a chicane: the whole section snakes sideways and ends in line (length, amplitude, number of waves) |
 | **Raised support** | stand for raised sections, as tall as needed |
 
 The starting profile is measured on the set's 200 mm straight (115 mm lanes, 2.5 mm walls and floor,
@@ -219,6 +220,7 @@ Besides the base kit, the planner knows these elements compatible with the Tamiy
 | Hill | 2 LANE MINI 4WD TRACK Ramp/Hill – Jangyy | sizes to check |
 | Rainbow ramp | [Tamiya rainbow track 2 lane](https://makerworld.com/en/models/1336265-tamiya-rainbow-track-2-lane-no-change-lane) – Sunza83 | ramps and supports |
 | Saddle | [Mini 4WD Track Saddle](https://makerworld.com/en/models/734281-mini-4wd-track-saddle) | 4.6 h of printing |
+| Slope 225 × 45 | [2 lane Ramp 225 mm](https://makerworld.com/en/models/110185) – rucdoc | fits a 256 bed |
 | Modular 240 straight | [Modular Mini4wd 240mm track set](https://makerworld.com/en/models/248350-modular-mini4wd-240mm-track-set-1) – rucdoc | for small printers |
 | Curves with other radii | [Single Lane Curve pack](https://makerworld.com/en/models/1132759-mini4wd-single-lane-curve-track-pack) – rucdoc | add them as a custom piece |
 

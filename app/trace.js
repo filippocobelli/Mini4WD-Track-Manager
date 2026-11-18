@@ -439,12 +439,22 @@
       const c = path[path.length - 1], back = path[Math.max(0, path.length - 8)];
       if (path.length > 3) { const dx = c.x - back.x, dy = c.y - back.y, l = Math.hypot(dx, dy) || 1; dir = [dx / l, dy / l]; }
       let best = null, bs = -Infinity;
+      // at a junction, look along each branch for a few pixels and keep the one that goes on most
+      // straight (a crossing is crossed, not turned at); branches already walked count less
+      const far = path[Math.max(0, path.length - 20)], fl = Math.hypot(c.x - far.x, c.y - far.y) || 1, fdir = path.length > 10 ? [(c.x - far.x) / fl, (c.y - far.y) / fl] : dir;
+      let nOpen = 0; for (const [dx, dy] of N8) { const X = c.x + dx, Y = c.y + dy; if (!on(X, Y)) continue; const r = recent.get(Y * w + X); if (r == null || path.length - r >= 25) nOpen++; }
       for (const [dx, dy] of N8) {
         const X = c.x + dx, Y = c.y + dy; if (!on(X, Y)) continue;
         const k = Y * w + X, r = recent.get(k);
         if (k === start && path.length > 40) return path;
         if (r != null && path.length - r < 25) continue;
-        const sc = dir ? (dx * dir[0] + dy * dir[1]) / Math.hypot(dx, dy) : 0;
+        let sc = dir ? (dx * dir[0] + dy * dir[1]) / Math.hypot(dx, dy) : 0;
+        if (fdir && nOpen > 1) {
+          let px = X, py = Y; const seen = new Set([c.y * w + c.x, k]);
+          for (let t = 0; t < 16; t++) { let nb = null, ns = -Infinity; for (const [ex, ey] of N8) { const X2 = px + ex, Y2 = py + ey, k2 = Y2 * w + X2; if (!on(X2, Y2) || seen.has(k2)) continue; const r2 = recent.get(k2); if (r2 != null && path.length - r2 < 25) continue; const s2 = (ex * fdir[0] + ey * fdir[1]) / Math.hypot(ex, ey); if (s2 > ns) { ns = s2; nb = [X2, Y2, k2]; } } if (!nb) break; px = nb[0]; py = nb[1]; seen.add(nb[2]); }
+          const ex = px - c.x, ey = py - c.y, el = Math.hypot(ex, ey) || 1;
+          sc = (ex * fdir[0] + ey * fdir[1]) / el + (el > 6 ? 0 : -1) - (r != null ? 0.5 : 0);
+        }
         if (sc > bs) { bs = sc; best = { x: X, y: Y, k }; }
       }
       if (!best) {
@@ -502,6 +512,10 @@
       if (Math.hypot(r - bg[0], gg - bg[1], b - bg[2]) > TH) { fg[i] = 1; cnt++; }
     }
     if (cnt < w * h * 0.002) return { err: "empty" };
+    // track editors (Tamiya-style, Pimentoso…) draw plain pieces in the background colour, only their lane lines
+    // show: fill the space between parallel lines spaced like lanes, so those pieces become solid too
+    const bf = bandFill(fg, w, h);
+    if (bf) for (let i = 0; i < w * h; i++) if (bf[i]) fg[i] = 1;
     const rc = Math.max(2, Math.round(Math.min(w, h) / 90));
     const closed = erode(dilate(fg, w, h, rc), w, h, rc);
     // remove thin things (grid, text) if the track survives it
@@ -512,7 +526,10 @@
     if (opened && opened.area > shape.area * 0.6) shape = opened;
     const S = shape.m;
     // holes: does the shape enclose an area? (a loop of track does, a filled silhouette doesn't)
-    const H = components(S, w, h, 0), holes = H.comps.filter(c => !c.border).sort((a, b) => b.area - a.area);
+    const H = components(S, w, h, 0);
+    // pin-holes inside a piece (the middle of a lane change, a logo) are not holes of the layout: fill them
+    for (const c of H.comps) if (!c.border && c.area < shape.area * 0.01) for (let i = 0; i < w * h; i++) if (H.lab[i] === c.id) S[i] = 1;
+    const holes = H.comps.filter(c => !c.border && c.area >= shape.area * 0.01).sort((a, b) => b.area - a.area);
     const finish = (line, extra) => {
       line = smoothLoop(resample(line, Math.max(1, Math.min(w, h) / 250)), 4);
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -533,6 +550,42 @@
     const outer = contour(S, w, h);
     if (outer.length < 20) return { err: "empty" };
     return finish(outer, { band: false, bw: 0, lanes: null });
+  }
+
+  /*
+   * Fills the lanes of pieces drawn only as lines. Rows and columns are scanned for thin lines; the most common
+   * spacing between neighbouring lines is the lane width s, the most common number of lines in a run of
+   * lane-spaced lines is lanes + 1. A run with more lines than that is two tracks side by side: it is cut at its
+   * widest gaps into pieces of lanes + 1 lines. Each piece is filled from its first line to its last.
+   */
+  function bandFill(fg, w, h) {
+    const scans = [];
+    for (let y = 0; y < h; y++) scans.push({ n: w, at: x => y * w + x });
+    for (let x = 0; x < w; x++) scans.push({ n: h, at: y => y * w + x });
+    const linesOf = sc => { const L = []; let i = 0; while (i < sc.n) { if (!fg[sc.at(i)]) { i++; continue; } let j = i; while (j + 1 < sc.n && fg[sc.at(j + 1)]) j++; L.push({ a: i, b: j }); i = j + 1; } return L; };
+    const all = scans.map(linesOf), thinW = Math.max(3, Math.round(Math.min(w, h) / 150));
+    const hist = new Float64Array(80);
+    for (const L of all) for (let k = 1; k < L.length; k++) { const p = L[k - 1], q = L[k]; if (p.b - p.a < thinW && q.b - q.a < thinW) { const d = Math.round((q.a + q.b - p.a - p.b) / 2); if (d >= 5 && d < 80) hist[d]++; } }
+    let s = 0, best = 0; for (let d = 6; d < 79; d++) { const v = hist[d - 1] + 2 * hist[d] + hist[d + 1]; if (v > best) { best = v; s = d; } }
+    if (!s || best < 40) return null;
+    const runs = L => { const out = []; let cur = []; for (const r of L) { if (r.b - r.a >= thinW) { if (cur.length) out.push(cur); cur = []; continue; } const c = (r.a + r.b) / 2; if (cur.length && c - cur[cur.length - 1] > 1.3 * s) { out.push(cur); cur = []; } cur.push(c); } if (cur.length) out.push(cur); return out; };
+    const sizes = new Float64Array(12); for (const L of all) for (const r of runs(L)) if (r.length >= 3 && r.length < 12) sizes[r.length]++;
+    let per = 0; best = 0; for (let n = 3; n <= 6; n++) if (sizes[n] > best) { best = sizes[n]; per = n; }
+    if (!per) return null;
+    const out = new Uint8Array(w * h);
+    all.forEach((L, si) => {
+      const sc = scans[si];
+      for (const r of runs(L)) {
+        if (r.length < 2) continue;
+        let cuts = [];
+        if (r.length > per) {
+          if (r.length % per === 0) for (let i = per; i < r.length; i += per) cuts.push(i); // tracks side by side, evenly spaced
+          else { const k = Math.round(r.length / per); const gaps = []; for (let i = 1; i < r.length; i++) gaps.push({ i, g: r[i] - r[i - 1] }); cuts = gaps.sort((a, b) => b.g - a.g).slice(0, k - 1).map(x => x.i).sort((a, b) => a - b); }
+        }
+        let st = 0; for (const c of [...cuts, r.length]) { const piece = r.slice(st, c); st = c; if (piece.length < 2 || piece.length > per) continue; for (let x = Math.round(piece[0]); x <= Math.round(piece[piece.length - 1]); x++) out[sc.at(x)] = 1; }
+      }
+    });
+    return out;
   }
 
   /*
@@ -602,5 +655,5 @@
     return best ? { res: best.r, k: best.k, rel: best.rel, faithful: !!best.good, tried: tries.map(t => ({ k: t.k, n: t.n, rel: t.rel, good: t.good })) } : null;
   }
 
-  root.M4Trace = { fitBestScale, selfCross, centerline, sketchScale, close, fitPath, traceImage, step, residual, run, pieceOf, resample };
+  root.M4Trace = { _img: { bandFill, erode, dilate, components, thin, prune, walk, distance, laneCount, contour }, fitBestScale, selfCross, centerline, sketchScale, close, fitPath, traceImage, step, residual, run, pieceOf, resample };
 })(typeof window !== "undefined" ? window : globalThis);
