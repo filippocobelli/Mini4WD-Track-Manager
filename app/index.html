@@ -242,6 +242,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
       <button class="ab" id="rot" data-en="⟳ Rotate 45°">⟳ Ruota 45°</button>
       <button class="ab" id="desel" data-en="Track end">Fine pista</button>
       <button class="ab danger" id="del">✕ Elimina</button>
+      <button class="ab" id="savebtn" data-en="💾 Save">💾 Salva</button>
       <button class="ab danger" id="clearall" data-en="🗑 Clear">🗑 Svuota</button>
     </div>
     <p class="hint" id="hint"></p>
@@ -271,7 +272,7 @@ textarea{width:100%;min-height:110px;font:12px/1.4 var(--mono)}
 "use strict";
 let LANG=(()=>{try{return localStorage.getItem("m4wd-lang")||"en";}catch(e){return "en";}})();
 const L=(it,en)=>LANG==="it"?it:en;
-const APP_VERSION="2.9.0";
+const APP_VERSION="2.10.0";
 const $=s=>document.querySelector(s);
 const DEG=Math.PI/180, KEY="m4wd-planner-v1";
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -362,6 +363,34 @@ function migrate(s){
 }
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.layout)&&Array.isArray(s.types)&&Array.isArray(s.parts))return migrate(s);}catch(e){}return null;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+/* My tracks: named snapshots of a layout (with its drawing and the made-to-measure / custom pieces it uses),
+   kept in this browser; inventory and settings are not part of them. */
+const LIBKEY="m4wd-library-v1";let LIBDEL=null; // second tap on ✕ deletes
+function libGet(){try{const a=JSON.parse(localStorage.getItem(LIBKEY));return Array.isArray(a)?a:[];}catch(e){return[];}}
+function libPut(a){try{localStorage.setItem(LIBKEY,JSON.stringify(a));return true;}catch(e){toast(L("Spazio del browser pieno: scarica il JSON.","Browser storage is full: download the JSON."));return false;}}
+function snapshot(){
+  const used=new Set(st.layout.map(x=>x.t)),types=st.types.filter(t=>used.has(t.id)&&(t.custom||t.gen)),pids=new Set(types.flatMap(t=>Object.keys(t.parts||{})));
+  return{kind:"m4wd-track",v:APP_VERSION,name:st.name||L("Circuito","Track"),date:new Date().toISOString(),layout:st.layout,sketch:st.sketch||null,types,parts:st.parts.filter(p=>pids.has(p.id)),startH:st.settings.startH||0};
+}
+function applySnapshot(t){
+  commit(()=>{
+    for(const p of t.parts||[])if(!st.parts.find(x=>x.id===p.id))st.parts.push(p);
+    for(const ty of t.types||[])if(!st.types.find(x=>x.id===ty.id))st.types.push(ty);
+    st.layout=t.layout.map(x=>({...x}));st.sketch=t.sketch||null;st.name=t.name||st.name;if(t.startH!=null)st.settings.startH=t.startH;sel=null;
+  });
+  OV={img:null};IMG=null;FIT=null;LASTREP=null;fit();if(is3d)build3D(true);
+}
+function libSave(){
+  const a=libGet(),sn=snapshot(),k=a.findIndex(x=>x.name===sn.name);sn.id=k>=0?a[k].id:Date.now().toString(36);
+  if(k>=0)a[k]=sn;else a.unshift(sn);
+  if(libPut(a))toast(k>=0?L(`«${sn.name}» aggiornato nei miei circuiti`,`«${sn.name}» updated in My tracks`):L(`«${sn.name}» salvato nei miei circuiti`,`«${sn.name}» saved to My tracks`));
+}
+function readTrackJSON(txt){
+  const s=JSON.parse(txt);
+  if(s&&s.kind==="m4wd-track"&&Array.isArray(s.layout)){applySnapshot(s);return true;}
+  if(s&&Array.isArray(s.layout)&&Array.isArray(s.types)&&Array.isArray(s.parts)){commit(()=>{st=migrate(Object.assign(defaults(),s));sel=null;});fit();return true;}
+  return false;
+}
 
 let st=load()||defaults();
 let sel=null, tab="sum", view={cx:0,cy:0,z:.2}, hist=[], fut=[], is3d=false;
@@ -1142,14 +1171,21 @@ function paneCat(){
   return h;
 }
 function paneFile(){
-  let h=`<div><h2>${L("Circuiti pronti","Ready-made tracks")}</h2><div class="tw" style="margin-top:6px"><table><tbody>`;
+  const lib=libGet(),dt=d=>{try{return new Date(d).toLocaleDateString(LANG==="it"?"it-IT":"en-GB",{day:"numeric",month:"short",year:"numeric"});}catch(e){return"";}};
+  let h=`<div><h2>${L("I miei circuiti","My tracks")}</h2>`;
+  if(!lib.length)h+=`<p class="note">${L("Nessun circuito salvato. Dai un nome qui sotto e premi «Salva nei miei circuiti».","No saved tracks yet. Give it a name below and press «Save to My tracks».")}</p>`;
+  else{h+=`<div class="tw" style="margin-top:6px"><table><tbody>`;
+    for(const t of lib)h+=`<tr><td><b>${esc(t.name)}</b><br><small style="color:var(--muted)">${t.layout.length} ${L("pezzi","pieces")} · ${dt(t.date)}${t.sketch?L(" · con disegno"," · with drawing"):""}</small></td><td class="n" style="white-space:nowrap"><button class="btn" data-lib-load="${esc(t.id)}">${L("Carica","Load")}</button> <button class="btn" data-lib-dl="${esc(t.id)}" title="${L("Scarica JSON","Download JSON")}">⬇</button> <button class="btn${LIBDEL===t.id?" primary":""}" data-lib-del="${esc(t.id)}" title="${L("Elimina","Delete")}">${LIBDEL===t.id?L("Elimina?","Delete?"):"✕"}</button></td></tr>`;
+    h+=`</tbody></table></div>`;}
+  h+=`</div><div><h2>${L("Circuiti pronti","Ready-made tracks")}</h2><div class="tw" style="margin-top:6px"><table><tbody>`;
   for(const[k,p]of Object.entries(PRESETS))h+=`<tr><td><b>${esc(pv(p.name))}</b><br><small style="color:var(--muted)">${esc(pv(p.desc))}</small></td><td class="n"><button class="btn" data-preset="${k}">${L("Carica","Load")}</button></td></tr>`;
   h+=`</tbody></table></div></div>
   <div><h2>${L("Questo circuito","This track")}</h2><div class="form" style="margin-top:8px"><label for="c-name">${L("Nome","Name")}<input type="text" id="c-name" value="${esc(st.name||"")}"></label></div>
-  <div class="btns" style="margin-top:10px"><button class="btn" data-act="copy-json">${L("Copia JSON","Copy JSON")}</button><button class="btn" data-act="copy-svg">${L("Copia SVG","Copy SVG")}</button><button class="btn" data-act="clear">${L("Svuota pista","Clear track")}</button></div></div>
-  <div><h2>${L("Importa","Import")}</h2><label for="imp" class="note">${L("Incolla un JSON copiato in precedenza.","Paste a JSON you copied earlier.")}</label><textarea id="imp" spellcheck="false"></textarea>
-  <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="import">${L("Carica JSON","Load JSON")}</button><button class="btn" data-act="reset">${L("Ripristina tutto","Reset everything")}</button></div></div>
-  <p class="note">${L("Il circuito si salva in questo browser a ogni modifica. Per spostarlo su un altro dispositivo usa «Copia JSON».","The track is saved in this browser on every change. To move it to another device use «Copy JSON».")}</p>`;
+  <div class="btns" style="margin-top:10px"><button class="btn primary" data-act="lib-save">💾 ${L("Salva nei miei circuiti","Save to My tracks")}</button><button class="btn" data-act="save-json">⬇ ${L("Scarica JSON","Download JSON")}</button><button class="btn" data-act="copy-json">${L("Copia JSON","Copy JSON")}</button><button class="btn" data-act="copy-svg">${L("Copia SVG","Copy SVG")}</button><button class="btn" data-act="clear">${L("Svuota pista","Clear track")}</button></div></div>
+  <div><h2>${L("Importa","Import")}</h2><label for="imp" class="note">${L("Apri un file JSON scaricato, oppure incolla un JSON copiato.","Open a downloaded JSON file, or paste a copied JSON.")}</label><textarea id="imp" spellcheck="false"></textarea>
+  <input type="file" id="jsonfile" accept=".json,application/json" hidden>
+  <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="open-json">📂 ${L("Apri file JSON","Open JSON file")}</button><button class="btn" data-act="import">${L("Carica JSON incollato","Load pasted JSON")}</button><button class="btn" data-act="reset">${L("Ripristina tutto","Reset everything")}</button></div></div>
+  <p class="note">${L("Il circuito aperto si salva da solo in questo browser; per tenerne più di uno usa «Salva nei miei circuiti». Per spostarlo su un altro dispositivo usa «Scarica JSON» e poi «Apri file JSON».","The open track is saved by itself in this browser; to keep more than one use «Save to My tracks». To move it to another device use «Download JSON» then «Open JSON file».")}</p>`;
   return h;
 }
 
@@ -1776,6 +1812,9 @@ $("#clearall").onclick=()=>{if(!st.layout.length&&!OV.img&&!st.sketch)return;com
   toast(L("Pista svuotata: «Annulla» la riporta indietro.","Track cleared: «Undo» brings it back."));};
 $("#swap").onclick=()=>{if(sel==null)return;tab="sum";wsActivate(false);renderPane();$("#pane").scrollTop=0;};
 $("#imgbtn").onclick=()=>$("#imgfile").click();
+document.addEventListener("change",e=>{if(e.target.id!=="jsonfile")return;const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();
+  r.onload=()=>{try{if(!readTrackJSON(r.result))throw 0;toast(L(`Caricato «${fl.name}»`,`Loaded «${fl.name}»`));}catch(_){toast(L("File non valido: usa un JSON scaricato dal planner.","Invalid file: use a JSON downloaded from the planner."));}};r.readAsText(fl);e.target.value="";});
+$("#savebtn").onclick=()=>{if(!st.layout.length){toast(L("La pista è vuota.","The track is empty."));return;}libSave();tab="file";renderPane();};
 $("#imgfile").onchange=e=>{const fl=e.target.files&&e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=()=>importImage(r.result,fl.name);r.readAsDataURL(fl);e.target.value="";};
 $("#del").onclick=()=>{if(!st.layout.length)return;const was=AN.exact;commit(()=>{if(sel!=null){st.layout.splice(sel,1);sel=sel>0?sel-1:null;}else st.layout.pop();});afterEdit(was,null);};
 $("#closebtn").onclick=()=>doRefit();
@@ -1803,6 +1842,9 @@ pane.addEventListener("click",e=>{
   if(b.dataset.swap!=null){const o=window._swap[+b.dataset.swap];if(o)doSwap(o);return;}
   if(b.dataset.alt!=null){const a=LASTREP&&LASTREP.alts[+b.dataset.alt];if(a){const cur=LASTREP.text;commit(()=>{st.layout=toLayout(a.lay);sel=null;});LASTREP={key:JSON.stringify(st.layout),text:a.text,alts:[]};renderPane();}return;}
   if(b.dataset.sugg!=null){const o=window._sugg[+b.dataset.sugg];if(o)applyClose(o);return;}
+  if(b.dataset.libLoad){const t=libGet().find(x=>x.id===b.dataset.libLoad);if(t){applySnapshot(t);toast(L(`Caricato «${t.name}»`,`Loaded «${t.name}»`));}return;}
+  if(b.dataset.libDl){const t=libGet().find(x=>x.id===b.dataset.libDl);if(t)download(t.name.replace(/[^\w\- àèéìòù]+/gi,"_").trim()+".json",new TextEncoder().encode(JSON.stringify(t,null,1)),"application/json");return;}
+  if(b.dataset.libDel){const a=libGet(),t=a.find(x=>x.id===b.dataset.libDel);if(!t)return;if(LIBDEL!==t.id){LIBDEL=t.id;renderPane();return;}LIBDEL=null;libPut(a.filter(x=>x!==t));renderPane();toast(L(`«${t.name}» eliminato`,`«${t.name}» deleted`));return;}
   if(b.dataset.preset){const p=PRESETS[b.dataset.preset];commit(()=>{st.layout=p.items();st.name=pv(p.name);st.sketch=null;sel=null;});OV={img:null};IMG=null;FIT=null;fit();if(is3d)build3D(true);toast(L(`Caricato «${pv(p.name)}»`,`Loaded «${pv(p.name)}»`));return;}
   if(b.dataset.deltype){const id=b.dataset.deltype;commit(()=>{const t=st.types.find(x=>x.id===id);st.types=st.types.filter(x=>x.id!==id);st.layout=st.layout.filter(x=>x.t!==id);if(t)for(const k of Object.keys(t.parts))if(k.startsWith("x")||k.startsWith("g"))st.parts=st.parts.filter(p=>p.id!==k);sel=null;});return;}
   const a=b.dataset.act;
@@ -1829,10 +1871,13 @@ pane.addEventListener("click",e=>{
   else if(a==="gen"){genRes=generate();renderPane();if(!genRes.length)toast(L("Nessun tracciato entra nello spazio indicato.","No layout fits in the given space."));}
   else if(a==="copy-bom"){const need=bom();const lines=st.parts.filter(p=>need[p.id]).map(p=>`${Math.max(0,need[p.id]-(+st.owned[p.id]||0))} × ${pn(p)}`);if(AN.supports)lines.push(`${Math.max(0,AN.supports-(+st.owned.support||0))} × ${partName("support")}`);lines.push(`${Math.max(0,AN.clips-(+st.owned.clip||0))} × Tamiya Track Clip`);copy(`${st.name||L("Circuito","Track")} — ${L("da stampare","to print")}\n`+lines.join("\n"));}
   else if(a==="copy-json")copy(JSON.stringify(st));
+  else if(a==="lib-save"){const nm=$("#c-name");if(nm&&nm.value.trim()&&nm.value.trim()!==st.name)commit(()=>{st.name=nm.value.trim();});if(!st.layout.length){toast(L("La pista è vuota.","The track is empty."));return;}libSave();renderPane();}
+  else if(a==="save-json"){const sn=snapshot();download((sn.name||"circuito").replace(/[^\w\- àèéìòù]+/gi,"_").trim()+".json",new TextEncoder().encode(JSON.stringify(sn,null,1)),"application/json");}
+  else if(a==="open-json"){$("#jsonfile").click();}
   else if(a==="copy-svg")copy(exportSVG());
   else if(a==="clear")commit(()=>{st.layout=[];sel=null;});
   else if(a==="reset"){hist.push(JSON.stringify(st));st=defaults();sel=null;save();render();fit();toast(L("Ripristinato. Puoi annullare.","Reset done. You can undo."));}
-  else if(a==="import"){try{const s=JSON.parse($("#imp").value);if(!Array.isArray(s.layout)||!Array.isArray(s.types)||!Array.isArray(s.parts))throw 0;commit(()=>{st=migrate(Object.assign(defaults(),s));sel=null;});fit();toast(L("Circuito caricato","Track loaded"));}catch(_){toast(L("JSON non valido: incolla il testo copiato con «Copia JSON».","Invalid JSON: paste the text copied with «Copy JSON»."));}}
+  else if(a==="import"){try{if(!readTrackJSON($("#imp").value))throw 0;toast(L("Circuito caricato","Track loaded"));}catch(_){toast(L("JSON non valido: incolla il testo copiato con «Copia JSON».","Invalid JSON: paste the text copied with «Copy JSON»."));}}
   else if(a==="add-type"){
     const kind=$("#n-kind").value,name=$("#n-name").value.trim(),v=+$("#n-len").value,r=+$("#n-r").value,hh=+$("#n-h").value||0;
     if(!(v>0)||(kind==="curve"&&!(r>st.settings.width/2))){toast(kind==="curve"?L("Indica angolo e un raggio maggiore di metà larghezza pista.","Enter an angle and a radius larger than half the track width."):L("Indica la lunghezza in mm.","Enter the length in mm."));return;}

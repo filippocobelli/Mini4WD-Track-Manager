@@ -3,6 +3,7 @@
 // - app in the browser (Playwright): track closing, lanes, generators, inventory, Workshop, language switch
 // Usage: npm test   (optional PW_CHROMIUM = path to an already installed Chromium)
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -220,6 +221,27 @@ const sup = await page.evaluate(() => {
   return { n: sl.length, an: AN.supports, worst, txt: /Supporti: tutti a terra|Supports: all on the floor/.test(txt) };
 });
 ok(sup.n > 0 && sup.n === sup.an && sup.worst >= 238 / 2 && sup.txt, "bridge supports stand on the floor, never on the lower track", JSON.stringify(sup));
+
+// My tracks: save a drawn track to the list, load it back, file round trip, delete
+const lib = await page.evaluate(() => {
+  localStorage.removeItem(LIBKEY);
+  const pts = []; for (let i = 0; i < 160; i++) { const t = i / 160 * 2 * Math.PI; pts.push({ x: Math.cos(t) * 900, y: Math.sin(t) * 450 }); }
+  runFit(pts, "draw", { autoScale: true }); st.name = "Ovale disegnato"; const n = st.layout.length, ids = st.layout.map(x => x.t).join();
+  document.querySelector("#savebtn").click();
+  const listed = tab === "file" && /Ovale disegnato/.test(document.querySelector("#pane").innerText);
+  document.querySelector("[data-preset]").click(); const other = st.layout.length;
+  document.querySelector("[data-lib-load]").click();
+  const back = st.layout.map(x => x.t).join() === ids && !!st.sketch && AN.exact;
+  window._snap = JSON.stringify(snapshot());
+  return { n, listed, other, back, count: libGet().length };
+});
+ok(lib.listed && lib.back && lib.count === 1 && lib.other !== lib.n, "My tracks: Save puts the drawn track in the list, Load brings it back (pieces, drawing, closed)", JSON.stringify(lib));
+const snapFile = path.join(os.tmpdir(), "m4wd-track.json"); fs.writeFileSync(snapFile, await page.evaluate(() => window._snap));
+await page.evaluate(() => { document.querySelector("[data-preset]").click(); tab = "file"; renderPane(); });
+await page.setInputFiles("#jsonfile", snapFile); await page.waitForTimeout(400);
+const lib2 = await page.evaluate(() => { const ok1 = st.name === "Ovale disegnato" && AN.exact; const del = () => document.querySelector("[data-lib-del]").click(); del(); const armed = libGet().length === 1 && /Elimina\?|Delete\?/.test(document.querySelector("#pane").innerText); del(); return { ok1, armed, left: libGet().length }; });
+ok(lib2.ok1 && lib2.armed && lib2.left === 0, "JSON file opened back into the planner; ✕ asks once more, then deletes", JSON.stringify(lib2));
+await page.evaluate(() => { tab = "ws"; renderPane(); });
 
 const en = await page.evaluate(() => ({ lang: document.documentElement.lang, tab: document.querySelector('[data-tab="inv"]').textContent }));
 ok(en.lang === "en" && en.tab === "Inventory", "starts in English", JSON.stringify(en));

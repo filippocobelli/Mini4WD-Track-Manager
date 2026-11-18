@@ -5,6 +5,13 @@ Versions follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 - MINOR: new compatible features (e.g. 1.1.0)
 - MAJOR: changes that break tracks or saved data (e.g. 2.0.0)
 
+## [2.10.0] - 2026-11-18
+
+- **My tracks**: 💾 Save in the toolbar (or *Tracks → Save to My tracks*) keeps named tracks in a list, with their
+  drawing and made-to-measure pieces; each can be loaded, downloaded as JSON or deleted (second tap confirms).
+  Saving again with the same name updates it.
+- **Download JSON** saves the track as a file; **Open JSON file** loads it back (also old full exports).
+
 ## [2.9.0] - 2026-11-18
 
 - Images from track editors where plain pieces are drawn only as lane lines on white (Tamiya-style layouts) are now

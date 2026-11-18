@@ -270,7 +270,7 @@ Le app desktop funzionano offline. Non hanno la firma a pagamento di Apple e Mic
   `xattr -cr "/Applications/Mini4WD Track Planner.app"`, poi riaprila.
 - **Windows**: se compare SmartScreen, *Ulteriori informazioni → Esegui comunque*.
 
-I dati (circuito, magazzino, storico) restano sul dispositivo. Per spostarli: *Circuiti → Copia JSON* e *Carica JSON*.
+I dati (circuito, magazzino, storico) restano sul dispositivo. **💾 Salva** (barra) o *Circuiti → Salva nei miei circuiti* tiene tutti i circuiti che vuoi, con nome e disegno, ognuno da caricare, scaricare o eliminare. Per spostare un circuito su un altro dispositivo: *Scarica JSON*, poi lì *Apri file JSON* (oppure *Copia JSON* / incolla).
 
 ---
 

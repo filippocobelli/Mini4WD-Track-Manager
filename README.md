@@ -269,7 +269,7 @@ The desktop apps work offline. They don't have Apple's or Microsoft's paid signa
   `xattr -cr "/Applications/Mini4WD Track Planner.app"`, then open it again.
 - **Windows**: if SmartScreen appears, *More info → Run anyway*.
 
-Your data (track, inventory, history) stays on your device. To move it: *Tracks → Copy JSON* and *Load JSON*.
+Your data (track, inventory, history) stays on your device. **💾 Save** (toolbar) or *Tracks → Save to My tracks* keeps as many named tracks as you like, drawing included, each one ready to load, download or delete. To move a track to another device: *Download JSON*, then *Open JSON file* there (or *Copy JSON* / paste).
 
 ---
 
